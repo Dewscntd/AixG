@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+  namespace: ai-processing
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: model-inference
+        image: registry.gitlab.com/footanalytics/ml-pipeline:latest
+        resources:
+          limits:
+            nvidia.com/gpu: 2
+          requests:
+            cpu: 2
+            memory: 8Gi
+        env:
+        - name: MODEL_VERSION
+          value: "v3.1.0"
+        - name: KAFKA_BROKERS
+          value: "pulsar-proxy:6650"
+
+      - name: metrics-exporter
+        image: prom/statsd-exporter
+        ports:
+        - containerPort: 9102
+
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ml-pipeline-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ml-pipeline
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70

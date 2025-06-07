@@ -1,0 +1,277 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: src/api-gateway/Dockerfile
+      target: development
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - REDIS_URL=redis://redis:6379
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3000/graphql
+      - VIDEO_INGESTION_SERVICE_URL=http://video-ingestion-service:3001/graphql
+      - ML_PIPELINE_SERVICE_URL=http://ml-pipeline-service:8000/graphql
+      - TEAM_MANAGEMENT_SERVICE_URL=http://team-management-service:3002/graphql
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - GRAPHQL_PLAYGROUND=true
+      - GRAPHQL_INTROSPECTION=true
+      - CORS_ORIGIN=*
+      - METRICS_ENABLED=true
+      - TRACING_ENABLED=true
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
+    depends_on:
+      - redis
+      - analytics-service
+      - video-ingestion-service
+    networks:
+      - footanalytics
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/graphql?query={healthCheck{status}}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Analytics Engine Service
+  analytics-service:
+    build:
+      context: .
+      dockerfile: src/analytics-engine-service/Dockerfile
+      target: development
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:password@timescaledb:5432/footanalytics_analytics
+      - REDIS_URL=redis://redis:6379
+      - PULSAR_URL=pulsar://pulsar:6650
+      - GRAPHQL_PLAYGROUND=true
+      - ML_PIPELINE_SERVICE_URL=http://ml-pipeline-service:8000
+    volumes:
+      - ./src/analytics-engine-service:/app/src/analytics-engine-service
+      - ./src/domain:/app/src/domain
+    depends_on:
+      - timescaledb
+      - redis
+      - pulsar
+    networks:
+      - footanalytics
+    restart: unless-stopped
+
+  # Video Ingestion Service
+  video-ingestion-service:
+    build:
+      context: .
+      dockerfile: src/video-ingestion-service/Dockerfile
+      target: development
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/footanalytics_videos
+      - REDIS_URL=redis://redis:6379
+      - PULSAR_URL=pulsar://pulsar:6650
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - AWS_REGION=us-east-1
+      - AWS_S3_BUCKET=footanalytics-videos
+      - AWS_S3_ENDPOINT=http://minio:9000
+      - AWS_S3_FORCE_PATH_STYLE=true
+    volumes:
+      - ./src/video-ingestion-service:/app/src/video-ingestion-service
+      - ./src/domain:/app/src/domain
+      - /tmp/video_processing:/tmp/video_processing
+    depends_on:
+      - postgres
+      - redis
+      - pulsar
+      - minio
+    networks:
+      - footanalytics
+    restart: unless-stopped
+
+  # ML Pipeline Service
+  ml-pipeline-service:
+    build:
+      context: .
+      dockerfile: src/ml-pipeline-service/Dockerfile
+      target: development
+    ports:
+      - "8000:8000"
+      - "8765:8765"
+    environment:
+      - PULSAR_SERVICE_URL=pulsar://pulsar:6650
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - ML_PIPELINE_LOG_LEVEL=INFO
+      - GPU_MEMORY_FRACTION=0.8
+    volumes:
+      - ./src/ml-pipeline-service:/app/src/ml-pipeline-service
+      - ./models:/app/models
+      - ./data:/app/data
+      - /tmp/video_processing:/tmp/video_processing
+    depends_on:
+      - redis
+      - pulsar
+    networks:
+      - footanalytics
+    restart: unless-stopped
+
+  # Redis for caching and pub/sub
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - footanalytics
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # TimescaleDB for analytics time-series data
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=footanalytics_analytics
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./database/migrations/analytics:/docker-entrypoint-initdb.d
+    networks:
+      - footanalytics
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL for general data
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=footanalytics_videos
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations/videos:/docker-entrypoint-initdb.d
+    networks:
+      - footanalytics
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Apache Pulsar for event streaming
+  pulsar:
+    image: apachepulsar/pulsar:3.1.0
+    ports:
+      - "6650:6650"
+      - "8080:8080"
+    environment:
+      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+    command: >
+      bash -c "bin/apply-config-from-env.py conf/standalone.conf &&
+               exec bin/pulsar standalone"
+    volumes:
+      - pulsar_data:/pulsar/data
+    networks:
+      - footanalytics
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/v2/clusters"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MinIO for S3-compatible object storage
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - footanalytics
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana for monitoring dashboards
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3003:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./infrastructure/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - footanalytics
+    restart: unless-stopped
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - footanalytics
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  timescaledb_data:
+  postgres_data:
+  pulsar_data:
+  minio_data:
+  grafana_data:
+  prometheus_data:
+
+networks:
+  footanalytics:
+    driver: bridge

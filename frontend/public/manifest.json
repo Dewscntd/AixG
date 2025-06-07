@@ -1,0 +1,188 @@
+{
+  "name": "FootAnalytics - Football Analytics Platform",
+  "short_name": "FootAnalytics",
+  "description": "Advanced football analytics platform with real-time match analysis, video processing, and team management for Israeli football clubs.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "he",
+  "dir": "rtl",
+  "categories": ["sports", "analytics", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard view on desktop"
+    },
+    {
+      "src": "/screenshots/mobile-match.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Match analytics on mobile"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View main analytics dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icons/shortcut-dashboard.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Live Matches",
+      "short_name": "Live",
+      "description": "View live match analytics",
+      "url": "/matches/live",
+      "icons": [
+        {
+          "src": "/icons/shortcut-live.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Video Analysis",
+      "short_name": "Videos",
+      "description": "Access video analysis tools",
+      "url": "/videos",
+      "icons": [
+        {
+          "src": "/icons/shortcut-video.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Team Management",
+      "short_name": "Team",
+      "description": "Manage team and players",
+      "url": "/team",
+      "icons": [
+        {
+          "src": "/icons/shortcut-team.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.footanalytics.app",
+      "id": "com.footanalytics.app"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/footanalytics/id123456789"
+    }
+  ],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "handle_links": "preferred",
+  "capture_links": "existing-client-navigate",
+  "protocol_handlers": [
+    {
+      "protocol": "web+footanalytics",
+      "url": "/share?url=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "video",
+          "accept": ["video/mp4", "video/avi", "video/mov"]
+        }
+      ]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "/video-upload",
+      "accept": {
+        "video/*": [".mp4", ".avi", ".mov", ".mkv"]
+      },
+      "icons": [
+        {
+          "src": "/icons/file-video.png",
+          "sizes": "256x256",
+          "type": "image/png"
+        }
+      ],
+      "launch_type": "single-client"
+    }
+  ]
+}

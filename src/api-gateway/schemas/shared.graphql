@@ -1,0 +1,400 @@
+# Shared Types Schema - Common types used across all federated services
+
+# Core Entity Types (these will be extended by individual services)
+type Match @key(fields: "id") {
+  id: ID!
+  homeTeamId: ID!
+  awayTeamId: ID!
+  homeTeam: Team!
+  awayTeam: Team!
+  startTime: DateTime!
+  endTime: DateTime
+  status: MatchStatus!
+  venue: String
+  weather: WeatherConditions
+  referee: String
+  attendance: Int
+  season: String!
+  league: String!
+  round: String
+  importance: MatchImportance!
+  
+  # Scores
+  homeScore: Int!
+  awayScore: Int!
+  halfTimeScore: ScoreData
+  extraTimeScore: ScoreData
+  penaltyScore: ScoreData
+  
+  # Metadata
+  tags: [String!]!
+  notes: String
+  isPublic: Boolean!
+  
+  # Timestamps
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Team @key(fields: "id") {
+  id: ID!
+  name: String!
+  shortName: String!
+  code: String!
+  logo: String
+  colors: TeamColors!
+  foundedYear: Int
+  stadium: String
+  capacity: Int
+  league: String!
+  division: String
+  country: String!
+  city: String
+  website: String
+  
+  # Status
+  isActive: Boolean!
+  verified: Boolean!
+  
+  # Social
+  socialMedia: SocialMediaLinks
+  
+  # Timestamps
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Player @key(fields: "id") {
+  id: ID!
+  teamId: ID!
+  team: Team!
+  firstName: String!
+  lastName: String!
+  displayName: String!
+  jerseyNumber: Int!
+  position: PlayerPosition!
+  
+  # Personal Info
+  dateOfBirth: DateTime
+  nationality: String
+  height: Int # in cm
+  weight: Int # in kg
+  preferredFoot: Foot
+  
+  # Career Info
+  joinedAt: DateTime!
+  contractUntil: DateTime
+  marketValue: Int
+  previousClubs: [String!]!
+  
+  # Status
+  isActive: Boolean!
+  isInjured: Boolean!
+  injuryDetails: String
+  
+  # Timestamps
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Coach @key(fields: "id") {
+  id: ID!
+  teamId: ID
+  team: Team
+  firstName: String!
+  lastName: String!
+  displayName: String!
+  role: CoachRole!
+  
+  # Personal Info
+  dateOfBirth: DateTime
+  nationality: String
+  
+  # Career Info
+  joinedAt: DateTime!
+  contractUntil: DateTime
+  previousClubs: [String!]!
+  achievements: [String!]!
+  
+  # Status
+  isActive: Boolean!
+  
+  # Timestamps
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# Supporting Types
+type ScoreData {
+  home: Int!
+  away: Int!
+}
+
+type TeamColors {
+  primary: String!
+  secondary: String!
+  accent: String
+}
+
+type SocialMediaLinks {
+  website: String
+  facebook: String
+  twitter: String
+  instagram: String
+  youtube: String
+  tiktok: String
+}
+
+type WeatherConditions {
+  temperature: Float # in Celsius
+  humidity: Float # percentage
+  windSpeed: Float # km/h
+  windDirection: String
+  precipitation: Float # mm
+  conditions: String # sunny, cloudy, rainy, etc.
+}
+
+type Position {
+  x: Float!
+  y: Float!
+  z: Float # for 3D coordinates
+}
+
+# User and Permission Types
+extend type User {
+  profile: UserProfile
+  preferences: UserPreferences
+  teams: [Team!]! # Teams the user has access to
+  roles: [Role!]!
+}
+
+type UserProfile {
+  firstName: String
+  lastName: String
+  displayName: String
+  avatar: String
+  bio: String
+  location: String
+  timezone: String
+  language: String!
+  dateFormat: String!
+  timeFormat: String!
+}
+
+type UserPreferences {
+  notifications: NotificationPreferences!
+  privacy: PrivacySettings!
+  display: DisplaySettings!
+  analytics: AnalyticsPreferences!
+}
+
+type NotificationPreferences {
+  email: Boolean!
+  push: Boolean!
+  sms: Boolean!
+  matchUpdates: Boolean!
+  analyticsReports: Boolean!
+  systemAlerts: Boolean!
+}
+
+type PrivacySettings {
+  profileVisibility: VisibilityLevel!
+  activityVisibility: VisibilityLevel!
+  dataSharing: Boolean!
+  analyticsTracking: Boolean!
+}
+
+type DisplaySettings {
+  theme: Theme!
+  language: String!
+  timezone: String!
+  dateFormat: String!
+  timeFormat: String!
+  density: DisplayDensity!
+}
+
+type AnalyticsPreferences {
+  defaultTimeRange: String!
+  favoriteMetrics: [String!]!
+  dashboardLayout: JSON!
+  autoRefresh: Boolean!
+  refreshInterval: Int!
+}
+
+type Role {
+  id: ID!
+  name: String!
+  description: String!
+  permissions: [Permission!]!
+  isSystem: Boolean!
+  createdAt: DateTime!
+}
+
+type Permission {
+  id: ID!
+  name: String!
+  resource: String!
+  action: String!
+  conditions: JSON
+}
+
+# Enums
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  HALF_TIME
+  EXTRA_TIME
+  PENALTY_SHOOTOUT
+  COMPLETED
+  POSTPONED
+  CANCELLED
+  ABANDONED
+}
+
+enum MatchImportance {
+  FRIENDLY
+  LEAGUE
+  CUP
+  PLAYOFF
+  FINAL
+  INTERNATIONAL
+}
+
+enum PlayerPosition {
+  GOALKEEPER
+  DEFENDER
+  MIDFIELDER
+  FORWARD
+  
+  # Specific positions
+  CENTER_BACK
+  LEFT_BACK
+  RIGHT_BACK
+  WING_BACK
+  DEFENSIVE_MIDFIELDER
+  CENTRAL_MIDFIELDER
+  ATTACKING_MIDFIELDER
+  LEFT_MIDFIELDER
+  RIGHT_MIDFIELDER
+  LEFT_WINGER
+  RIGHT_WINGER
+  STRIKER
+  CENTER_FORWARD
+}
+
+enum Foot {
+  LEFT
+  RIGHT
+  BOTH
+}
+
+enum CoachRole {
+  HEAD_COACH
+  ASSISTANT_COACH
+  GOALKEEPING_COACH
+  FITNESS_COACH
+  TACTICAL_ANALYST
+  SCOUT
+  PHYSIOTHERAPIST
+  TEAM_DOCTOR
+}
+
+enum VisibilityLevel {
+  PUBLIC
+  TEAM
+  PRIVATE
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  AUTO
+}
+
+enum DisplayDensity {
+  COMPACT
+  COMFORTABLE
+  SPACIOUS
+}
+
+# Common Input Types
+input TeamInput {
+  name: String!
+  shortName: String!
+  code: String!
+  logo: String
+  colors: TeamColorsInput!
+  league: String!
+  country: String!
+  city: String
+}
+
+input TeamColorsInput {
+  primary: String!
+  secondary: String!
+  accent: String
+}
+
+input PlayerInput {
+  teamId: ID!
+  firstName: String!
+  lastName: String!
+  jerseyNumber: Int!
+  position: PlayerPosition!
+  dateOfBirth: DateTime
+  nationality: String
+  height: Int
+  weight: Int
+  preferredFoot: Foot
+}
+
+input MatchInput {
+  homeTeamId: ID!
+  awayTeamId: ID!
+  startTime: DateTime!
+  venue: String
+  league: String!
+  season: String!
+  round: String
+  importance: MatchImportance = LEAGUE
+}
+
+input UserPreferencesInput {
+  notifications: NotificationPreferencesInput
+  privacy: PrivacySettingsInput
+  display: DisplaySettingsInput
+  analytics: AnalyticsPreferencesInput
+}
+
+input NotificationPreferencesInput {
+  email: Boolean
+  push: Boolean
+  sms: Boolean
+  matchUpdates: Boolean
+  analyticsReports: Boolean
+  systemAlerts: Boolean
+}
+
+input PrivacySettingsInput {
+  profileVisibility: VisibilityLevel
+  activityVisibility: VisibilityLevel
+  dataSharing: Boolean
+  analyticsTracking: Boolean
+}
+
+input DisplaySettingsInput {
+  theme: Theme
+  language: String
+  timezone: String
+  dateFormat: String
+  timeFormat: String
+  density: DisplayDensity
+}
+
+input AnalyticsPreferencesInput {
+  defaultTimeRange: String
+  favoriteMetrics: [String!]
+  dashboardLayout: JSON
+  autoRefresh: Boolean
+  refreshInterval: Int
+}

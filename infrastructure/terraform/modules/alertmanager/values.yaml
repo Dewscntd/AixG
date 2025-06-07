@@ -1,0 +1,71 @@
+# Alertmanager Helm chart values
+
+replicas: 2
+
+persistence:
+  enabled: true
+  storageClass: "gp3"
+  size: 10Gi
+
+securityContext:
+  runAsUser: 65534
+  runAsNonRoot: true
+  fsGroup: 65534
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+config:
+  ${config_content}
+
+service:
+  type: ClusterIP
+  port: 9093
+
+ingress:
+  enabled: true
+  ingressClassName: "istio"
+  annotations:
+    kubernetes.io/ingress.class: "istio"
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: alertmanager.footanalytics.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: alertmanager-tls
+      hosts:
+        - alertmanager.footanalytics.com
+
+# Istio-specific configuration
+podAnnotations:
+  sidecar.istio.io/inject: "true"
+
+# Security settings
+secretsMounts:
+  - name: alertmanager-tls
+    secretName: alertmanager-tls
+    path: /etc/alertmanager/secrets/tls
+
+# RBAC configuration
+rbac:
+  create: true
+  pspEnabled: false
+
+serviceAccount:
+  create: true
+  name: alertmanager
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/alertmanager-role"
+
+# Network policies
+networkPolicy:
+  enabled: true

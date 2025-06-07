@@ -1,0 +1,133 @@
+# Gateway Schema - Core types and operations for the API Gateway
+
+# Directives
+directive @auth(
+  requires: AuthLevel
+  roles: [String!]
+  permissions: [String!]
+  teamAccess: Boolean = false
+) on FIELD_DEFINITION | OBJECT
+
+directive @rateLimit(
+  max: Int!
+  window: Int!
+  message: String
+  skipSuccessfulRequests: Boolean = false
+  skipFailedRequests: Boolean = false
+  keyGenerator: RateLimitKeyGenerator = USER
+) on FIELD_DEFINITION
+
+directive @cache(
+  ttl: Int
+  key: String
+  tags: [String!]
+  scope: CacheScope = PUBLIC
+  invalidateOn: [String!]
+) on FIELD_DEFINITION
+
+# Enums
+enum AuthLevel {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum RateLimitKeyGenerator {
+  USER
+  IP
+  USER_AND_FIELD
+  IP_AND_FIELD
+}
+
+enum CacheScope {
+  PUBLIC
+  PRIVATE
+  TEAM
+}
+
+enum ServiceStatus {
+  HEALTHY
+  UNHEALTHY
+  DEGRADED
+}
+
+# Core Types
+type HealthStatus {
+  status: String!
+  timestamp: DateTime!
+  version: String!
+  uptime: Float!
+  services: [ServiceHealth!]!
+}
+
+type ServiceHealth {
+  name: String!
+  status: ServiceStatus!
+  responseTime: Float
+  lastCheck: DateTime!
+  details: JSON
+}
+
+type GatewayMetrics {
+  totalRequests: Int!
+  successRate: Float!
+  averageResponseTime: Float!
+  errorRate: Float!
+  cacheHitRate: Float!
+  activeConnections: Int!
+  timestamp: DateTime!
+}
+
+type AuthenticationResult {
+  success: Boolean!
+  token: String
+  user: User
+  expiresAt: DateTime
+  message: String
+}
+
+type User {
+  id: ID!
+  email: String!
+  roles: [String!]!
+  permissions: [String!]!
+  teamId: ID
+  isActive: Boolean!
+  lastLoginAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# Scalars
+scalar DateTime
+scalar JSON
+scalar Upload
+
+# Root Types
+type Query {
+  # Health and monitoring
+  healthCheck: HealthStatus!
+  detailedHealthCheck: HealthStatus! @auth(requires: ADMIN)
+  gatewayMetrics: GatewayMetrics! @auth(requires: ADMIN) @rateLimit(max: 10, window: 60)
+  
+  # User queries
+  me: User @auth(requires: USER)
+}
+
+type Mutation {
+  # Authentication
+  authenticate(email: String!, password: String!): AuthenticationResult!
+  refreshToken(refreshToken: String!): AuthenticationResult!
+  logout: Boolean! @auth(requires: USER)
+  
+  # Cache management
+  invalidateCache(tags: [String!]!): Boolean! @auth(requires: ADMIN)
+}
+
+type Subscription {
+  # Gateway events
+  gatewayEvents: String! @auth(requires: USER)
+  
+  # System notifications
+  systemNotifications: String! @auth(requires: ADMIN)
+}

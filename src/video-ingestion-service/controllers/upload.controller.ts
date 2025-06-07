@@ -1,0 +1,177 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  UploadedFile,
+  UseInterceptors,
+  HttpStatus,
+  HttpException,
+  Logger,
+  ValidationPipe,
+  UsePipes
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadVideoUseCase } from '../application/use-cases/upload-video.use-case';
+import { ResumeUploadUseCase } from '../application/use-cases/resume-upload.use-case';
+import { GetUploadProgressUseCase } from '../application/use-cases/get-upload-progress.use-case';
+import { UploadVideoDto, ResumeUploadDto, GetUploadProgressDto } from '../application/dto/upload-video.dto';
+import { Readable } from 'stream';
+
+@Controller('api/videos')
+export class VideoUploadController {
+  private readonly logger = new Logger(VideoUploadController.name);
+
+  constructor(
+    private readonly uploadVideoUseCase: UploadVideoUseCase,
+    private readonly resumeUploadUseCase: ResumeUploadUseCase,
+    private readonly getUploadProgressUseCase: GetUploadProgressUseCase
+  ) {}
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('video', {
+    limits: {
+      fileSize: 10 * 1024 * 1024 * 1024, // 10GB
+    },
+    fileFilter: (req, file, callback) => {
+      const allowedMimeTypes = [
+        'video/mp4',
+        'video/avi',
+        'video/quicktime',
+        'video/x-msvideo',
+        'video/webm',
+        'video/x-ms-wmv',
+        'video/x-flv'
+      ];
+
+      if (allowedMimeTypes.includes(file.mimetype)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Invalid file type. Only video files are allowed.'), false);
+      }
+    }
+  }))
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async uploadVideo(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() uploadDto: UploadVideoDto
+  ) {
+    try {
+      if (!file) {
+        throw new HttpException('No video file provided', HttpStatus.BAD_REQUEST);
+      }
+
+      this.logger.log(`Starting video upload: ${file.originalname}`);
+
+      // Convert file buffer to ReadableStream
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(file.buffer);
+          controller.close();
+        }
+      });
+
+      const result = await this.uploadVideoUseCase.execute({
+        stream,
+        filename: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        uploadedBy: uploadDto.uploadedBy,
+        matchId: uploadDto.matchId,
+        teamId: uploadDto.teamId,
+        tags: uploadDto.tags
+      });
+
+      this.logger.log(`Video upload completed: ${result.videoId}`);
+
+      return {
+        success: true,
+        data: result,
+        message: 'Video uploaded successfully'
+      };
+
+    } catch (error) {
+      this.logger.error(`Video upload failed: ${error.message}`, error.stack);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        `Upload failed: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('upload/resume')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async resumeUpload(@Body() resumeDto: ResumeUploadDto) {
+    try {
+      this.logger.log(`Resuming upload: ${resumeDto.uploadId}`);
+
+      // In a real implementation, you would get the stream from the request
+      // For now, we'll create a mock stream
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.close();
+        }
+      });
+
+      const result = await this.resumeUploadUseCase.execute({
+        uploadId: resumeDto.uploadId,
+        stream,
+        offset: resumeDto.offset
+      });
+
+      this.logger.log(`Upload resume completed: ${result.videoId}`);
+
+      return {
+        success: true,
+        data: result,
+        message: result.isComplete ? 'Upload completed' : 'Upload resumed'
+      };
+
+    } catch (error) {
+      this.logger.error(`Resume upload failed: ${error.message}`, error.stack);
+
+      throw new HttpException(
+        `Resume upload failed: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Get('upload/:uploadId/progress')
+  async getUploadProgress(@Param('uploadId') uploadId: string) {
+    try {
+      this.logger.log(`Getting upload progress: ${uploadId}`);
+
+      const result = await this.getUploadProgressUseCase.execute({ uploadId });
+
+      return {
+        success: true,
+        data: result,
+        message: 'Upload progress retrieved successfully'
+      };
+
+    } catch (error) {
+      this.logger.error(`Get upload progress failed: ${error.message}`, error.stack);
+
+      throw new HttpException(
+        `Failed to get upload progress: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Get('health')
+  async healthCheck() {
+    return {
+      status: 'healthy',
+      service: 'video-ingestion-service',
+      timestamp: new Date().toISOString()
+    };
+  }
+}

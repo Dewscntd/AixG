@@ -1,0 +1,22 @@
+replicaCount: ${replica_count}
+
+persistence:
+  storageClass: "${storage_class}"
+  size: "${storage_size}"
+
+resources:
+  limits:
+    cpu: "${cpu_limit}"
+    memory: "${memory_limit}"
+
+backup:
+  enabled: true
+  bucket: "${backup_s3_bucket}"
+  schedule: "0 2 * * *"
+
+continuousAggregates:
+  enabled: true
+  refreshInterval: "1 hour"
+
+hypertables:
+  chunkTimeInterval: "7 days"

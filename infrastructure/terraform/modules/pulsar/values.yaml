@@ -1,0 +1,20 @@
+broker:
+  replicas: ${broker_replicas}
+  resources:
+    limits:
+      memory: "8Gi"
+      nvidia.com/gpu: "${gpu_enabled ? 1 : 0}"
+  configData:
+    PULSAR_MEM: "-Xms4g -Xmx4g"
+
+bookkeeper:
+  replicas: ${bookie_replicas}
+  storage:
+    existingStorageClass: "${storage_class}"
+    size: 1000Gi
+
+zookeeper:
+  replicas: ${zk_replicas}
+
+autorecovery:
+  enabled: true

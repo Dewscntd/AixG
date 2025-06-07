@@ -1,0 +1,471 @@
+import { Injectable, Logger } from '@nestjs/common';
+import Redis from 'ioredis';
+import { LRUCache } from 'lru-cache';
+import * as zlib from 'zlib';
+import { promisify } from 'util';
+
+const gzip = promisify(zlib.gzip);
+const gunzip = promisify(zlib.gunzip);
+
+interface CacheConfig {
+  l1MaxSize: number; // L1 cache max items
+  l1TTL: number; // L1 cache TTL in ms
+  l2TTL: number; // L2 cache TTL in seconds
+  compressionThreshold: number; // Compress values larger than this (bytes)
+  enableCompression: boolean;
+  enableWarmup: boolean;
+  warmupQueries: string[];
+}
+
+interface CacheMetrics {
+  l1Hits: number;
+  l1Misses: number;
+  l2Hits: number;
+  l2Misses: number;
+  compressionRatio: number;
+  averageResponseTime: number;
+  totalRequests: number;
+}
+
+interface CacheEntry {
+  value: any;
+  compressed: boolean;
+  timestamp: number;
+  ttl: number;
+  tags: string[];
+  size: number;
+}
+
+/**
+ * Advanced Multi-Layer Caching Service
+ * Implements L1 (Memory), L2 (Redis), compression, and intelligent warming
+ */
+@Injectable()
+export class AdvancedCacheService {
+  private readonly logger = new Logger(AdvancedCacheService.name);
+  private readonly l1Cache: LRUCache<string, CacheEntry>;
+  private readonly redis: Redis;
+  private readonly metrics: CacheMetrics;
+  private readonly tagIndex = new Map<string, Set<string>>();
+
+  constructor(
+    private readonly config: CacheConfig,
+    redisUrl: string = 'redis://localhost:6379'
+  ) {
+    // Initialize L1 cache (in-memory LRU)
+    this.l1Cache = new LRUCache({
+      max: config.l1MaxSize,
+      ttl: config.l1TTL,
+      updateAgeOnGet: true,
+      allowStale: false
+    });
+
+    // Initialize L2 cache (Redis)
+    this.redis = new Redis(redisUrl, {
+      retryDelayOnFailover: 100,
+      maxRetriesPerRequest: 3,
+      lazyConnect: true
+    });
+
+    // Initialize metrics
+    this.metrics = {
+      l1Hits: 0,
+      l1Misses: 0,
+      l2Hits: 0,
+      l2Misses: 0,
+      compressionRatio: 0,
+      averageResponseTime: 0,
+      totalRequests: 0
+    };
+
+    // Setup cache warming if enabled
+    if (config.enableWarmup) {
+      this.setupCacheWarming();
+    }
+
+    this.logger.log('Advanced Cache Service initialized');
+  }
+
+  /**
+   * Get value from cache with multi-layer fallback
+   */
+  async get<T>(key: string): Promise<T | null> {
+    const startTime = Date.now();
+    this.metrics.totalRequests++;
+
+    try {
+      // Try L1 cache first
+      const l1Entry = this.l1Cache.get(key);
+      if (l1Entry) {
+        this.metrics.l1Hits++;
+        this.updateResponseTime(startTime);
+        return this.deserializeValue(l1Entry);
+      }
+
+      this.metrics.l1Misses++;
+
+      // Try L2 cache (Redis)
+      const l2Data = await this.redis.get(key);
+      if (l2Data) {
+        this.metrics.l2Hits++;
+        
+        const entry: CacheEntry = JSON.parse(l2Data);
+        const value = await this.deserializeValue(entry);
+        
+        // Promote to L1 cache
+        this.l1Cache.set(key, entry);
+        
+        this.updateResponseTime(startTime);
+        return value;
+      }
+
+      this.metrics.l2Misses++;
+      this.updateResponseTime(startTime);
+      return null;
+
+    } catch (error) {
+      this.logger.error(`Cache get error for key ${key}: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Set value in cache with compression and tagging
+   */
+  async set<T>(
+    key: string, 
+    value: T, 
+    ttl: number = this.config.l2TTL,
+    tags: string[] = []
+  ): Promise<void> {
+    try {
+      const serialized = JSON.stringify(value);
+      const size = Buffer.byteLength(serialized, 'utf8');
+      
+      let finalValue = serialized;
+      let compressed = false;
+
+      // Apply compression if enabled and value is large enough
+      if (this.config.enableCompression && size > this.config.compressionThreshold) {
+        const compressedBuffer = await gzip(serialized);
+        finalValue = compressedBuffer.toString('base64');
+        compressed = true;
+        
+        // Update compression ratio metric
+        const compressionRatio = compressedBuffer.length / size;
+        this.metrics.compressionRatio = 
+          (this.metrics.compressionRatio + compressionRatio) / 2;
+      }
+
+      const entry: CacheEntry = {
+        value: finalValue,
+        compressed,
+        timestamp: Date.now(),
+        ttl,
+        tags,
+        size
+      };
+
+      // Store in L1 cache
+      this.l1Cache.set(key, entry);
+
+      // Store in L2 cache (Redis)
+      await this.redis.setex(key, ttl, JSON.stringify(entry));
+
+      // Update tag index
+      this.updateTagIndex(key, tags);
+
+      this.logger.debug(`Cached key ${key} (${size} bytes, compressed: ${compressed})`);
+
+    } catch (error) {
+      this.logger.error(`Cache set error for key ${key}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete specific key from all cache layers
+   */
+  async delete(key: string): Promise<void> {
+    try {
+      // Remove from L1
+      this.l1Cache.delete(key);
+
+      // Remove from L2
+      await this.redis.del(key);
+
+      // Remove from tag index
+      this.removeFromTagIndex(key);
+
+      this.logger.debug(`Deleted key ${key} from cache`);
+
+    } catch (error) {
+      this.logger.error(`Cache delete error for key ${key}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Invalidate cache by tags
+   */
+  async invalidateByTags(tags: string[]): Promise<void> {
+    try {
+      const keysToInvalidate = new Set<string>();
+
+      // Find all keys with these tags
+      for (const tag of tags) {
+        const taggedKeys = this.tagIndex.get(tag);
+        if (taggedKeys) {
+          taggedKeys.forEach(key => keysToInvalidate.add(key));
+        }
+      }
+
+      // Delete all found keys
+      const deletePromises = Array.from(keysToInvalidate).map(key => this.delete(key));
+      await Promise.all(deletePromises);
+
+      this.logger.log(`Invalidated ${keysToInvalidate.size} keys by tags: ${tags.join(', ')}`);
+
+    } catch (error) {
+      this.logger.error(`Cache invalidation error for tags ${tags}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Warm cache with predefined queries
+   */
+  async warmCache(warmupData: Array<{ key: string; value: any; ttl?: number; tags?: string[] }>): Promise<void> {
+    this.logger.log(`Starting cache warming with ${warmupData.length} entries`);
+
+    const warmupPromises = warmupData.map(async ({ key, value, ttl, tags }) => {
+      try {
+        await this.set(key, value, ttl, tags);
+      } catch (error) {
+        this.logger.warn(`Failed to warm cache for key ${key}: ${error.message}`);
+      }
+    });
+
+    await Promise.all(warmupPromises);
+    this.logger.log('Cache warming completed');
+  }
+
+  /**
+   * Get cache statistics and metrics
+   */
+  getCacheMetrics(): CacheMetrics & {
+    l1Size: number;
+    l1MaxSize: number;
+    l2ConnectionStatus: string;
+    hitRatio: number;
+  } {
+    const totalHits = this.metrics.l1Hits + this.metrics.l2Hits;
+    const totalMisses = this.metrics.l1Misses + this.metrics.l2Misses;
+    const hitRatio = totalHits / (totalHits + totalMisses) || 0;
+
+    return {
+      ...this.metrics,
+      l1Size: this.l1Cache.size,
+      l1MaxSize: this.config.l1MaxSize,
+      l2ConnectionStatus: this.redis.status,
+      hitRatio
+    };
+  }
+
+  /**
+   * Clear all cache layers
+   */
+  async clearAll(): Promise<void> {
+    try {
+      // Clear L1
+      this.l1Cache.clear();
+
+      // Clear L2 (Redis) - be careful in production!
+      await this.redis.flushdb();
+
+      // Clear tag index
+      this.tagIndex.clear();
+
+      // Reset metrics
+      Object.assign(this.metrics, {
+        l1Hits: 0,
+        l1Misses: 0,
+        l2Hits: 0,
+        l2Misses: 0,
+        compressionRatio: 0,
+        averageResponseTime: 0,
+        totalRequests: 0
+      });
+
+      this.logger.log('All cache layers cleared');
+
+    } catch (error) {
+      this.logger.error(`Cache clear error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get cache size information
+   */
+  async getCacheSize(): Promise<{
+    l1SizeBytes: number;
+    l2SizeBytes: number;
+    totalKeys: number;
+    compressionSavings: number;
+  }> {
+    let l1SizeBytes = 0;
+    let compressionSavings = 0;
+
+    // Calculate L1 size
+    for (const [, entry] of this.l1Cache.entries()) {
+      l1SizeBytes += entry.size;
+      if (entry.compressed) {
+        const compressedSize = Buffer.byteLength(entry.value, 'base64');
+        compressionSavings += entry.size - compressedSize;
+      }
+    }
+
+    // Get L2 size from Redis
+    const redisInfo = await this.redis.info('memory');
+    const memoryMatch = redisInfo.match(/used_memory:(\d+)/);
+    const l2SizeBytes = memoryMatch ? parseInt(memoryMatch[1]) : 0;
+
+    // Get total key count
+    const totalKeys = await this.redis.dbsize();
+
+    return {
+      l1SizeBytes,
+      l2SizeBytes,
+      totalKeys,
+      compressionSavings
+    };
+  }
+
+  /**
+   * Deserialize cached value with decompression support
+   */
+  private async deserializeValue<T>(entry: CacheEntry): Promise<T> {
+    let value = entry.value;
+
+    if (entry.compressed) {
+      const compressedBuffer = Buffer.from(value, 'base64');
+      const decompressed = await gunzip(compressedBuffer);
+      value = decompressed.toString('utf8');
+    }
+
+    return JSON.parse(value);
+  }
+
+  /**
+   * Update tag index for cache invalidation
+   */
+  private updateTagIndex(key: string, tags: string[]): void {
+    for (const tag of tags) {
+      if (!this.tagIndex.has(tag)) {
+        this.tagIndex.set(tag, new Set());
+      }
+      this.tagIndex.get(tag)!.add(key);
+    }
+  }
+
+  /**
+   * Remove key from tag index
+   */
+  private removeFromTagIndex(key: string): void {
+    for (const [tag, keys] of this.tagIndex) {
+      keys.delete(key);
+      if (keys.size === 0) {
+        this.tagIndex.delete(tag);
+      }
+    }
+  }
+
+  /**
+   * Update average response time metric
+   */
+  private updateResponseTime(startTime: number): void {
+    const responseTime = Date.now() - startTime;
+    this.metrics.averageResponseTime = 
+      (this.metrics.averageResponseTime + responseTime) / 2;
+  }
+
+  /**
+   * Setup automatic cache warming
+   */
+  private setupCacheWarming(): void {
+    // Warm cache on startup
+    setTimeout(() => {
+      this.performCacheWarming();
+    }, 5000); // Wait 5 seconds after startup
+
+    // Schedule periodic warming
+    setInterval(() => {
+      this.performCacheWarming();
+    }, 3600000); // Every hour
+  }
+
+  /**
+   * Perform cache warming with predefined queries
+   */
+  private async performCacheWarming(): Promise<void> {
+    if (!this.config.warmupQueries.length) {
+      return;
+    }
+
+    this.logger.log('Starting scheduled cache warming');
+
+    try {
+      // This would typically fetch data from your services
+      // For now, we'll simulate with placeholder data
+      const warmupData = this.config.warmupQueries.map(query => ({
+        key: `warmup:${query}`,
+        value: { query, result: 'warmed_data', timestamp: Date.now() },
+        ttl: 3600, // 1 hour
+        tags: ['warmup']
+      }));
+
+      await this.warmCache(warmupData);
+
+    } catch (error) {
+      this.logger.error(`Cache warming failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get cache health status
+   */
+  getHealthStatus(): {
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    l1Status: string;
+    l2Status: string;
+    hitRatio: number;
+    issues: string[];
+  } {
+    const metrics = this.getCacheMetrics();
+    const issues: string[] = [];
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+
+    // Check hit ratio
+    if (metrics.hitRatio < 0.5) {
+      issues.push('Low cache hit ratio');
+      status = 'degraded';
+    }
+
+    // Check L2 connection
+    if (this.redis.status !== 'ready') {
+      issues.push('Redis connection issues');
+      status = 'unhealthy';
+    }
+
+    // Check response time
+    if (metrics.averageResponseTime > 100) {
+      issues.push('High cache response time');
+      status = 'degraded';
+    }
+
+    return {
+      status,
+      l1Status: 'ready',
+      l2Status: this.redis.status,
+      hitRatio: metrics.hitRatio,
+      issues
+    };
+  }
+}

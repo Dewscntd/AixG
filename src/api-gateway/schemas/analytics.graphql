@@ -1,0 +1,415 @@
+# Analytics Service Schema - Federated schema for match analytics and statistics
+
+extend type Query {
+  # Match analytics
+  getMatchAnalytics(matchId: ID!, includeHistorical: Boolean = false): MatchAnalytics 
+    @auth(requires: USER, teamAccess: true) 
+    @cache(ttl: 300, scope: TEAM, tags: ["analytics", "match"])
+  
+  getTeamAnalytics(teamId: ID!, timeRange: TimeRange): TeamAnalytics 
+    @auth(requires: USER, teamAccess: true)
+    @cache(ttl: 600, scope: TEAM, tags: ["analytics", "team"])
+  
+  getPlayerAnalytics(playerId: ID!, timeRange: TimeRange): PlayerAnalytics 
+    @auth(requires: USER, teamAccess: true)
+    @cache(ttl: 300, scope: TEAM, tags: ["analytics", "player"])
+  
+  getTimeSeriesAnalytics(input: TimeSeriesInput!): [TimeSeriesData!]! 
+    @auth(requires: USER, teamAccess: true)
+    @rateLimit(max: 20, window: 60)
+  
+  getLeagueAnalytics(leagueId: ID!, timeRange: TimeRange): LeagueAnalytics 
+    @cache(ttl: 1800, scope: PUBLIC, tags: ["analytics", "league"])
+  
+  compareTeams(teamIds: [ID!]!, metrics: [String!]!): TeamComparison 
+    @auth(requires: USER)
+    @cache(ttl: 900, scope: PUBLIC, tags: ["analytics", "comparison"])
+}
+
+extend type Mutation {
+  # Analytics management
+  createMatchAnalytics(input: CreateMatchAnalyticsInput!): MatchAnalytics! 
+    @auth(requires: ADMIN, teamAccess: true)
+  
+  updateMatchAnalytics(matchId: ID!, input: UpdateMatchAnalyticsInput!): MatchAnalytics! 
+    @auth(requires: ADMIN, teamAccess: true)
+  
+  processMLPipelineOutput(input: ProcessMLPipelineInput!): Boolean! 
+    @auth(requires: ADMIN)
+  
+  recalculateAnalytics(matchId: ID!): Boolean! 
+    @auth(requires: ADMIN, teamAccess: true)
+  
+  createSnapshot(matchId: ID!): Boolean! 
+    @auth(requires: ADMIN, teamAccess: true)
+}
+
+extend type Subscription {
+  # Real-time analytics updates
+  matchAnalyticsUpdated(matchId: ID!): MatchAnalytics! 
+    @auth(requires: USER, teamAccess: true)
+  
+  liveMatchMetrics(matchId: ID!): LiveMetrics! 
+    @auth(requires: USER, teamAccess: true)
+  
+  teamAnalyticsUpdated(teamId: ID!): TeamAnalytics! 
+    @auth(requires: USER, teamAccess: true)
+}
+
+# Core Analytics Types
+type MatchAnalytics @key(fields: "id") {
+  id: ID!
+  matchId: ID!
+  match: Match
+  homeTeam: TeamMatchAnalytics!
+  awayTeam: TeamMatchAnalytics!
+  events: [MatchEvent!]!
+  timeline: [TimelineEvent!]!
+  heatmaps: [Heatmap!]!
+  formations: [FormationData!]!
+  lastUpdated: DateTime!
+  version: Int!
+}
+
+type TeamMatchAnalytics {
+  teamId: ID!
+  team: Team
+  xG: Float!
+  xA: Float!
+  possession: Float!
+  shots: Int!
+  shotsOnTarget: Int!
+  passes: Int!
+  passAccuracy: Float!
+  tackles: Int!
+  interceptions: Int!
+  fouls: Int!
+  corners: Int!
+  offsides: Int!
+  formation: String!
+  averagePosition: [PlayerPosition!]!
+  distanceCovered: Float!
+  sprints: Int!
+  topSpeed: Float!
+}
+
+type TeamAnalytics @key(fields: "id") {
+  id: ID!
+  teamId: ID!
+  team: Team
+  timeRange: TimeRange!
+  matches: [MatchAnalytics!]!
+  aggregatedStats: AggregatedStats!
+  trends: [TrendData!]!
+  rankings: TeamRankings!
+  playerStats: [PlayerAnalytics!]!
+  lastUpdated: DateTime!
+}
+
+type PlayerAnalytics @key(fields: "id") {
+  id: ID!
+  playerId: ID!
+  player: Player
+  teamId: ID!
+  timeRange: TimeRange!
+  matches: [PlayerMatchStats!]!
+  aggregatedStats: PlayerAggregatedStats!
+  heatmap: Heatmap!
+  performance: PerformanceMetrics!
+  lastUpdated: DateTime!
+}
+
+type LeagueAnalytics {
+  id: ID!
+  leagueId: ID!
+  timeRange: TimeRange!
+  teams: [TeamAnalytics!]!
+  topScorers: [PlayerAnalytics!]!
+  topAssists: [PlayerAnalytics!]!
+  standings: [TeamStanding!]!
+  trends: [LeagueTrend!]!
+  lastUpdated: DateTime!
+}
+
+type TeamComparison {
+  teams: [TeamAnalytics!]!
+  metrics: [ComparisonMetric!]!
+  radar: RadarChart!
+  trends: [ComparisonTrend!]!
+  head2head: Head2HeadStats
+}
+
+# Supporting Types
+type MatchEvent {
+  id: ID!
+  type: EventType!
+  timestamp: Int!
+  playerId: ID
+  player: Player
+  teamId: ID!
+  position: Position
+  metadata: JSON
+}
+
+type TimelineEvent {
+  timestamp: Int!
+  type: String!
+  description: String!
+  playerId: ID
+  teamId: ID!
+  significance: Float!
+}
+
+type Heatmap {
+  playerId: ID
+  teamId: ID!
+  data: [[Float!]!]!
+  type: HeatmapType!
+  intensity: Float!
+}
+
+type FormationData {
+  timestamp: Int!
+  teamId: ID!
+  formation: String!
+  positions: [PlayerPosition!]!
+  effectiveness: Float!
+}
+
+type PlayerPosition {
+  playerId: ID!
+  x: Float!
+  y: Float!
+  role: String!
+}
+
+type AggregatedStats {
+  matches: Int!
+  wins: Int!
+  draws: Int!
+  losses: Int!
+  goalsFor: Int!
+  goalsAgainst: Int!
+  goalDifference: Int!
+  xG: Float!
+  xGA: Float!
+  possession: Float!
+  passAccuracy: Float!
+  shotsPerGame: Float!
+  cleanSheets: Int!
+}
+
+type TrendData {
+  metric: String!
+  values: [Float!]!
+  timestamps: [DateTime!]!
+  trend: TrendDirection!
+  changePercent: Float!
+}
+
+type TeamRankings {
+  overall: Int!
+  attack: Int!
+  defense: Int!
+  possession: Int!
+  efficiency: Int!
+}
+
+type PlayerMatchStats {
+  matchId: ID!
+  goals: Int!
+  assists: Int!
+  shots: Int!
+  passes: Int!
+  passAccuracy: Float!
+  tackles: Int!
+  interceptions: Int!
+  rating: Float!
+  minutesPlayed: Int!
+}
+
+type PlayerAggregatedStats {
+  matches: Int!
+  goals: Int!
+  assists: Int!
+  shots: Int!
+  shotsOnTarget: Int!
+  passAccuracy: Float!
+  tackles: Int!
+  interceptions: Int!
+  averageRating: Float!
+  minutesPlayed: Int!
+}
+
+type PerformanceMetrics {
+  form: [Float!]!
+  consistency: Float!
+  clutchFactor: Float!
+  improvement: Float!
+  potential: Float!
+}
+
+type TeamStanding {
+  position: Int!
+  teamId: ID!
+  team: Team
+  points: Int!
+  matches: Int!
+  wins: Int!
+  draws: Int!
+  losses: Int!
+  goalsFor: Int!
+  goalsAgainst: Int!
+  goalDifference: Int!
+}
+
+type LeagueTrend {
+  metric: String!
+  trend: TrendDirection!
+  topTeams: [ID!]!
+  bottomTeams: [ID!]!
+}
+
+type ComparisonMetric {
+  name: String!
+  values: [Float!]!
+  teamIds: [ID!]!
+  unit: String!
+}
+
+type RadarChart {
+  metrics: [String!]!
+  teams: [RadarTeamData!]!
+}
+
+type RadarTeamData {
+  teamId: ID!
+  values: [Float!]!
+  color: String!
+}
+
+type ComparisonTrend {
+  metric: String!
+  teamData: [TeamTrendData!]!
+  timeRange: TimeRange!
+}
+
+type TeamTrendData {
+  teamId: ID!
+  values: [Float!]!
+  timestamps: [DateTime!]!
+}
+
+type Head2HeadStats {
+  matches: Int!
+  team1Wins: Int!
+  team2Wins: Int!
+  draws: Int!
+  lastMeeting: DateTime
+  averageGoals: Float!
+  trends: [TrendData!]!
+}
+
+type LiveMetrics {
+  matchId: ID!
+  timestamp: DateTime!
+  homeScore: Int!
+  awayScore: Int!
+  minute: Int!
+  possession: [Float!]!
+  shots: [Int!]!
+  xG: [Float!]!
+  momentum: Float!
+  keyEvents: [MatchEvent!]!
+}
+
+type TimeSeriesData {
+  timestamp: DateTime!
+  value: Float!
+  metric: String!
+  teamId: ID
+  playerId: ID
+}
+
+# Input Types
+input CreateMatchAnalyticsInput {
+  matchId: ID!
+  homeTeamId: ID!
+  awayTeamId: ID!
+}
+
+input UpdateMatchAnalyticsInput {
+  xG: Float
+  possession: Float
+  events: [MatchEventInput!]
+}
+
+input ProcessMLPipelineInput {
+  matchId: ID!
+  pipelineOutput: JSON!
+  modelVersion: String!
+}
+
+input TimeRange {
+  start: DateTime!
+  end: DateTime!
+}
+
+input TimeSeriesInput {
+  matchIds: [ID!]
+  teamIds: [ID!]
+  playerIds: [ID!]
+  metrics: [String!]!
+  timeRange: TimeRange!
+  granularity: TimeGranularity!
+}
+
+input MatchEventInput {
+  type: EventType!
+  timestamp: Int!
+  playerId: ID
+  teamId: ID!
+  position: PositionInput
+  metadata: JSON
+}
+
+input PositionInput {
+  x: Float!
+  y: Float!
+}
+
+# Enums
+enum EventType {
+  GOAL
+  SHOT
+  PASS
+  TACKLE
+  INTERCEPTION
+  FOUL
+  CARD
+  SUBSTITUTION
+  CORNER
+  OFFSIDE
+}
+
+enum HeatmapType {
+  PLAYER_POSITION
+  TEAM_POSSESSION
+  SHOTS
+  PASSES
+  TACKLES
+}
+
+enum TrendDirection {
+  UP
+  DOWN
+  STABLE
+}
+
+enum TimeGranularity {
+  MINUTE
+  FIVE_MINUTES
+  QUARTER
+  HALF
+  MATCH
+}

@@ -1,0 +1,57 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: alertmanager
+  namespace: monitoring
+spec:
+  hosts:
+  - "alertmanager.footanalytics.com"
+  gateways:
+  - istio-system/main-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: alertmanager
+        port:
+          number: 9093
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+    corsPolicy:
+      allowOrigins:
+      - exact: "https://footanalytics.com"
+      allowMethods:
+      - GET
+      - OPTIONS
+      allowCredentials: true
+      allowHeaders:
+      - Authorization
+      - Content-Type
+      maxAge: "24h"
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: alertmanager-auth
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: alertmanager
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["istio-system"]
+    - source:
+        principals: ["cluster.local/ns/default/sa/ml-pipeline"]
+  - from:
+    - source:
+        requestPrincipals: ["*"]
+    when:
+    - key: request.auth.claims[groups]
+      values: ["monitoring-admins", "platform-team"]

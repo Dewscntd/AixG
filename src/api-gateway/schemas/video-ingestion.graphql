@@ -1,0 +1,436 @@
+# Video Ingestion Service Schema - Federated schema for video upload and management
+
+extend type Query {
+  # Video queries
+  getVideo(id: ID!): Video 
+    @auth(requires: USER, teamAccess: true)
+    @cache(ttl: 600, scope: TEAM, tags: ["video"])
+  
+  getVideosByMatch(matchId: ID!): [Video!]! 
+    @auth(requires: USER, teamAccess: true)
+    @cache(ttl: 300, scope: TEAM, tags: ["video", "match"])
+  
+  getVideosByTeam(teamId: ID!, pagination: PaginationInput): VideoConnection! 
+    @auth(requires: USER, teamAccess: true)
+    @rateLimit(max: 30, window: 60)
+  
+  getVideoProcessingStatus(videoId: ID!): ProcessingStatus! 
+    @auth(requires: USER, teamAccess: true)
+  
+  getUploadUrl(input: UploadUrlInput!): UploadUrl! 
+    @auth(requires: USER, teamAccess: true)
+    @rateLimit(max: 10, window: 300)
+  
+  searchVideos(query: VideoSearchInput!): VideoConnection! 
+    @auth(requires: USER)
+    @rateLimit(max: 20, window: 60)
+}
+
+extend type Mutation {
+  # Video upload and management
+  createVideo(input: CreateVideoInput!): Video! 
+    @auth(requires: USER, teamAccess: true)
+  
+  updateVideo(id: ID!, input: UpdateVideoInput!): Video! 
+    @auth(requires: USER, teamAccess: true)
+  
+  deleteVideo(id: ID!): Boolean! 
+    @auth(requires: ADMIN, teamAccess: true)
+  
+  uploadVideo(file: Upload!, metadata: VideoMetadataInput!): Video! 
+    @auth(requires: USER, teamAccess: true)
+    @rateLimit(max: 5, window: 3600)
+  
+  processVideo(videoId: ID!, options: ProcessingOptions): Boolean! 
+    @auth(requires: USER, teamAccess: true)
+  
+  generateThumbnail(videoId: ID!, timestamp: Float!): String! 
+    @auth(requires: USER, teamAccess: true)
+  
+  createVideoClip(input: CreateClipInput!): VideoClip! 
+    @auth(requires: USER, teamAccess: true)
+}
+
+extend type Subscription {
+  # Video processing updates
+  videoProcessingUpdated(videoId: ID!): ProcessingStatus! 
+    @auth(requires: USER, teamAccess: true)
+  
+  videoUploaded(teamId: ID!): Video! 
+    @auth(requires: USER, teamAccess: true)
+  
+  videoProcessingCompleted(teamId: ID!): Video! 
+    @auth(requires: USER, teamAccess: true)
+}
+
+# Core Video Types
+type Video @key(fields: "id") {
+  id: ID!
+  filename: String!
+  originalName: String!
+  mimeType: String!
+  size: Int!
+  duration: Float
+  resolution: Resolution
+  storagePath: String!
+  streamingUrl: String
+  thumbnailUrl: String
+  status: VideoStatus!
+  
+  # Relationships
+  matchId: ID
+  match: Match
+  teamId: ID!
+  team: Team
+  uploadedBy: ID!
+  uploader: User
+  
+  # Metadata
+  metadata: VideoMetadata!
+  tags: [String!]!
+  description: String
+  isPublic: Boolean!
+  
+  # Processing
+  processingJobs: [ProcessingJob!]!
+  clips: [VideoClip!]!
+  analytics: VideoAnalytics
+  
+  # Timestamps
+  uploadedAt: DateTime!
+  processedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type VideoConnection {
+  edges: [VideoEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type VideoEdge {
+  node: Video!
+  cursor: String!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type Resolution {
+  width: Int!
+  height: Int!
+  aspectRatio: String!
+  quality: VideoQuality!
+}
+
+type VideoMetadata {
+  codec: String
+  bitrate: Int
+  framerate: Float
+  colorSpace: String
+  audioCodec: String
+  audioBitrate: Int
+  audioChannels: Int
+  chapters: [VideoChapter!]!
+  subtitles: [Subtitle!]!
+  customFields: JSON
+}
+
+type VideoChapter {
+  id: ID!
+  title: String!
+  startTime: Float!
+  endTime: Float!
+  description: String
+  thumbnail: String
+}
+
+type Subtitle {
+  id: ID!
+  language: String!
+  format: SubtitleFormat!
+  url: String!
+  isDefault: Boolean!
+}
+
+type ProcessingStatus {
+  videoId: ID!
+  status: ProcessingStatusType!
+  progress: Float!
+  stage: String!
+  message: String
+  estimatedTimeRemaining: Int
+  jobs: [ProcessingJob!]!
+  errors: [ProcessingError!]!
+  startedAt: DateTime
+  completedAt: DateTime
+}
+
+type ProcessingJob {
+  id: ID!
+  type: ProcessingJobType!
+  status: ProcessingStatusType!
+  progress: Float!
+  priority: Int!
+  parameters: JSON!
+  result: JSON
+  error: String
+  startedAt: DateTime
+  completedAt: DateTime
+  retryCount: Int!
+}
+
+type ProcessingError {
+  code: String!
+  message: String!
+  details: JSON
+  timestamp: DateTime!
+  recoverable: Boolean!
+}
+
+type UploadUrl {
+  url: String!
+  fields: JSON!
+  expiresAt: DateTime!
+  maxFileSize: Int!
+  allowedTypes: [String!]!
+}
+
+type VideoClip {
+  id: ID!
+  videoId: ID!
+  video: Video!
+  title: String!
+  startTime: Float!
+  endTime: Float!
+  duration: Float!
+  url: String!
+  thumbnailUrl: String
+  tags: [String!]!
+  description: String
+  createdBy: ID!
+  creator: User
+  createdAt: DateTime!
+}
+
+type VideoAnalytics {
+  videoId: ID!
+  views: Int!
+  uniqueViews: Int!
+  totalWatchTime: Float!
+  averageWatchTime: Float!
+  completionRate: Float!
+  engagement: EngagementMetrics!
+  heatmap: [ViewHeatmapPoint!]!
+  demographics: ViewerDemographics!
+  lastUpdated: DateTime!
+}
+
+type EngagementMetrics {
+  likes: Int!
+  shares: Int!
+  comments: Int!
+  bookmarks: Int!
+  downloads: Int!
+}
+
+type ViewHeatmapPoint {
+  timestamp: Float!
+  views: Int!
+  intensity: Float!
+}
+
+type ViewerDemographics {
+  byRole: [RoleViewStats!]!
+  byTeam: [TeamViewStats!]!
+  byDevice: [DeviceViewStats!]!
+  byLocation: [LocationViewStats!]!
+}
+
+type RoleViewStats {
+  role: String!
+  views: Int!
+  watchTime: Float!
+}
+
+type TeamViewStats {
+  teamId: ID!
+  team: Team
+  views: Int!
+  watchTime: Float!
+}
+
+type DeviceViewStats {
+  device: String!
+  views: Int!
+  watchTime: Float!
+}
+
+type LocationViewStats {
+  country: String!
+  views: Int!
+  watchTime: Float!
+}
+
+# Input Types
+input CreateVideoInput {
+  filename: String!
+  originalName: String!
+  mimeType: String!
+  size: Int!
+  matchId: ID
+  teamId: ID!
+  description: String
+  tags: [String!]
+  isPublic: Boolean = false
+  metadata: VideoMetadataInput
+}
+
+input UpdateVideoInput {
+  filename: String
+  description: String
+  tags: [String!]
+  isPublic: Boolean
+  metadata: VideoMetadataInput
+}
+
+input VideoMetadataInput {
+  customFields: JSON
+  chapters: [VideoChapterInput!]
+}
+
+input VideoChapterInput {
+  title: String!
+  startTime: Float!
+  endTime: Float!
+  description: String
+}
+
+input UploadUrlInput {
+  filename: String!
+  mimeType: String!
+  size: Int!
+  teamId: ID!
+  matchId: ID
+}
+
+input ProcessingOptions {
+  generateThumbnails: Boolean = true
+  extractAudio: Boolean = false
+  transcodeFormats: [VideoFormat!]
+  generateSubtitles: Boolean = false
+  priority: ProcessingPriority = NORMAL
+}
+
+input CreateClipInput {
+  videoId: ID!
+  title: String!
+  startTime: Float!
+  endTime: Float!
+  description: String
+  tags: [String!]
+}
+
+input PaginationInput {
+  first: Int
+  after: String
+  last: Int
+  before: String
+}
+
+input VideoSearchInput {
+  query: String
+  teamIds: [ID!]
+  matchIds: [ID!]
+  tags: [String!]
+  status: [VideoStatus!]
+  dateRange: DateRangeInput
+  duration: DurationRangeInput
+  orderBy: VideoOrderBy
+  pagination: PaginationInput
+}
+
+input DateRangeInput {
+  start: DateTime!
+  end: DateTime!
+}
+
+input DurationRangeInput {
+  min: Float
+  max: Float
+}
+
+# Enums
+enum VideoStatus {
+  UPLOADING
+  UPLOADED
+  PROCESSING
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+enum VideoQuality {
+  LOW
+  MEDIUM
+  HIGH
+  ULTRA
+}
+
+enum SubtitleFormat {
+  SRT
+  VTT
+  ASS
+}
+
+enum ProcessingStatusType {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ProcessingJobType {
+  TRANSCODE
+  THUMBNAIL_GENERATION
+  AUDIO_EXTRACTION
+  SUBTITLE_GENERATION
+  ANALYSIS
+  COMPRESSION
+}
+
+enum VideoFormat {
+  MP4_720P
+  MP4_1080P
+  MP4_4K
+  WEBM_720P
+  WEBM_1080P
+  HLS
+  DASH
+}
+
+enum ProcessingPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum VideoOrderBy {
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPLOADED_AT_ASC
+  UPLOADED_AT_DESC
+  DURATION_ASC
+  DURATION_DESC
+  SIZE_ASC
+  SIZE_DESC
+  NAME_ASC
+  NAME_DESC
+}

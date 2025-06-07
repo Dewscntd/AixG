@@ -1,0 +1,21 @@
+extraScrapeConfigs:
+  - job_name: 'istio-control-plane'
+    kubernetes_sd_configs:
+    - role: endpoints
+      namespaces:
+        names: ['istio-system']
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_service_label_istio]
+      regex: (pilot|galley)
+      action: keep
+
+  - job_name: 'ml-pipeline'
+    metrics_path: '/metrics'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names: ['ml-pipeline']
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      action: keep
+      regex: true

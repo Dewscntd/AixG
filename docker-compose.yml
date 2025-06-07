@@ -1,0 +1,174 @@
+version: '3.8'
+
+services:
+  # Video Ingestion Service
+  video-ingestion:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=footanalytics
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - PULSAR_SERVICE_URL=pulsar://pulsar:6650
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - S3_VIDEO_BUCKET=footanalytics-videos
+      - AWS_REGION=us-east-1
+    depends_on:
+      - postgres
+      - pulsar
+      - minio
+    volumes:
+      - ./src:/app/src
+    networks:
+      - footanalytics
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=footanalytics
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - footanalytics
+
+  # Apache Pulsar for Event Streaming
+  pulsar:
+    image: apachepulsar/pulsar:3.1.0
+    command: bin/pulsar standalone
+    ports:
+      - "6650:6650"
+      - "8080:8080"
+    environment:
+      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+    volumes:
+      - pulsar_data:/pulsar/data
+    networks:
+      - footanalytics
+
+  # MinIO for S3-compatible storage (development)
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    networks:
+      - footanalytics
+
+  # MinIO Client for bucket creation
+  minio-client:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/footanalytics-videos --ignore-existing;
+      /usr/bin/mc policy set public myminio/footanalytics-videos;
+      exit 0;
+      "
+    networks:
+      - footanalytics
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - footanalytics
+
+  # Prometheus for monitoring (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - footanalytics
+
+  # Real-time Analysis Service
+  real-time-analysis:
+    build:
+      context: ./src/real-time-analysis-service
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "3003:3003"
+      - "9091:9090"  # Metrics port (avoiding conflict with Prometheus)
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - REDIS_URL=redis://redis:6379
+      - PULSAR_URL=pulsar://pulsar:6650
+      - GPU_ENABLED=false
+      - WEBRTC_MAX_BITRATE=2000000
+      - WEBRTC_FRAME_RATE=30
+      - STREAM_BUFFER_SIZE=300
+      - MAX_CONCURRENT_STREAMS=10
+      - ML_BATCH_SIZE=1
+      - ML_MAX_CONCURRENT=4
+      - CORS_ORIGIN=http://localhost:3000
+      - SWAGGER_ENABLED=true
+    depends_on:
+      - redis
+      - pulsar
+    volumes:
+      - ./src/real-time-analysis-service:/app
+      - /app/node_modules
+      - ./models:/app/models  # Mount ML models directory
+    networks:
+      - footanalytics
+
+  # Grafana for visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - footanalytics
+
+volumes:
+  postgres_data:
+  pulsar_data:
+  minio_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  footanalytics:
+    driver: bridge

@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-mesh-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  istio-mesh.json: |-
+    {
+      "title": "Istio Service Mesh",
+      "panels": [
+        {
+          "type": "graph",
+          "title": "HTTP Requests",
+          "targets": [{
+            "expr": "sum(rate(istio_requests_total{reporter=\"destination\"}[1m])) by (response_code)",
+            "legendFormat": "{{response_code}}"
+          }]
+        }
+      ]
+    }

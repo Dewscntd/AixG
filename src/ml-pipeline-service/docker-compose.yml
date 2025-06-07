@@ -1,0 +1,227 @@
+version: '3.8'
+
+services:
+  # ML Pipeline API Service
+  ml-pipeline-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "8000:8000"
+      - "8765:8765"
+    environment:
+      - PULSAR_SERVICE_URL=pulsar://pulsar:6650
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CUDA_VISIBLE_DEVICES=0
+      - GPU_MEMORY_FRACTION=0.8
+      - ML_PIPELINE_LOG_LEVEL=INFO
+    volumes:
+      - ./models:/models
+      - ./data:/data
+      - /tmp/video_processing:/tmp/video_processing
+    depends_on:
+      - redis
+      - pulsar
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - ml-pipeline
+
+  # Celery Worker for ML Processing
+  ml-pipeline-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    environment:
+      - PULSAR_SERVICE_URL=pulsar://pulsar:6650
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CUDA_VISIBLE_DEVICES=0
+      - GPU_MEMORY_FRACTION=0.6
+      - C_FORCE_ROOT=1
+    volumes:
+      - ./models:/models
+      - ./data:/data
+      - /tmp/video_processing:/tmp/video_processing
+    depends_on:
+      - redis
+      - pulsar
+    deploy:
+      replicas: 2
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - ml-pipeline
+
+  # Celery Beat Scheduler
+  ml-pipeline-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: beat
+    environment:
+      - PULSAR_SERVICE_URL=pulsar://pulsar:6650
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - C_FORCE_ROOT=1
+    volumes:
+      - ./models:/models
+    depends_on:
+      - redis
+      - pulsar
+    networks:
+      - ml-pipeline
+
+  # Redis for Celery and Caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - ml-pipeline
+
+  # Apache Pulsar for Event Streaming
+  pulsar:
+    image: apachepulsar/pulsar:3.1.0
+    command: bin/pulsar standalone
+    ports:
+      - "6650:6650"
+      - "8080:8080"
+    environment:
+      - PULSAR_MEM=-Xms1g -Xmx2g -XX:MaxDirectMemorySize=1g
+    volumes:
+      - pulsar_data:/pulsar/data
+    networks:
+      - ml-pipeline
+
+  # Flower for Celery Monitoring
+  flower:
+    image: mher/flower:2.0
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - FLOWER_PORT=5555
+    depends_on:
+      - redis
+    networks:
+      - ml-pipeline
+
+  # Prometheus for Metrics
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - ml-pipeline
+
+  # Grafana for Visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - ml-pipeline
+
+  # Jaeger for Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - ml-pipeline
+
+  # MinIO for Object Storage (Development)
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - ml-pipeline
+
+  # MinIO Client for Bucket Setup
+  minio-client:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/ml-pipeline-models --ignore-existing;
+      /usr/bin/mc mb myminio/ml-pipeline-results --ignore-existing;
+      /usr/bin/mc policy set public myminio/ml-pipeline-models;
+      /usr/bin/mc policy set public myminio/ml-pipeline-results;
+      exit 0;
+      "
+    networks:
+      - ml-pipeline
+
+  # NGINX Load Balancer
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - ml-pipeline-api
+    networks:
+      - ml-pipeline
+
+volumes:
+  redis_data:
+  pulsar_data:
+  prometheus_data:
+  grafana_data:
+  minio_data:
+
+networks:
+  ml-pipeline:
+    driver: bridge

@@ -1,0 +1,28 @@
+overwrite: true
+schema:
+  - "src/api-gateway/schemas/**/*.graphql"
+  - "src/analytics-engine-service/schemas/**/*.graphql"
+  - "src/video-ingestion-service/schemas/**/*.graphql"
+generates:
+  src/api-gateway/generated/types.ts:
+    plugins:
+      - "typescript"
+      - "typescript-resolvers"
+    config:
+      useIndexSignature: true
+      federation: true
+      contextType: "../types/context#GraphQLContext"
+      mappers:
+        Match: "../types/entities#Match"
+        Video: "../types/entities#Video"
+        Team: "../types/entities#Team"
+        Player: "../types/entities#Player"
+        MatchAnalytics: "../types/entities#MatchAnalytics"
+  src/api-gateway/generated/operations.ts:
+    documents: "src/api-gateway/operations/**/*.graphql"
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+hooks:
+  afterAllFileWrite:
+    - prettier --write
