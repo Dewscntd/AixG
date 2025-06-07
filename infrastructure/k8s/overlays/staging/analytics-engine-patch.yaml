@@ -1,0 +1,25 @@
+# Analytics Engine Staging Configuration Patch
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-engine
+spec:
+  template:
+    spec:
+      containers:
+      - name: analytics-engine
+        env:
+        - name: NODE_ENV
+          value: "staging"
+        - name: LOG_LEVEL
+          value: "debug"
+        - name: SNAPSHOT_FREQUENCY
+          value: "50"  # More frequent snapshots for testing
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"

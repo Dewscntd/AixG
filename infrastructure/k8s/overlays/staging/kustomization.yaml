@@ -1,0 +1,83 @@
+# Staging Overlay for FootAnalytics Platform
+# GitOps-managed staging configuration
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: footanalytics-staging
+
+# Base resources
+resources:
+  - ../../base
+  - namespace.yaml
+  - network-policies.yaml
+
+# Staging-specific patches
+patches:
+  - path: api-gateway-patch.yaml
+    target:
+      kind: Deployment
+      name: api-gateway
+  - path: video-ingestion-patch.yaml
+    target:
+      kind: Deployment
+      name: video-ingestion
+  - path: ml-pipeline-patch.yaml
+    target:
+      kind: Deployment
+      name: ml-pipeline
+  - path: analytics-engine-patch.yaml
+    target:
+      kind: Deployment
+      name: analytics-engine
+
+# Staging images (using latest for staging)
+images:
+  - name: footanalytics/api-gateway
+    newTag: staging-latest
+  - name: footanalytics/video-ingestion
+    newTag: staging-latest
+  - name: footanalytics/ml-pipeline
+    newTag: staging-latest
+  - name: footanalytics/analytics-engine
+    newTag: staging-latest
+
+# Staging replicas (reduced for cost optimization)
+replicas:
+  - name: api-gateway
+    count: 2
+  - name: video-ingestion
+    count: 1
+  - name: ml-pipeline
+    count: 1
+  - name: analytics-engine
+    count: 1
+
+# ConfigMap generators for staging
+configMapGenerator:
+  - name: app-config
+    files:
+      - config/staging.env
+    options:
+      disableNameSuffixHash: true
+
+# Secret generators
+secretGenerator:
+  - name: app-secrets
+    files:
+      - secrets/database-url
+      - secrets/redis-url
+      - secrets/s3-credentials
+    options:
+      disableNameSuffixHash: true
+
+# Common labels for all resources
+commonLabels:
+  app.kubernetes.io/part-of: footanalytics
+  app.kubernetes.io/version: staging-latest
+  environment: staging
+
+# Common annotations
+commonAnnotations:
+  deployment.kubernetes.io/revision: "1"
+  config.kubernetes.io/local-config: "true"

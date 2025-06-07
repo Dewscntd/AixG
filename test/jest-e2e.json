@@ -1,0 +1,53 @@
+{
+  "displayName": "E2E Tests",
+  "testEnvironment": "node",
+  "testMatch": [
+    "<rootDir>/test/e2e/**/*.e2e.test.ts"
+  ],
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "collectCoverageFrom": [
+    "src/**/*.(t|j)s",
+    "!src/**/*.spec.ts",
+    "!src/**/*.test.ts"
+  ],
+  "coverageDirectory": "./coverage/e2e",
+  "coverageReporters": [
+    "text",
+    "lcov",
+    "html"
+  ],
+  "setupFilesAfterEnv": [
+    "<rootDir>/test/setup/jest.setup.ts"
+  ],
+  "testTimeout": 60000,
+  "maxWorkers": 1,
+  "forceExit": true,
+  "detectOpenHandles": true,
+  "verbose": true,
+  "reporters": [
+    "default",
+    [
+      "jest-html-reporters",
+      {
+        "publicPath": "./test-results/e2e",
+        "filename": "report.html",
+        "expand": true
+      }
+    ],
+    [
+      "jest-junit",
+      {
+        "outputDirectory": "./test-results/e2e",
+        "outputName": "junit.xml"
+      }
+    ]
+  ],
+  "moduleNameMapping": {
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@test/(.*)$": "<rootDir>/test/$1"
+  },
+  "globalSetup": "<rootDir>/test/setup/e2e-global-setup.ts",
+  "globalTeardown": "<rootDir>/test/setup/e2e-global-teardown.ts"
+}

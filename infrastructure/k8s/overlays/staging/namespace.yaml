@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: footanalytics-staging
+  labels:
+    name: footanalytics-staging
+    environment: staging
+    app.kubernetes.io/part-of: footanalytics
+  annotations:
+    description: "FootAnalytics staging environment namespace"

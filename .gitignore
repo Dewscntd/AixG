@@ -108,3 +108,22 @@ temp/
 
 # Local development
 .local/
+
+# Test results and reports
+test-results/
+playwright-report/
+coverage/
+allure-results/
+allure-report/
+junit.xml
+*.xml
+chaos-results.log
+chaos-results.yaml
+
+# Performance test results
+*.har
+*.jmx
+*.jtl
+
+# Pact contracts
+pacts/

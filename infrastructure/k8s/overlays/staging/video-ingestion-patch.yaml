@@ -1,0 +1,25 @@
+# Video Ingestion Staging Configuration Patch
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: video-ingestion
+spec:
+  template:
+    spec:
+      containers:
+      - name: video-ingestion
+        env:
+        - name: NODE_ENV
+          value: "staging"
+        - name: LOG_LEVEL
+          value: "debug"
+        - name: MAX_FILE_SIZE
+          value: "5368709120"  # 5GB for staging
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"

@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # Database for testing
+  postgres-test:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: footanalytics_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for testing
+  redis-test:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway for E2E tests
+  api-gateway-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@postgres-test:5432/footanalytics_test
+      REDIS_URL: redis://redis-test:6379
+      PORT: 4000
+      JWT_SECRET: test-secret-key
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+      S3_BUCKET: test-bucket
+    ports:
+      - "4001:4000"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Video Ingestion Service for testing
+  video-ingestion-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: video-ingestion
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@postgres-test:5432/footanalytics_test
+      REDIS_URL: redis://redis-test:6379
+      PULSAR_URL: pulsar://pulsar-test:6650
+      S3_BUCKET: test-bucket
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+
+  # Analytics Engine for testing
+  analytics-engine-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: analytics-engine
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@postgres-test:5432/footanalytics_test
+      REDIS_URL: redis://redis-test:6379
+      PULSAR_URL: pulsar://pulsar-test:6650
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+
+  # Message broker for testing
+  pulsar-test:
+    image: apachepulsar/pulsar:3.1.0
+    command: bin/pulsar standalone
+    ports:
+      - "6651:6650"
+      - "8081:8080"
+    environment:
+      PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/v2/clusters"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_test_data:
+
+networks:
+  default:
+    name: footanalytics-test-network

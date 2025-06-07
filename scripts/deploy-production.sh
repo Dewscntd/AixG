@@ -13,6 +13,12 @@ ENVIRONMENT="${ENVIRONMENT:-production}"
 TERRAFORM_DIR="infrastructure/terraform"
 K8S_DIR="infrastructure/k8s"
 
+# Environment-specific configuration
+if [ "$ENVIRONMENT" = "staging" ]; then
+    CLUSTER_NAME="${CLUSTER_NAME:-footanalytics-staging-cluster}"
+    NAMESPACE="${NAMESPACE:-footanalytics-staging}"
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -73,9 +79,13 @@ deploy_infrastructure() {
     # Initialize Terraform
     terraform init -upgrade
     
-    # Plan deployment
-    terraform plan -out=tfplan
-    
+    # Plan deployment with environment-specific variables
+    if [ "$ENVIRONMENT" = "staging" ]; then
+        terraform plan -var="environment=staging" -var="instance_type=t3.medium" -var="min_size=1" -var="max_size=3" -out=tfplan
+    else
+        terraform plan -out=tfplan
+    fi
+
     # Apply infrastructure
     terraform apply tfplan
     
@@ -202,8 +212,12 @@ deploy_applications() {
     kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
     kubectl create namespace ai-processing --dry-run=client -o yaml | kubectl apply -f -
     
-    # Apply base configurations
-    kubectl apply -k "$K8S_DIR/overlays/production"
+    # Apply environment-specific configurations
+    if [ "$ENVIRONMENT" = "staging" ]; then
+        kubectl apply -k "$K8S_DIR/overlays/staging"
+    else
+        kubectl apply -k "$K8S_DIR/overlays/production"
+    fi
     
     # Wait for deployments to be ready
     kubectl wait --for=condition=available --timeout=600s deployment --all -n "$NAMESPACE"
@@ -283,7 +297,7 @@ setup_dashboards() {
 
 # Main deployment function
 main() {
-    log_info "Starting FootAnalytics production deployment..."
+    log_info "Starting FootAnalytics $ENVIRONMENT deployment..."
     
     check_prerequisites
     
@@ -301,13 +315,15 @@ main() {
     deploy_applications
     
     # Additional features
-    setup_chaos_engineering
+    if [ "$ENVIRONMENT" = "production" ]; then
+        setup_chaos_engineering
+    fi
     setup_dashboards
     
     # Verification
     verify_deployment
     
-    log_success "🎉 FootAnalytics production deployment completed successfully!"
+    log_success "🎉 FootAnalytics $ENVIRONMENT deployment completed successfully!"
     
     # Display important information
     echo ""

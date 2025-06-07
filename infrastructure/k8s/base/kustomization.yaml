@@ -1,0 +1,16 @@
+# Base Kustomization for FootAnalytics Platform
+# Common resources shared across environments
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - api-gateway.yaml
+  - video-ingestion.yaml
+  - analytics-engine.yaml
+  - ml-pipeline.yaml
+  - services.yaml
+  - configmaps.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: footanalytics

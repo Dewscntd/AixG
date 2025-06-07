@@ -1,0 +1,170 @@
+version: '3.8'
+
+services:
+  # Database for performance testing
+  postgres-perf:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: footanalytics_perf
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_perf_data:/var/lib/postgresql/data
+      - ./database/performance-data.sql:/docker-entrypoint-initdb.d/performance-data.sql
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for performance testing
+  redis-perf:
+    image: redis:7-alpine
+    ports:
+      - "6381:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway for performance testing
+  api-gateway-perf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@postgres-perf:5432/footanalytics_perf
+      REDIS_URL: redis://redis-perf:6379
+      PORT: 4000
+      JWT_SECRET: perf-test-secret-key
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+      S3_BUCKET: perf-test-bucket
+      # Performance optimizations
+      NODE_OPTIONS: "--max-old-space-size=2048"
+      UV_THREADPOOL_SIZE: 16
+    ports:
+      - "4002:4000"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    depends_on:
+      postgres-perf:
+        condition: service_healthy
+      redis-perf:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Video Ingestion Service for performance testing
+  video-ingestion-perf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: video-ingestion
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@postgres-perf:5432/footanalytics_perf
+      REDIS_URL: redis://redis-perf:6379
+      PULSAR_URL: pulsar://pulsar-perf:6650
+      S3_BUCKET: perf-test-bucket
+      NODE_OPTIONS: "--max-old-space-size=2048"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1.5G
+    depends_on:
+      postgres-perf:
+        condition: service_healthy
+      redis-perf:
+        condition: service_healthy
+
+  # Analytics Engine for performance testing
+  analytics-engine-perf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: analytics-engine
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@postgres-perf:5432/footanalytics_perf
+      REDIS_URL: redis://redis-perf:6379
+      PULSAR_URL: pulsar://pulsar-perf:6650
+      NODE_OPTIONS: "--max-old-space-size=2048"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+    depends_on:
+      postgres-perf:
+        condition: service_healthy
+      redis-perf:
+        condition: service_healthy
+
+  # Message broker for performance testing
+  pulsar-perf:
+    image: apachepulsar/pulsar:3.1.0
+    command: bin/pulsar standalone
+    ports:
+      - "6652:6650"
+      - "8082:8080"
+    environment:
+      PULSAR_MEM: "-Xms1g -Xmx1g -XX:MaxDirectMemorySize=512m"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1.5G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/v2/clusters"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Monitoring for performance testing
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus-perf.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_perf_data:/var/lib/grafana
+
+volumes:
+  postgres_perf_data:
+  grafana_perf_data:
+
+networks:
+  default:
+    name: footanalytics-perf-network
