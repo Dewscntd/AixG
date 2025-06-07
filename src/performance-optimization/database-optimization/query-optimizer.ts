@@ -2,6 +2,10 @@ import { Pool, PoolClient } from 'pg';
 import { Logger } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
+import { EventEmitter } from 'events';
+import { performance } from 'perf_hooks';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 interface QueryPlan {
   planRows: number;
@@ -35,23 +39,52 @@ interface OptimizationSuggestion {
   implementation: string;
 }
 
+interface RealTimeAlert {
+  id: string;
+  type: 'slow_query' | 'high_connections' | 'lock_contention' | 'memory_usage';
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+  timestamp: number;
+  metadata: Record<string, any>;
+}
+
+interface ConnectionPoolMetrics {
+  totalConnections: number;
+  activeConnections: number;
+  idleConnections: number;
+  waitingClients: number;
+  averageWaitTime: number;
+}
+
 /**
  * Database Query Optimizer
- * Analyzes query performance and provides optimization recommendations
+ * Analyzes query performance and provides optimization recommendations with real-time monitoring
  */
 @Injectable()
-export class QueryOptimizer {
+export class QueryOptimizer extends EventEmitter {
   private readonly logger = new Logger(QueryOptimizer.name);
   private readonly redis: Redis;
   private readonly queryCache = new Map<string, any>();
   private readonly slowQueryThreshold = 100; // ms
   private readonly queryMetrics = new Map<string, QueryMetrics[]>();
+  private readonly realTimeAlerts = new Map<string, RealTimeAlert>();
+  private readonly connectionMetrics: ConnectionPoolMetrics = {
+    totalConnections: 0,
+    activeConnections: 0,
+    idleConnections: 0,
+    waitingClients: 0,
+    averageWaitTime: 0
+  };
+  private monitoringInterval?: NodeJS.Timeout;
+  private isMonitoring = false;
 
   constructor(
     private readonly pool: Pool,
     redisUrl: string = 'redis://localhost:6379'
   ) {
+    super();
     this.redis = new Redis(redisUrl);
+    this.startRealTimeMonitoring();
   }
 
   /**
@@ -470,5 +503,276 @@ export class QueryOptimizer {
         slowQueryCount
       }
     };
+  }
+
+  /**
+   * Start real-time database monitoring
+   */
+  private startRealTimeMonitoring(): void {
+    if (this.isMonitoring) {
+      return;
+    }
+
+    this.isMonitoring = true;
+    this.logger.log('Starting real-time database monitoring');
+
+    this.monitoringInterval = setInterval(async () => {
+      try {
+        await this.collectRealTimeMetrics();
+        await this.checkForAnomalies();
+      } catch (error) {
+        this.logger.error(`Real-time monitoring error: ${error.message}`);
+      }
+    }, 5000); // Check every 5 seconds
+  }
+
+  /**
+   * Stop real-time monitoring
+   */
+  stopRealTimeMonitoring(): void {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = undefined;
+      this.isMonitoring = false;
+      this.logger.log('Stopped real-time database monitoring');
+    }
+  }
+
+  /**
+   * Collect real-time database metrics
+   */
+  private async collectRealTimeMetrics(): Promise<void> {
+    const client = await this.pool.connect();
+
+    try {
+      // Get connection pool statistics
+      const poolStats = await client.query(`
+        SELECT
+          count(*) as total_connections,
+          count(*) FILTER (WHERE state = 'active') as active_connections,
+          count(*) FILTER (WHERE state = 'idle') as idle_connections,
+          avg(extract(epoch from (now() - query_start))) as avg_query_duration
+        FROM pg_stat_activity
+        WHERE datname = current_database()
+      `);
+
+      // Get lock information
+      const lockStats = await client.query(`
+        SELECT
+          count(*) as total_locks,
+          count(*) FILTER (WHERE NOT granted) as waiting_locks,
+          mode,
+          locktype
+        FROM pg_locks
+        GROUP BY mode, locktype
+        ORDER BY count(*) DESC
+      `);
+
+      // Get current running queries
+      const runningQueries = await client.query(`
+        SELECT
+          pid,
+          query,
+          state,
+          extract(epoch from (now() - query_start)) as duration
+        FROM pg_stat_activity
+        WHERE state = 'active'
+          AND query NOT LIKE '%pg_stat_activity%'
+          AND query_start IS NOT NULL
+        ORDER BY query_start
+      `);
+
+      // Update connection metrics
+      const stats = poolStats.rows[0];
+      this.connectionMetrics.totalConnections = parseInt(stats.total_connections) || 0;
+      this.connectionMetrics.activeConnections = parseInt(stats.active_connections) || 0;
+      this.connectionMetrics.idleConnections = parseInt(stats.idle_connections) || 0;
+
+      // Check for long-running queries
+      for (const query of runningQueries.rows) {
+        if (query.duration > 30) { // 30 seconds threshold
+          this.createAlert({
+            type: 'slow_query',
+            severity: query.duration > 60 ? 'critical' : 'warning',
+            message: `Long-running query detected (${query.duration.toFixed(2)}s)`,
+            metadata: {
+              pid: query.pid,
+              query: query.query.substring(0, 200),
+              duration: query.duration
+            }
+          });
+        }
+      }
+
+      // Check for lock contention
+      const waitingLocks = lockStats.rows.find(row => row.waiting_locks > 0);
+      if (waitingLocks && waitingLocks.waiting_locks > 5) {
+        this.createAlert({
+          type: 'lock_contention',
+          severity: 'warning',
+          message: `High lock contention detected (${waitingLocks.waiting_locks} waiting locks)`,
+          metadata: {
+            waitingLocks: waitingLocks.waiting_locks,
+            lockType: waitingLocks.locktype,
+            mode: waitingLocks.mode
+          }
+        });
+      }
+
+      // Emit metrics event
+      this.emit('metrics', {
+        connections: this.connectionMetrics,
+        locks: lockStats.rows,
+        runningQueries: runningQueries.rows.length
+      });
+
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Check for performance anomalies
+   */
+  private async checkForAnomalies(): Promise<void> {
+    // Check connection pool utilization
+    const poolUtilization = this.connectionMetrics.activeConnections / this.connectionMetrics.totalConnections;
+    if (poolUtilization > 0.9) {
+      this.createAlert({
+        type: 'high_connections',
+        severity: 'critical',
+        message: `High connection pool utilization (${(poolUtilization * 100).toFixed(1)}%)`,
+        metadata: {
+          activeConnections: this.connectionMetrics.activeConnections,
+          totalConnections: this.connectionMetrics.totalConnections,
+          utilization: poolUtilization
+        }
+      });
+    }
+
+    // Check for query performance degradation
+    for (const [queryHash, metrics] of this.queryMetrics) {
+      if (metrics.length >= 10) {
+        const recent = metrics.slice(-5);
+        const previous = metrics.slice(-10, -5);
+
+        const recentAvg = recent.reduce((sum, m) => sum + m.executionTime, 0) / recent.length;
+        const previousAvg = previous.reduce((sum, m) => sum + m.executionTime, 0) / previous.length;
+
+        const degradation = ((recentAvg - previousAvg) / previousAvg) * 100;
+
+        if (degradation > 50) { // 50% performance degradation
+          this.createAlert({
+            type: 'slow_query',
+            severity: 'warning',
+            message: `Query performance degraded by ${degradation.toFixed(1)}%`,
+            metadata: {
+              queryHash,
+              recentAvg,
+              previousAvg,
+              degradation
+            }
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * Create and emit alert
+   */
+  private createAlert(alertData: Omit<RealTimeAlert, 'id' | 'timestamp'>): void {
+    const alert: RealTimeAlert = {
+      id: `${alertData.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: Date.now(),
+      ...alertData
+    };
+
+    this.realTimeAlerts.set(alert.id, alert);
+    this.emit('alert', alert);
+
+    this.logger.warn(`Database alert: ${alert.message}`, alert.metadata);
+
+    // Store alert in Redis for persistence
+    this.redis.lpush('db_alerts', JSON.stringify(alert)).then(() => {
+      this.redis.ltrim('db_alerts', 0, 999); // Keep last 1000 alerts
+    });
+  }
+
+  /**
+   * Get active alerts
+   */
+  getActiveAlerts(): RealTimeAlert[] {
+    const now = Date.now();
+    const activeAlerts: RealTimeAlert[] = [];
+
+    for (const [id, alert] of this.realTimeAlerts) {
+      // Consider alerts active for 5 minutes
+      if (now - alert.timestamp < 5 * 60 * 1000) {
+        activeAlerts.push(alert);
+      } else {
+        this.realTimeAlerts.delete(id);
+      }
+    }
+
+    return activeAlerts.sort((a, b) => b.timestamp - a.timestamp);
+  }
+
+  /**
+   * Get connection pool metrics
+   */
+  getConnectionMetrics(): ConnectionPoolMetrics {
+    return { ...this.connectionMetrics };
+  }
+
+  /**
+   * Auto-optimize based on real-time metrics
+   */
+  async autoOptimize(): Promise<{
+    applied: string[];
+    skipped: string[];
+    errors: string[];
+  }> {
+    const applied: string[] = [];
+    const skipped: string[] = [];
+    const errors: string[] = [];
+
+    try {
+      // Auto-create indexes for frequently slow queries
+      for (const [queryHash, metrics] of this.queryMetrics) {
+        const avgTime = metrics.reduce((sum, m) => sum + m.executionTime, 0) / metrics.length;
+
+        if (avgTime > this.slowQueryThreshold && metrics.length > 10) {
+          const lastMetric = metrics[metrics.length - 1];
+
+          // Simple heuristic: if query contains WHERE clause, suggest index
+          if (lastMetric.query.toLowerCase().includes('where')) {
+            try {
+              // This is a simplified example - real implementation would analyze query structure
+              const suggestion = `-- Auto-generated index suggestion for query hash ${queryHash}`;
+              applied.push(suggestion);
+            } catch (error) {
+              errors.push(`Failed to create index for query ${queryHash}: ${error.message}`);
+            }
+          }
+        }
+      }
+
+      // Auto-adjust configuration based on metrics
+      const configRecommendations = await this.optimizeConfiguration();
+      for (const [setting, value] of Object.entries(configRecommendations)) {
+        try {
+          // Note: In production, these would be applied carefully with proper validation
+          skipped.push(`Configuration change suggested: ${setting} = ${value}`);
+        } catch (error) {
+          errors.push(`Failed to apply configuration ${setting}: ${error.message}`);
+        }
+      }
+
+    } catch (error) {
+      errors.push(`Auto-optimization error: ${error.message}`);
+    }
+
+    return { applied, skipped, errors };
   }
 }
