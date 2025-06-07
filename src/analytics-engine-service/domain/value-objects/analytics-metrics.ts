@@ -26,8 +26,11 @@ export class XGValue {
   private readonly _value: number;
 
   constructor(value: number) {
+    if (isNaN(value) || !isFinite(value)) {
+      throw new Error('xG value must be a finite number');
+    }
     if (value < 0 || value > 1) {
-      throw new Error('xG value must be between 0 and 1');
+      throw new Error(`xG value must be between 0 and 1, got ${value}`);
     }
     this._value = Number(value.toFixed(4)); // Precision to 4 decimal places
   }
@@ -38,6 +41,11 @@ export class XGValue {
 
   add(other: XGValue): XGValue {
     return new XGValue(Math.min(1, this._value + other._value));
+  }
+
+  // For summing multiple shots where total can exceed 1.0
+  addUncapped(other: XGValue): number {
+    return this._value + other._value;
   }
 
   multiply(factor: number): XGValue {
@@ -58,6 +66,14 @@ export class XGValue {
 
   static fromNumber(value: number): XGValue {
     return new XGValue(value);
+  }
+
+  static fromNumberClamped(value: number): XGValue {
+    if (isNaN(value) || !isFinite(value)) {
+      return XGValue.zero();
+    }
+    const clampedValue = Math.min(1, Math.max(0, value));
+    return new XGValue(clampedValue);
   }
 }
 

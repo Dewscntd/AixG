@@ -1,0 +1,359 @@
+# Network Chaos Engineering Tests for FootAnalytics Platform
+# Tests system resilience under network failures and latency
+
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: footanalytics-network-chaos
+  namespace: footanalytics
+spec:
+  appinfo:
+    appns: footanalytics
+    applabel: "app=footanalytics"
+    appkind: "deployment"
+  
+  # Chaos service account
+  chaosServiceAccount: litmus-admin
+  
+  # Monitoring during chaos
+  monitoring: true
+  
+  # Job cleanup policy
+  jobCleanUpPolicy: "retain"
+  
+  experiments:
+    # Network latency injection
+    - name: pod-network-latency
+      spec:
+        components:
+          env:
+            # Target containers
+            - name: TARGET_CONTAINER
+              value: "analytics-engine,ml-pipeline,video-ingestion"
+            
+            # Network latency (milliseconds)
+            - name: NETWORK_LATENCY
+              value: "2000"
+            
+            # Jitter (milliseconds)
+            - name: JITTER
+              value: "200"
+            
+            # Chaos duration
+            - name: TOTAL_CHAOS_DURATION
+              value: "300"
+            
+            # Percentage of pods to affect
+            - name: PODS_AFFECTED_PERC
+              value: "50"
+            
+            # Target specific services
+            - name: TARGET_SERVICE_PORT
+              value: "4000,5000,6000"
+            
+            # Network interface
+            - name: NETWORK_INTERFACE
+              value: "eth0"
+            
+            # Destination IPs (optional)
+            - name: DESTINATION_IPS
+              value: ""
+            
+            # Destination hosts
+            - name: DESTINATION_HOSTS
+              value: "postgres,redis,pulsar"
+        
+        probe:
+          # Health check probes during chaos
+          - name: "analytics-api-health"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 10
+              retry: 3
+              interval: 10
+              probePollingInterval: 2
+            httpProbe/inputs:
+              url: "http://analytics-engine-service:4000/health"
+              insecureSkipTLS: true
+              method:
+                get:
+                  criteria: "=="
+                  responseCode: "200"
+          
+          - name: "ml-pipeline-health"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 10
+              retry: 3
+              interval: 10
+            httpProbe/inputs:
+              url: "http://ml-pipeline-service:5000/health"
+              method:
+                get:
+                  criteria: "=="
+                  responseCode: "200"
+          
+          - name: "video-ingestion-health"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 10
+              retry: 3
+              interval: 10
+            httpProbe/inputs:
+              url: "http://video-ingestion-service:6000/health"
+              method:
+                get:
+                  criteria: "=="
+                  responseCode: "200"
+
+    # Network packet loss
+    - name: pod-network-loss
+      spec:
+        components:
+          env:
+            - name: TARGET_CONTAINER
+              value: "analytics-engine"
+            
+            # Packet loss percentage
+            - name: NETWORK_PACKET_LOSS_PERCENTAGE
+              value: "10"
+            
+            - name: TOTAL_CHAOS_DURATION
+              value: "180"
+            
+            - name: PODS_AFFECTED_PERC
+              value: "25"
+            
+            - name: TARGET_SERVICE_PORT
+              value: "5432,6379" # PostgreSQL and Redis ports
+        
+        probe:
+          - name: "database-connectivity"
+            type: "cmdProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 30
+              retry: 3
+              interval: 15
+            cmdProbe/inputs:
+              command: "pg_isready -h postgres -p 5432"
+              source:
+                image: "postgres:15"
+              comparator:
+                type: "string"
+                criteria: "contains"
+                value: "accepting connections"
+
+    # Network corruption
+    - name: pod-network-corruption
+      spec:
+        components:
+          env:
+            - name: TARGET_CONTAINER
+              value: "ml-pipeline"
+            
+            # Corruption percentage
+            - name: NETWORK_PACKET_CORRUPTION_PERCENTAGE
+              value: "5"
+            
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"
+            
+            - name: PODS_AFFECTED_PERC
+              value: "30"
+
+    # Network duplication
+    - name: pod-network-duplication
+      spec:
+        components:
+          env:
+            - name: TARGET_CONTAINER
+              value: "video-ingestion"
+            
+            # Duplication percentage
+            - name: NETWORK_PACKET_DUPLICATION_PERCENTAGE
+              value: "15"
+            
+            - name: TOTAL_CHAOS_DURATION
+              value: "150"
+            
+            - name: PODS_AFFECTED_PERC
+              value: "20"
+
+    # DNS chaos
+    - name: pod-dns-error
+      spec:
+        components:
+          env:
+            - name: TARGET_CONTAINER
+              value: "analytics-engine"
+            
+            # Target hostnames
+            - name: TARGET_HOSTNAMES
+              value: "postgres.footanalytics.svc.cluster.local,redis.footanalytics.svc.cluster.local"
+            
+            # Match scheme
+            - name: MATCH_SCHEME
+              value: "exact"
+            
+            - name: TOTAL_CHAOS_DURATION
+              value: "180"
+            
+            - name: PODS_AFFECTED_PERC
+              value: "40"
+        
+        probe:
+          - name: "service-discovery"
+            type: "cmdProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 20
+              retry: 3
+              interval: 10
+            cmdProbe/inputs:
+              command: "nslookup postgres.footanalytics.svc.cluster.local"
+              source:
+                image: "busybox:latest"
+              comparator:
+                type: "string"
+                criteria: "contains"
+                value: "Address"
+
+---
+# Network partition experiment
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: footanalytics-network-partition
+  namespace: footanalytics
+spec:
+  appinfo:
+    appns: footanalytics
+    applabel: "app=footanalytics"
+    appkind: "deployment"
+  
+  chaosServiceAccount: litmus-admin
+  monitoring: true
+  jobCleanUpPolicy: "retain"
+  
+  experiments:
+    - name: pod-network-partition
+      spec:
+        components:
+          env:
+            # Partition between analytics and ML services
+            - name: DESTINATION_IPS
+              value: "ml-pipeline-service-ip"
+            
+            - name: DESTINATION_HOSTS
+              value: "ml-pipeline-service.footanalytics.svc.cluster.local"
+            
+            - name: TOTAL_CHAOS_DURATION
+              value: "300"
+            
+            - name: PODS_AFFECTED_PERC
+              value: "100"
+            
+            # Network interface
+            - name: NETWORK_INTERFACE
+              value: "eth0"
+        
+        probe:
+          # Test service communication during partition
+          - name: "inter-service-communication"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 15
+              retry: 2
+              interval: 20
+            httpProbe/inputs:
+              url: "http://analytics-engine-service:4000/api/analytics/health"
+              method:
+                get:
+                  criteria: "=="
+                  responseCode: "200"
+          
+          # Test circuit breaker activation
+          - name: "circuit-breaker-status"
+            type: "httpProbe"
+            mode: "Edge"
+            runProperties:
+              probeTimeout: 10
+              retry: 1
+              interval: 30
+            httpProbe/inputs:
+              url: "http://analytics-engine-service:4000/api/analytics/circuit-breaker/status"
+              method:
+                get:
+                  criteria: "=="
+                  responseCode: "200"
+
+---
+# Bandwidth limitation experiment
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: footanalytics-bandwidth-limit
+  namespace: footanalytics
+spec:
+  appinfo:
+    appns: footanalytics
+    applabel: "app=video-ingestion"
+    appkind: "deployment"
+  
+  chaosServiceAccount: litmus-admin
+  monitoring: true
+  jobCleanUpPolicy: "retain"
+  
+  experiments:
+    - name: pod-network-bandwidth
+      spec:
+        components:
+          env:
+            # Limit bandwidth to 1Mbps (simulate poor network)
+            - name: NETWORK_BANDWIDTH
+              value: "1mbit"
+            
+            - name: TOTAL_CHAOS_DURATION
+              value: "600" # 10 minutes
+            
+            - name: PODS_AFFECTED_PERC
+              value: "50"
+            
+            # Target video upload traffic
+            - name: TARGET_SERVICE_PORT
+              value: "6000"
+        
+        probe:
+          # Monitor video upload performance
+          - name: "video-upload-performance"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 60
+              retry: 2
+              interval: 30
+            httpProbe/inputs:
+              url: "http://video-ingestion-service:6000/api/videos/upload/status"
+              method:
+                get:
+                  criteria: "=="
+                  responseCode: "200"
+          
+          # Check queue depth
+          - name: "upload-queue-depth"
+            type: "promProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 10
+              interval: 15
+            promProbe/inputs:
+              endpoint: "http://prometheus:9090"
+              query: "video_upload_queue_depth"
+              comparator:
+                criteria: "<"
+                value: "100" # Queue shouldn't exceed 100 items

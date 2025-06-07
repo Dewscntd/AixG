@@ -15,8 +15,23 @@
     "start:frontend:prod": "cd frontend && npm run start",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:coverage": "jest --coverage --coverageThreshold='{\"global\":{\"branches\":90,\"functions\":90,\"lines\":90,\"statements\":90}}'",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:contract": "jest --testPathPattern=contract",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:performance": "artillery run test/performance/load-test.yml",
+    "test:load": "k6 run test/performance/stress-test.js",
+    "test:chaos": "npm run test:chaos:network && npm run test:chaos:cpu && npm run test:chaos:memory",
+    "test:chaos:network": "litmus chaos run test/chaos/network-chaos.yaml",
+    "test:chaos:cpu": "litmus chaos run test/chaos/cpu-chaos.yaml",
+    "test:chaos:memory": "litmus chaos run test/chaos/memory-chaos.yaml",
+    "test:property": "jest --testPathPattern=property",
+    "test:snapshot": "jest --testPathPattern=snapshot",
+    "test:security": "npm audit && npm run test:security:deps",
+    "test:security:deps": "snyk test",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:contract && npm run test:e2e",
+    "test:ci": "npm run test:all && npm run test:performance && npm run test:security",
     "test:frontend": "cd frontend && npm run test",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix && cd frontend && npm run lint",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" && cd frontend && npm run format",
@@ -89,27 +104,13 @@
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.0",
     "typescript": "^5.1.3",
-    "concurrently": "^8.2.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node",
-    "moduleNameMapping": {
-      "^@/(.*)$": "<rootDir>/$1"
-    }
+    "concurrently": "^8.2.0",
+    "fast-check": "^3.15.0",
+    "nock": "^13.4.0",
+    "sinon": "^17.0.0",
+    "@types/sinon": "^17.0.0",
+    "jest-extended": "^4.0.0",
+    "@faker-js/faker": "^8.3.0"
   },
   "engines": {
     "node": ">=18.0.0",

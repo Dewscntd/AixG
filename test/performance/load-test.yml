@@ -1,0 +1,228 @@
+# Artillery Load Testing Configuration for FootAnalytics Platform
+# Tests system performance under various load conditions
+
+config:
+  target: 'http://localhost:4000'
+  phases:
+    # Warm-up phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm-up"
+    
+    # Ramp-up phase
+    - duration: 300
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp-up"
+    
+    # Sustained load phase
+    - duration: 600
+      arrivalRate: 50
+      name: "Sustained load"
+    
+    # Peak load phase
+    - duration: 180
+      arrivalRate: 100
+      name: "Peak load"
+    
+    # Cool-down phase
+    - duration: 120
+      arrivalRate: 100
+      rampTo: 10
+      name: "Cool-down"
+
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+      Authorization: 'Bearer test-token'
+
+  variables:
+    matchIds:
+      - "match-001"
+      - "match-002"
+      - "match-003"
+      - "match-004"
+      - "match-005"
+    
+    teamIds:
+      - "team-home-001"
+      - "team-away-001"
+      - "team-home-002"
+      - "team-away-002"
+
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+    
+    hdrhistogram: {}
+
+scenarios:
+  # Video Upload Performance Test
+  - name: "Video Upload Workflow"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/matches"
+          name: "Create Match"
+          json:
+            id: "{{ $randomUuid() }}"
+            homeTeamId: "{{ $randomString() }}"
+            awayTeamId: "{{ $randomString() }}"
+            startTime: "{{ $timestamp() }}"
+          capture:
+            - json: "$.id"
+              as: "matchId"
+          expect:
+            - statusCode: 201
+      
+      - post:
+          url: "/api/videos/upload"
+          name: "Upload Video"
+          formData:
+            matchId: "{{ matchId }}"
+            metadata: '{"duration": 5400, "resolution": "1920x1080"}'
+          expect:
+            - statusCode: 200
+          capture:
+            - json: "$.videoId"
+              as: "videoId"
+      
+      - get:
+          url: "/api/videos/{{ videoId }}/status"
+          name: "Check Video Status"
+          expect:
+            - statusCode: 200
+
+  # Analytics Query Performance Test
+  - name: "Analytics Queries"
+    weight: 40
+    flow:
+      - get:
+          url: "/api/analytics/matches/{{ $pick(matchIds) }}"
+          name: "Get Match Analytics"
+          expect:
+            - statusCode: [200, 404]
+      
+      - get:
+          url: "/api/analytics/teams/{{ $pick(teamIds) }}"
+          name: "Get Team Analytics"
+          expect:
+            - statusCode: [200, 404]
+      
+      - get:
+          url: "/api/analytics/matches/{{ $pick(matchIds) }}/timeline"
+          name: "Get Analytics Timeline"
+          expect:
+            - statusCode: [200, 404]
+
+  # Real-time Updates Performance Test
+  - name: "Real-time Updates"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/analytics/real-time-update"
+          name: "Send Frame Update"
+          json:
+            eventType: "FrameAnalyzed"
+            streamId: "stream-{{ $randomString() }}"
+            frameNumber: "{{ $randomInt(1, 10000) }}"
+            timestamp: "{{ $timestamp() }}"
+            data:
+              players:
+                - id: "player-{{ $randomString() }}"
+                  teamId: "{{ $pick(teamIds) }}"
+                  position:
+                    x: "{{ $randomFloat(0, 100) }}"
+                    y: "{{ $randomFloat(0, 100) }}"
+                  velocity:
+                    x: "{{ $randomFloat(-10, 10) }}"
+                    y: "{{ $randomFloat(-10, 10) }}"
+              ball:
+                position:
+                  x: "{{ $randomFloat(0, 100) }}"
+                  y: "{{ $randomFloat(0, 100) }}"
+                confidence: "{{ $randomFloat(0.8, 1.0) }}"
+          expect:
+            - statusCode: 200
+
+  # ML Pipeline Output Processing Test
+  - name: "ML Pipeline Processing"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/analytics/process-ml-output"
+          name: "Process ML Output"
+          json:
+            eventType: "VideoAnalysisCompleted"
+            matchId: "{{ $pick(matchIds) }}"
+            timestamp: "{{ $timestamp() }}"
+            data:
+              shots:
+                - teamId: "{{ $pick(teamIds) }}"
+                  playerId: "player-{{ $randomString() }}"
+                  position:
+                    x: "{{ $randomFloat(70, 100) }}"
+                    y: "{{ $randomFloat(20, 80) }}"
+                  targetPosition:
+                    x: 100
+                    y: 50
+                  distanceToGoal: "{{ $randomFloat(5, 30) }}"
+                  angle: "{{ $randomFloat(0, 45) }}"
+                  bodyPart: "{{ $pick(['foot', 'head']) }}"
+                  situation: "{{ $pick(['open_play', 'corner', 'free_kick']) }}"
+                  defenderCount: "{{ $randomInt(0, 3) }}"
+                  gameState:
+                    minute: "{{ $randomInt(1, 90) }}"
+                    scoreDifference: "{{ $randomInt(-2, 2) }}"
+                    isHome: "{{ $randomBoolean() }}"
+                  confidence: "{{ $randomFloat(0.8, 1.0) }}"
+              possessionEvents:
+                - timestamp: "{{ $timestamp() }}"
+                  teamId: "{{ $pick(teamIds) }}"
+                  playerId: "player-{{ $randomString() }}"
+                  eventType: "{{ $pick(['pass', 'dribble', 'shot']) }}"
+                  position:
+                    x: "{{ $randomFloat(0, 100) }}"
+                    y: "{{ $randomFloat(0, 100) }}"
+                  successful: "{{ $randomBoolean() }}"
+                  duration: "{{ $randomInt(1, 10) }}"
+              metadata:
+                processingTime: "{{ $randomFloat(30, 180) }}"
+                frameCount: "{{ $randomInt(50000, 200000) }}"
+                analysisQuality: "{{ $pick(['high', 'medium']) }}"
+          expect:
+            - statusCode: [200, 202]
+
+# Performance thresholds and expectations
+expect:
+  # Response time thresholds (95th percentile)
+  p95: 2000  # 2 seconds
+  p99: 5000  # 5 seconds
+  
+  # Error rate threshold
+  maxErrorRate: 1  # 1% error rate
+  
+  # Throughput expectations
+  minThroughput: 100  # requests per second
+
+# Custom metrics and monitoring
+metrics:
+  - name: "video_upload_duration"
+    unit: "ms"
+    
+  - name: "analytics_query_duration"
+    unit: "ms"
+    
+  - name: "ml_processing_duration"
+    unit: "ms"
+    
+  - name: "real_time_update_latency"
+    unit: "ms"
+
+# Post-test analysis
+after:
+  - plugin: "artillery-plugin-statsd"
+    config:
+      host: "localhost"
+      port: 8125
+      prefix: "footanalytics.loadtest"

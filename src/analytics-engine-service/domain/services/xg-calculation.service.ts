@@ -149,7 +149,7 @@ export const calculateXG: XGCalculator = (shotData: ShotData): XGValue => {
   const baseXG = baseXGCalculation(shotData);
   const finalXG = modifierPipeline(baseXG);
   
-  return XGValue.fromNumber(Math.min(0.99, Math.max(0.01, finalXG)));
+  return XGValue.fromNumberClamped(finalXG);
 };
 
 // Alternative composition using compose (right-to-left)
@@ -165,7 +165,7 @@ export const calculateXGComposed: XGCalculator = (shotData: ShotData): XGValue =
     (xg: number) => applyDistanceModifier(xg, shotData)
   )(baseXG);
   
-  return XGValue.fromNumber(Math.min(0.99, Math.max(0.01, finalXG)));
+  return XGValue.fromNumberClamped(finalXG);
 };
 
 // Utility functions for position calculations
@@ -200,16 +200,21 @@ export const calculateXA = (passData: any, subsequentShot: ShotData): XGValue =>
 };
 
 // Batch xG calculation for multiple shots
-export const calculateBatchXG = (shots: ShotData[]): XGValue => {
+export const calculateBatchXG = (shots: ShotData[]): XGValue[] => {
+  return shots.map(calculateXG);
+};
+
+// Total xG calculation for multiple shots (uncapped for team totals)
+export const calculateTotalXG = (shots: ShotData[]): number => {
   return shots
     .map(calculateXG)
-    .reduce((total, xg) => total.add(xg), XGValue.zero());
+    .reduce((total, xg) => total + xg.value, 0);
 };
 
 // xG per minute calculation
 export const calculateXGPerMinute = (shots: ShotData[], matchDuration: number): number => {
-  const totalXG = calculateBatchXG(shots);
-  return matchDuration > 0 ? totalXG.value / matchDuration : 0;
+  const totalXG = calculateTotalXG(shots);
+  return matchDuration > 0 ? totalXG / matchDuration : 0;
 };
 
 // Export all calculation functions for testing
@@ -225,5 +230,6 @@ export const XGCalculationFunctions = {
   calculateAngle,
   calculateXA,
   calculateBatchXG,
+  calculateTotalXG,
   calculateXGPerMinute
 };
