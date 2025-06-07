@@ -1,0 +1,234 @@
+# ArgoCD Notifications Configuration
+service.slack: |
+  token: $slack-token
+  
+service.webhook.teams: |
+  url: ${teams_webhook_url}
+  headers:
+  - name: Content-Type
+    value: application/json
+
+template.app-deployed: |
+  webhook:
+    teams:
+      method: POST
+      body: |
+        {
+          "@type": "MessageCard",
+          "@context": "http://schema.org/extensions",
+          "themeColor": "00FF00",
+          "summary": "Application Deployed",
+          "sections": [{
+            "activityTitle": "🚀 Application Deployed Successfully",
+            "activitySubtitle": "FootAnalytics Platform",
+            "facts": [{
+              "name": "Application",
+              "value": "{{.app.metadata.name}}"
+            }, {
+              "name": "Environment",
+              "value": "{{.app.spec.destination.namespace}}"
+            }, {
+              "name": "Revision",
+              "value": "{{.app.status.sync.revision}}"
+            }, {
+              "name": "Status",
+              "value": "{{.app.status.health.status}}"
+            }],
+            "markdown": true
+          }],
+          "potentialAction": [{
+            "@type": "OpenUri",
+            "name": "View Application",
+            "targets": [{
+              "os": "default",
+              "uri": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}"
+            }]
+          }]
+        }
+  slack:
+    attachments: |
+      [{
+        "title": "🚀 Application Deployed",
+        "title_link": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
+        "color": "good",
+        "fields": [
+        {
+          "title": "Application",
+          "value": "{{.app.metadata.name}}",
+          "short": true
+        },
+        {
+          "title": "Environment", 
+          "value": "{{.app.spec.destination.namespace}}",
+          "short": true
+        },
+        {
+          "title": "Revision",
+          "value": "{{.app.status.sync.revision}}",
+          "short": true
+        },
+        {
+          "title": "Health Status",
+          "value": "{{.app.status.health.status}}",
+          "short": true
+        }]
+      }]
+
+template.app-health-degraded: |
+  webhook:
+    teams:
+      method: POST
+      body: |
+        {
+          "@type": "MessageCard",
+          "@context": "http://schema.org/extensions",
+          "themeColor": "FF0000",
+          "summary": "Application Health Degraded",
+          "sections": [{
+            "activityTitle": "⚠️ Application Health Degraded",
+            "activitySubtitle": "FootAnalytics Platform",
+            "facts": [{
+              "name": "Application",
+              "value": "{{.app.metadata.name}}"
+            }, {
+              "name": "Environment",
+              "value": "{{.app.spec.destination.namespace}}"
+            }, {
+              "name": "Health Status",
+              "value": "{{.app.status.health.status}}"
+            }, {
+              "name": "Message",
+              "value": "{{.app.status.health.message}}"
+            }],
+            "markdown": true
+          }],
+          "potentialAction": [{
+            "@type": "OpenUri",
+            "name": "View Application",
+            "targets": [{
+              "os": "default",
+              "uri": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}"
+            }]
+          }]
+        }
+  slack:
+    attachments: |
+      [{
+        "title": "⚠️ Application Health Degraded",
+        "title_link": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
+        "color": "danger",
+        "fields": [
+        {
+          "title": "Application",
+          "value": "{{.app.metadata.name}}",
+          "short": true
+        },
+        {
+          "title": "Environment",
+          "value": "{{.app.spec.destination.namespace}}",
+          "short": true
+        },
+        {
+          "title": "Health Status",
+          "value": "{{.app.status.health.status}}",
+          "short": true
+        },
+        {
+          "title": "Message",
+          "value": "{{.app.status.health.message}}",
+          "short": false
+        }]
+      }]
+
+template.app-sync-failed: |
+  webhook:
+    teams:
+      method: POST
+      body: |
+        {
+          "@type": "MessageCard",
+          "@context": "http://schema.org/extensions",
+          "themeColor": "FF6600",
+          "summary": "Application Sync Failed",
+          "sections": [{
+            "activityTitle": "❌ Application Sync Failed",
+            "activitySubtitle": "FootAnalytics Platform",
+            "facts": [{
+              "name": "Application",
+              "value": "{{.app.metadata.name}}"
+            }, {
+              "name": "Environment",
+              "value": "{{.app.spec.destination.namespace}}"
+            }, {
+              "name": "Sync Status",
+              "value": "{{.app.status.sync.status}}"
+            }, {
+              "name": "Message",
+              "value": "{{.app.status.operationState.message}}"
+            }],
+            "markdown": true
+          }],
+          "potentialAction": [{
+            "@type": "OpenUri",
+            "name": "View Application",
+            "targets": [{
+              "os": "default",
+              "uri": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}"
+            }]
+          }]
+        }
+  slack:
+    attachments: |
+      [{
+        "title": "❌ Application Sync Failed",
+        "title_link": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
+        "color": "warning",
+        "fields": [
+        {
+          "title": "Application",
+          "value": "{{.app.metadata.name}}",
+          "short": true
+        },
+        {
+          "title": "Environment",
+          "value": "{{.app.spec.destination.namespace}}",
+          "short": true
+        },
+        {
+          "title": "Sync Status",
+          "value": "{{.app.status.sync.status}}",
+          "short": true
+        },
+        {
+          "title": "Message",
+          "value": "{{.app.status.operationState.message}}",
+          "short": false
+        }]
+      }]
+
+trigger.on-deployed: |
+  - description: Application is synced and healthy
+    send:
+    - app-deployed
+    when: app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy'
+
+trigger.on-health-degraded: |
+  - description: Application has degraded
+    send:
+    - app-health-degraded
+    when: app.status.health.status == 'Degraded'
+
+trigger.on-sync-failed: |
+  - description: Application sync is failed
+    send:
+    - app-sync-failed
+    when: app.status.operationState.phase in ['Error', 'Failed']
+
+subscriptions: |
+  - recipients:
+    - slack:footanalytics-deployments
+    - teams:
+    triggers:
+    - on-deployed
+    - on-health-degraded
+    - on-sync-failed

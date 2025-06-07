@@ -1,0 +1,225 @@
+# Canary Deployment Configurations for Production
+# Flagger-managed progressive delivery
+
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: api-gateway
+  namespace: footanalytics
+  labels:
+    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  
+  progressDeadlineSeconds: 600
+  
+  autoscalerRef:
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    name: api-gateway
+  
+  service:
+    port: 4000
+    targetPort: 4000
+    trafficPolicy:
+      tls:
+        mode: ISTIO_MUTUAL
+    gateways:
+      - footanalytics-gateway.istio-system.svc.cluster.local
+    hosts:
+      - api.footanalytics.com
+  
+  analysis:
+    interval: 1m
+    threshold: 5
+    maxWeight: 50
+    stepWeight: 10
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 99
+        interval: 1m
+      - name: request-duration
+        thresholdRange:
+          max: 200
+        interval: 30s
+      - name: cpu-usage
+        thresholdRange:
+          max: 80
+        interval: 1m
+    webhooks:
+      - name: acceptance-test
+        type: pre-rollout
+        url: http://flagger-loadtester.test/api/v1/canary
+        timeout: 30s
+        metadata:
+          type: bash
+          cmd: "curl -sd 'test' http://api-gateway-canary.footanalytics:4000/health | grep OK"
+      - name: load-test
+        url: http://flagger-loadtester.test/api/v1/canary
+        timeout: 5s
+        metadata:
+          cmd: "hey -z 2m -q 10 -c 2 http://api-gateway-canary.footanalytics:4000/graphql"
+
+---
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: video-ingestion
+  namespace: footanalytics
+  labels:
+    app.kubernetes.io/name: video-ingestion
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: video-ingestion
+  
+  progressDeadlineSeconds: 600
+  
+  service:
+    port: 3001
+    targetPort: 3001
+    trafficPolicy:
+      tls:
+        mode: ISTIO_MUTUAL
+  
+  analysis:
+    interval: 2m
+    threshold: 3
+    maxWeight: 30
+    stepWeight: 10
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 95
+        interval: 1m
+      - name: upload-success-rate
+        thresholdRange:
+          min: 98
+        interval: 2m
+    webhooks:
+      - name: upload-test
+        type: pre-rollout
+        url: http://flagger-loadtester.test/api/v1/canary
+        timeout: 60s
+        metadata:
+          type: bash
+          cmd: "python /scripts/test_video_upload.py --endpoint http://video-ingestion-canary.footanalytics:3001"
+
+---
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: ml-pipeline
+  namespace: ai-processing
+  labels:
+    app.kubernetes.io/name: ml-pipeline
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ml-pipeline
+  
+  progressDeadlineSeconds: 900
+  
+  service:
+    port: 8000
+    targetPort: 8000
+    trafficPolicy:
+      tls:
+        mode: ISTIO_MUTUAL
+  
+  analysis:
+    interval: 3m
+    threshold: 3
+    maxWeight: 25
+    stepWeight: 5
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 95
+        interval: 2m
+      - name: inference-latency
+        thresholdRange:
+          max: 2000
+        interval: 1m
+      - name: gpu-utilization
+        thresholdRange:
+          min: 60
+          max: 90
+        interval: 2m
+      - name: model-accuracy
+        thresholdRange:
+          min: 85
+        interval: 5m
+    webhooks:
+      - name: ml-validation
+        type: pre-rollout
+        url: http://flagger-loadtester.test/api/v1/canary
+        timeout: 120s
+        metadata:
+          type: bash
+          cmd: "python /scripts/validate_ml_model.py --endpoint http://ml-pipeline-canary.ai-processing:8000 --accuracy-threshold 0.85"
+      - name: inference-test
+        url: http://flagger-loadtester.test/api/v1/canary
+        timeout: 10s
+        metadata:
+          cmd: "python /scripts/test_inference.py --endpoint http://ml-pipeline-canary.ai-processing:8000 --concurrent 5"
+
+---
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: analytics-engine
+  namespace: footanalytics
+  labels:
+    app.kubernetes.io/name: analytics-engine
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: analytics-engine
+  
+  progressDeadlineSeconds: 600
+  
+  service:
+    port: 3002
+    targetPort: 3002
+    trafficPolicy:
+      tls:
+        mode: ISTIO_MUTUAL
+  
+  analysis:
+    interval: 2m
+    threshold: 3
+    maxWeight: 40
+    stepWeight: 10
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 97
+        interval: 1m
+      - name: analytics-generation-time
+        thresholdRange:
+          max: 300000  # 5 minutes in milliseconds
+        interval: 2m
+      - name: database-connection-pool
+        thresholdRange:
+          max: 80  # Max 80% pool utilization
+        interval: 1m
+    webhooks:
+      - name: analytics-accuracy-test
+        type: pre-rollout
+        url: http://flagger-loadtester.test/api/v1/canary
+        timeout: 180s
+        metadata:
+          type: bash
+          cmd: "python /scripts/test_analytics_accuracy.py --endpoint http://analytics-engine-canary.footanalytics:3002"

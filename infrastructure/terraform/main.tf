@@ -141,8 +141,54 @@ module "prometheus" {
 # Include Alertmanager module
 module "alertmanager" {
   source = "./modules/alertmanager"
-  
+
   depends_on = [
     module.prometheus
+  ]
+}
+
+# Include ArgoCD module for GitOps
+module "argocd" {
+  source = "./modules/argocd"
+
+  depends_on = [
+    module.eks
+  ]
+}
+
+# Include Jaeger module for distributed tracing
+module "jaeger" {
+  source = "./modules/jaeger"
+
+  depends_on = [
+    module.eks
+  ]
+}
+
+# Include Flagger module for canary deployments
+module "flagger" {
+  source = "./modules/flagger"
+
+  depends_on = [
+    module.istio,
+    module.prometheus
+  ]
+}
+
+# Include Feature Flags module
+module "feature_flags" {
+  source = "./modules/feature-flags"
+
+  depends_on = [
+    module.eks
+  ]
+}
+
+# Include PagerDuty module for incident response
+module "pagerduty" {
+  source = "./modules/pagerduty"
+
+  depends_on = [
+    module.alertmanager
   ]
 }

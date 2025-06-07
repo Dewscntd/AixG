@@ -1,0 +1,278 @@
+# Chaos Engineering Experiments for FootAnalytics Platform
+# Litmus Chaos experiments for resilience testing
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chaos-engineering
+  labels:
+    app.kubernetes.io/name: chaos-engineering
+    app.kubernetes.io/part-of: footanalytics
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: api-gateway-chaos
+  namespace: footanalytics
+  labels:
+    app.kubernetes.io/name: api-gateway-chaos
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  appinfo:
+    appns: footanalytics
+    applabel: "app.kubernetes.io/name=api-gateway"
+    appkind: deployment
+  
+  chaosServiceAccount: chaos-service-account
+  
+  experiments:
+    - name: pod-delete
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: CHAOS_INTERVAL
+              value: "10"
+            - name: FORCE
+              value: "false"
+        probe:
+          - name: "api-gateway-health-check"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 5
+              retry: 3
+              interval: 2
+            httpProbe/inputs:
+              url: "http://api-gateway.footanalytics.svc.cluster.local:4000/health"
+              insecureSkipTLS: true
+              method:
+                get:
+                  criteria: ==
+                  responseCode: "200"
+
+    - name: container-kill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: CHAOS_INTERVAL
+              value: "10"
+            - name: CONTAINER_RUNTIME
+              value: "containerd"
+            - name: SOCKET_PATH
+              value: "/run/containerd/containerd.sock"
+
+    - name: pod-cpu-hog
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"
+            - name: CPU_CORES
+              value: "1"
+            - name: CPU_LOAD
+              value: "100"
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: ml-pipeline-chaos
+  namespace: ai-processing
+  labels:
+    app.kubernetes.io/name: ml-pipeline-chaos
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  appinfo:
+    appns: ai-processing
+    applabel: "app.kubernetes.io/name=ml-pipeline"
+    appkind: deployment
+  
+  chaosServiceAccount: chaos-service-account
+  
+  experiments:
+    - name: pod-memory-hog
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "180"
+            - name: MEMORY_CONSUMPTION
+              value: "500"
+            - name: NUMBER_OF_WORKERS
+              value: "1"
+        probe:
+          - name: "ml-pipeline-inference-check"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 10
+              retry: 3
+              interval: 5
+            httpProbe/inputs:
+              url: "http://ml-pipeline.ai-processing.svc.cluster.local:8000/health"
+              insecureSkipTLS: true
+              method:
+                get:
+                  criteria: ==
+                  responseCode: "200"
+
+    - name: pod-network-latency
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"
+            - name: NETWORK_LATENCY
+              value: "2000"
+            - name: JITTER
+              value: "0"
+            - name: CONTAINER_RUNTIME
+              value: "containerd"
+
+    - name: disk-fill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"
+            - name: FILL_PERCENTAGE
+              value: "80"
+            - name: EPHEMERAL_STORAGE_MEBIBYTES
+              value: "1000"
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: database-chaos
+  namespace: footanalytics
+  labels:
+    app.kubernetes.io/name: database-chaos
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  appinfo:
+    appns: footanalytics
+    applabel: "app.kubernetes.io/name=postgres"
+    appkind: deployment
+  
+  chaosServiceAccount: chaos-service-account
+  
+  experiments:
+    - name: pod-network-loss
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: NETWORK_PACKET_LOSS_PERCENTAGE
+              value: "20"
+            - name: CONTAINER_RUNTIME
+              value: "containerd"
+        probe:
+          - name: "database-connection-check"
+            type: "cmdProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 10
+              retry: 3
+              interval: 5
+            cmdProbe/inputs:
+              command: "pg_isready -h postgres.footanalytics.svc.cluster.local -p 5432"
+              comparator:
+                type: "string"
+                criteria: "contains"
+                value: "accepting connections"
+
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosSchedule
+metadata:
+  name: footanalytics-chaos-schedule
+  namespace: chaos-engineering
+  labels:
+    app.kubernetes.io/name: chaos-schedule
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  schedule:
+    now: false
+    repeat:
+      timeRange:
+        startTime: "02:00"
+        endTime: "04:00"
+      workDays:
+        includedDays: "Mon,Tue,Wed,Thu,Fri"
+      minChaosInterval: "8h"
+  
+  engineTemplateSpec:
+    appinfo:
+      appns: footanalytics
+      applabel: "app.kubernetes.io/part-of=footanalytics"
+      appkind: deployment
+    
+    chaosServiceAccount: chaos-service-account
+    
+    experiments:
+      - name: pod-delete
+        spec:
+          components:
+            env:
+              - name: TOTAL_CHAOS_DURATION
+                value: "30"
+              - name: CHAOS_INTERVAL
+                value: "10"
+              - name: FORCE
+                value: "false"
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-service-account
+  namespace: chaos-engineering
+  labels:
+    app.kubernetes.io/name: chaos-service-account
+    app.kubernetes.io/part-of: footanalytics
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chaos-cluster-role
+  labels:
+    app.kubernetes.io/name: chaos-cluster-role
+    app.kubernetes.io/part-of: footanalytics
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "events", "configmaps", "secrets", "pods/log", "pods/exec"]
+    verbs: ["create", "list", "get", "patch", "update", "delete", "deletecollection"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["patch", "get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "replicasets", "daemonsets"]
+    verbs: ["list", "get", "patch", "update"]
+  - apiGroups: ["litmuschaos.io"]
+    resources: ["chaosengines", "chaosexperiments", "chaosresults"]
+    verbs: ["create", "list", "get", "patch", "update", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: chaos-cluster-role-binding
+  labels:
+    app.kubernetes.io/name: chaos-cluster-role-binding
+    app.kubernetes.io/part-of: footanalytics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: chaos-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: chaos-service-account
+    namespace: chaos-engineering

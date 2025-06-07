@@ -1,0 +1,340 @@
+# SLO/SLI Definitions for FootAnalytics Platform
+# Comprehensive Service Level Objectives and Indicators
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-definitions
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: slo-definitions
+    app.kubernetes.io/part-of: footanalytics
+data:
+  platform-slos.yaml: |
+    # Platform-wide SLOs
+    slos:
+      - name: platform_availability
+        description: "Platform overall availability"
+        sli:
+          type: availability
+          query: |
+            (
+              sum(rate(http_requests_total{job="api-gateway",code!~"5.."}[5m])) /
+              sum(rate(http_requests_total{job="api-gateway"}[5m]))
+            ) * 100
+        objectives:
+          - target: 99.9   # 99.9% availability
+            window: 30d    # 30-day rolling window
+          - target: 99.5   # 99.5% availability
+            window: 7d     # 7-day rolling window
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 2m
+              burn_rate: 14.4  # 2% error budget in 1 hour
+            - severity: warning
+              for: 15m
+              burn_rate: 6     # 5% error budget in 6 hours
+
+      - name: api_response_time
+        description: "API Gateway response time P95"
+        sli:
+          type: latency
+          query: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m])) by (le)
+            ) * 1000
+        objectives:
+          - target: 200    # 200ms P95 latency
+            window: 30d
+          - target: 150    # 150ms P95 latency
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 5m
+              burn_rate: 10
+            - severity: warning
+              for: 30m
+              burn_rate: 3
+
+      - name: video_processing_success_rate
+        description: "Video processing success rate"
+        sli:
+          type: availability
+          query: |
+            (
+              sum(rate(video_processing_total{status="success"}[5m])) /
+              sum(rate(video_processing_total[5m]))
+            ) * 100
+        objectives:
+          - target: 95.0   # 95% success rate
+            window: 30d
+          - target: 98.0   # 98% success rate
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 10m
+              burn_rate: 8
+            - severity: warning
+              for: 1h
+              burn_rate: 2
+
+  ml-pipeline-slos.yaml: |
+    # ML Pipeline specific SLOs
+    slos:
+      - name: ml_inference_latency
+        description: "ML model inference latency P99"
+        sli:
+          type: latency
+          query: |
+            histogram_quantile(0.99,
+              sum(rate(ml_inference_duration_seconds_bucket{job="ml-pipeline"}[5m])) by (le)
+            ) * 1000
+        objectives:
+          - target: 2000   # 2 seconds P99 latency
+            window: 30d
+          - target: 1500   # 1.5 seconds P99 latency
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 5m
+              burn_rate: 12
+            - severity: warning
+              for: 30m
+              burn_rate: 4
+
+      - name: gpu_utilization
+        description: "GPU utilization efficiency"
+        sli:
+          type: resource_utilization
+          query: |
+            avg(nvidia_gpu_utilization_gpu{job="ml-pipeline"})
+        objectives:
+          - target: 70     # 70% average GPU utilization
+            window: 30d
+          - target: 60     # 60% average GPU utilization
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: warning
+              for: 1h
+              burn_rate: 2
+
+      - name: model_accuracy
+        description: "ML model prediction accuracy"
+        sli:
+          type: quality
+          query: |
+            avg(ml_model_accuracy_score{job="ml-pipeline"}) * 100
+        objectives:
+          - target: 85.0   # 85% accuracy
+            window: 30d
+          - target: 87.0   # 87% accuracy
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 30m
+              burn_rate: 6
+            - severity: warning
+              for: 2h
+              burn_rate: 2
+
+  infrastructure-slos.yaml: |
+    # Infrastructure SLOs
+    slos:
+      - name: cluster_node_availability
+        description: "Kubernetes cluster node availability"
+        sli:
+          type: availability
+          query: |
+            (
+              count(kube_node_status_condition{condition="Ready",status="true"}) /
+              count(kube_node_status_condition{condition="Ready"})
+            ) * 100
+        objectives:
+          - target: 99.0   # 99% node availability
+            window: 30d
+          - target: 95.0   # 95% node availability
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 1m
+              burn_rate: 20
+            - severity: warning
+              for: 10m
+              burn_rate: 5
+
+      - name: pod_restart_rate
+        description: "Pod restart rate (lower is better)"
+        sli:
+          type: reliability
+          query: |
+            sum(rate(kube_pod_container_status_restarts_total{namespace=~"footanalytics|ai-processing"}[5m]))
+        objectives:
+          - target: 0.1    # Max 0.1 restarts per second
+            window: 30d
+          - target: 0.05   # Max 0.05 restarts per second
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 5m
+              burn_rate: 15
+            - severity: warning
+              for: 30m
+              burn_rate: 5
+
+      - name: persistent_volume_usage
+        description: "Persistent volume usage percentage"
+        sli:
+          type: resource_utilization
+          query: |
+            max(
+              (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) * 100
+            ) by (persistentvolumeclaim)
+        objectives:
+          - target: 80     # Max 80% PV usage
+            window: 30d
+          - target: 85     # Max 85% PV usage
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 10m
+              burn_rate: 8
+            - severity: warning
+              for: 1h
+              burn_rate: 3
+
+  business-slos.yaml: |
+    # Business-level SLOs
+    slos:
+      - name: user_session_success_rate
+        description: "User session completion success rate"
+        sli:
+          type: availability
+          query: |
+            (
+              sum(rate(user_sessions_total{status="completed"}[5m])) /
+              sum(rate(user_sessions_total[5m]))
+            ) * 100
+        objectives:
+          - target: 95.0   # 95% session success rate
+            window: 30d
+          - target: 97.0   # 97% session success rate
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 15m
+              burn_rate: 6
+            - severity: warning
+              for: 1h
+              burn_rate: 2
+
+      - name: video_upload_success_rate
+        description: "Video upload success rate"
+        sli:
+          type: availability
+          query: |
+            (
+              sum(rate(video_uploads_total{status="success"}[5m])) /
+              sum(rate(video_uploads_total[5m]))
+            ) * 100
+        objectives:
+          - target: 98.0   # 98% upload success rate
+            window: 30d
+          - target: 99.0   # 99% upload success rate
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 10m
+              burn_rate: 10
+            - severity: warning
+              for: 1h
+              burn_rate: 3
+
+      - name: analytics_generation_time
+        description: "Time to generate analytics after video upload"
+        sli:
+          type: latency
+          query: |
+            histogram_quantile(0.95,
+              sum(rate(analytics_generation_duration_seconds_bucket[5m])) by (le)
+            ) / 60
+        objectives:
+          - target: 10     # 10 minutes P95
+            window: 30d
+          - target: 8      # 8 minutes P95
+            window: 7d
+        alerting:
+          burn_rate_alerts:
+            - severity: critical
+              for: 20m
+              burn_rate: 5
+            - severity: warning
+              for: 2h
+              burn_rate: 2
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-recording-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: slo-recording-rules
+    app.kubernetes.io/part-of: footanalytics
+data:
+  slo-rules.yaml: |
+    groups:
+      - name: slo.rules
+        interval: 30s
+        rules:
+          # Platform Availability SLI
+          - record: sli:platform_availability:rate5m
+            expr: |
+              (
+                sum(rate(http_requests_total{job="api-gateway",code!~"5.."}[5m])) /
+                sum(rate(http_requests_total{job="api-gateway"}[5m]))
+              )
+
+          # API Response Time SLI
+          - record: sli:api_response_time:p95_5m
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m])) by (le)
+              )
+
+          # ML Inference Latency SLI
+          - record: sli:ml_inference_latency:p99_5m
+            expr: |
+              histogram_quantile(0.99,
+                sum(rate(ml_inference_duration_seconds_bucket{job="ml-pipeline"}[5m])) by (le)
+              )
+
+          # GPU Utilization SLI
+          - record: sli:gpu_utilization:avg5m
+            expr: |
+              avg(nvidia_gpu_utilization_gpu{job="ml-pipeline"})
+
+          # Error Budget Calculations
+          - record: slo:platform_availability:error_budget_remaining
+            expr: |
+              1 - (
+                (1 - sli:platform_availability:rate5m) /
+                (1 - 0.999)  # 99.9% target
+              )
+
+          - record: slo:api_response_time:error_budget_remaining
+            expr: |
+              1 - (
+                (sli:api_response_time:p95_5m - 0.2) /  # 200ms target
+                (2.0 - 0.2)  # Max acceptable latency
+              )

@@ -1,0 +1,218 @@
+# ArgoCD Helm Chart Values for Production
+global:
+  image:
+    tag: "v2.8.4"
+  
+server:
+  replicas: 2
+  
+  # High Availability Configuration
+  env:
+    - name: ARGOCD_SERVER_INSECURE
+      value: "false"
+    - name: ARGOCD_SERVER_ROOTPATH
+      value: "/argocd"
+  
+  # Resource limits for production
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  # Ingress configuration
+  ingress:
+    enabled: true
+    ingressClassName: ${ingress_class}
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - ${domain}
+    tls:
+      - secretName: ${tls_secret_name}
+        hosts:
+          - ${domain}
+  
+  # Metrics and monitoring
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      additionalLabels:
+        app: argocd-server
+  
+  # RBAC Configuration
+  rbacConfig:
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:developer, applications, get, */*, allow
+      p, role:developer, applications, sync, */*, allow
+      g, footanalytics:admin, role:admin
+      g, footanalytics:developer, role:developer
+
+controller:
+  replicas: 2
+  
+  # Resource limits
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      additionalLabels:
+        app: argocd-controller
+
+repoServer:
+  replicas: 2
+  
+  # Resource limits
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      additionalLabels:
+        app: argocd-repo-server
+
+applicationSet:
+  enabled: true
+  replicas: 2
+  
+  # Resource limits
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 125m
+      memory: 128Mi
+  
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      additionalLabels:
+        app: argocd-applicationset
+
+notifications:
+  enabled: true
+  
+  # Resource limits
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 125m
+      memory: 128Mi
+  
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      additionalLabels:
+        app: argocd-notifications
+
+dex:
+  enabled: false  # Using external OIDC provider
+
+redis:
+  enabled: true
+  
+  # High availability Redis
+  replica:
+    replicaCount: 3
+  
+  # Resource limits
+  master:
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 125m
+        memory: 128Mi
+  
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      additionalLabels:
+        app: argocd-redis
+
+# Global configurations
+configs:
+  # Repository credentials
+  credentialTemplates:
+    github-creds:
+      url: https://github.com/footanalytics
+      username: not-used
+      password: ${github_token}
+  
+  # Cluster configurations
+  clusterCredentials:
+    - name: in-cluster
+      server: https://kubernetes.default.svc
+      config:
+        bearerToken: ""
+        tlsClientConfig:
+          insecure: false
+  
+  # Application configurations
+  repositories:
+    - type: git
+      url: https://github.com/footanalytics/platform
+    - type: helm
+      url: https://charts.helm.sh/stable
+      name: stable
+    - type: helm
+      url: https://prometheus-community.github.io/helm-charts
+      name: prometheus-community
+
+# Security configurations
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 999
+  fsGroup: 999
+
+# Pod disruption budgets
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network policies
+networkPolicy:
+  enabled: true
+  defaultDenyIngress: false

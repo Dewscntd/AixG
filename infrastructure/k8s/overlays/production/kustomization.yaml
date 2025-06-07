@@ -1,0 +1,87 @@
+# Production Overlay for FootAnalytics Platform
+# GitOps-managed production configuration
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: footanalytics
+
+# Base resources
+resources:
+  - ../../base
+  - namespace.yaml
+  - network-policies.yaml
+  - pod-disruption-budgets.yaml
+  - horizontal-pod-autoscalers.yaml
+  - service-monitors.yaml
+  - canary-deployments.yaml
+
+# Production-specific patches
+patches:
+  - path: api-gateway-patch.yaml
+    target:
+      kind: Deployment
+      name: api-gateway
+  - path: video-ingestion-patch.yaml
+    target:
+      kind: Deployment
+      name: video-ingestion
+  - path: ml-pipeline-patch.yaml
+    target:
+      kind: Deployment
+      name: ml-pipeline
+  - path: analytics-engine-patch.yaml
+    target:
+      kind: Deployment
+      name: analytics-engine
+
+# Production images
+images:
+  - name: footanalytics/api-gateway
+    newTag: v1.2.3
+  - name: footanalytics/video-ingestion
+    newTag: v1.2.3
+  - name: footanalytics/ml-pipeline
+    newTag: v1.2.3
+  - name: footanalytics/analytics-engine
+    newTag: v1.2.3
+
+# Production replicas
+replicas:
+  - name: api-gateway
+    count: 5
+  - name: video-ingestion
+    count: 3
+  - name: ml-pipeline
+    count: 3
+  - name: analytics-engine
+    count: 3
+
+# ConfigMap generators for production
+configMapGenerator:
+  - name: app-config
+    files:
+      - config/production.env
+    options:
+      disableNameSuffixHash: true
+
+# Secret generators
+secretGenerator:
+  - name: app-secrets
+    files:
+      - secrets/database-url
+      - secrets/redis-url
+      - secrets/s3-credentials
+    options:
+      disableNameSuffixHash: true
+
+# Common labels for all resources
+commonLabels:
+  app.kubernetes.io/part-of: footanalytics
+  app.kubernetes.io/version: v1.2.3
+  environment: production
+
+# Common annotations
+commonAnnotations:
+  deployment.kubernetes.io/revision: "1"
+  config.kubernetes.io/local-config: "true"

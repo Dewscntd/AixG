@@ -1,0 +1,334 @@
+# Comprehensive Alerting Rules for FootAnalytics Platform
+# Production-grade alerts with SLO-based alerting
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: footanalytics-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alerting-rules
+    app.kubernetes.io/part-of: footanalytics
+    prometheus-alert: "true"
+data:
+  platform-alerts.yaml: |
+    groups:
+      - name: platform.critical
+        interval: 30s
+        rules:
+          - alert: PlatformAvailabilityCritical
+            expr: sli:platform_availability:rate5m < 0.99
+            for: 2m
+            labels:
+              severity: critical
+              service: platform
+              team: engineering
+              runbook: "https://runbooks.footanalytics.com/platform-availability"
+            annotations:
+              summary: "Platform availability is below SLO"
+              description: "Platform availability is {{ $value | humanizePercentage }} which is below the 99% SLO for 2 minutes"
+              dashboard: "https://grafana.footanalytics.com/d/platform-overview"
+
+          - alert: APIResponseTimeHigh
+            expr: sli:api_response_time:p95_5m > 0.2
+            for: 5m
+            labels:
+              severity: critical
+              service: api-gateway
+              team: engineering
+              runbook: "https://runbooks.footanalytics.com/api-latency"
+            annotations:
+              summary: "API response time is above SLO"
+              description: "API P95 response time is {{ $value | humanizeDuration }} which is above the 200ms SLO"
+              dashboard: "https://grafana.footanalytics.com/d/api-gateway"
+
+          - alert: HighErrorRate
+            expr: |
+              (
+                sum(rate(http_requests_total{job="api-gateway",code=~"5.."}[5m])) /
+                sum(rate(http_requests_total{job="api-gateway"}[5m]))
+              ) > 0.05
+            for: 5m
+            labels:
+              severity: critical
+              service: api-gateway
+              team: engineering
+            annotations:
+              summary: "High error rate detected"
+              description: "Error rate is {{ $value | humanizePercentage }} which is above 5% threshold"
+
+          - alert: DatabaseConnectionFailure
+            expr: up{job="postgres-exporter"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              service: database
+              team: engineering
+              runbook: "https://runbooks.footanalytics.com/database-connection"
+            annotations:
+              summary: "Database connection failure"
+              description: "PostgreSQL database is not reachable"
+
+      - name: platform.warning
+        interval: 1m
+        rules:
+          - alert: PlatformAvailabilityWarning
+            expr: sli:platform_availability:rate5m < 0.995
+            for: 15m
+            labels:
+              severity: warning
+              service: platform
+              team: engineering
+            annotations:
+              summary: "Platform availability degraded"
+              description: "Platform availability is {{ $value | humanizePercentage }} which is below 99.5%"
+
+          - alert: HighMemoryUsage
+            expr: |
+              (
+                (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) /
+                node_memory_MemTotal_bytes
+              ) > 0.85
+            for: 10m
+            labels:
+              severity: warning
+              service: infrastructure
+              team: engineering
+            annotations:
+              summary: "High memory usage on node {{ $labels.instance }}"
+              description: "Memory usage is {{ $value | humanizePercentage }}"
+
+          - alert: HighCPUUsage
+            expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+            for: 10m
+            labels:
+              severity: warning
+              service: infrastructure
+              team: engineering
+            annotations:
+              summary: "High CPU usage on node {{ $labels.instance }}"
+              description: "CPU usage is {{ $value }}%"
+
+  ml-pipeline-alerts.yaml: |
+    groups:
+      - name: ml-pipeline.critical
+        interval: 30s
+        rules:
+          - alert: MLInferenceLatencyHigh
+            expr: sli:ml_inference_latency:p99_5m > 2.0
+            for: 5m
+            labels:
+              severity: critical
+              service: ml-pipeline
+              team: ml-engineering
+              runbook: "https://runbooks.footanalytics.com/ml-inference-latency"
+            annotations:
+              summary: "ML inference latency is above SLO"
+              description: "ML inference P99 latency is {{ $value | humanizeDuration }} which is above the 2s SLO"
+              dashboard: "https://grafana.footanalytics.com/d/ml-pipeline"
+
+          - alert: GPUUtilizationLow
+            expr: sli:gpu_utilization:avg5m < 0.3
+            for: 30m
+            labels:
+              severity: warning
+              service: ml-pipeline
+              team: ml-engineering
+            annotations:
+              summary: "GPU utilization is low"
+              description: "GPU utilization is {{ $value | humanizePercentage }} which indicates inefficient resource usage"
+
+          - alert: MLModelAccuracyLow
+            expr: avg(ml_model_accuracy_score{job="ml-pipeline"}) < 0.8
+            for: 15m
+            labels:
+              severity: critical
+              service: ml-pipeline
+              team: ml-engineering
+              runbook: "https://runbooks.footanalytics.com/model-accuracy"
+            annotations:
+              summary: "ML model accuracy is below threshold"
+              description: "Model accuracy is {{ $value | humanizePercentage }} which is below 80% threshold"
+
+          - alert: VideoProcessingFailure
+            expr: |
+              (
+                sum(rate(video_processing_total{status="failed"}[5m])) /
+                sum(rate(video_processing_total[5m]))
+              ) > 0.1
+            for: 10m
+            labels:
+              severity: critical
+              service: video-processing
+              team: ml-engineering
+            annotations:
+              summary: "High video processing failure rate"
+              description: "Video processing failure rate is {{ $value | humanizePercentage }}"
+
+          - alert: GPUMemoryHigh
+            expr: nvidia_gpu_memory_used_bytes / nvidia_gpu_memory_total_bytes > 0.9
+            for: 5m
+            labels:
+              severity: warning
+              service: ml-pipeline
+              team: ml-engineering
+            annotations:
+              summary: "GPU memory usage is high"
+              description: "GPU memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+  infrastructure-alerts.yaml: |
+    groups:
+      - name: kubernetes.critical
+        interval: 30s
+        rules:
+          - alert: KubernetesNodeNotReady
+            expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+            for: 5m
+            labels:
+              severity: critical
+              service: kubernetes
+              team: engineering
+              runbook: "https://runbooks.footanalytics.com/node-not-ready"
+            annotations:
+              summary: "Kubernetes node is not ready"
+              description: "Node {{ $labels.node }} is not ready for more than 5 minutes"
+
+          - alert: KubernetesPodCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+            for: 5m
+            labels:
+              severity: critical
+              service: kubernetes
+              team: engineering
+              runbook: "https://runbooks.footanalytics.com/pod-crashloop"
+            annotations:
+              summary: "Pod is crash looping"
+              description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
+
+          - alert: KubernetesPodNotReady
+            expr: kube_pod_status_ready{condition="true"} == 0
+            for: 10m
+            labels:
+              severity: warning
+              service: kubernetes
+              team: engineering
+            annotations:
+              summary: "Pod is not ready"
+              description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is not ready for more than 10 minutes"
+
+          - alert: PersistentVolumeUsageHigh
+            expr: |
+              (
+                kubelet_volume_stats_used_bytes /
+                kubelet_volume_stats_capacity_bytes
+              ) > 0.85
+            for: 5m
+            labels:
+              severity: warning
+              service: storage
+              team: engineering
+            annotations:
+              summary: "Persistent volume usage is high"
+              description: "PV {{ $labels.persistentvolumeclaim }} usage is {{ $value | humanizePercentage }}"
+
+          - alert: EtcdHighLatency
+            expr: histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])) > 0.5
+            for: 5m
+            labels:
+              severity: critical
+              service: etcd
+              team: engineering
+            annotations:
+              summary: "Etcd high latency"
+              description: "Etcd P99 latency is {{ $value | humanizeDuration }}"
+
+  business-alerts.yaml: |
+    groups:
+      - name: business.critical
+        interval: 1m
+        rules:
+          - alert: VideoUploadFailureHigh
+            expr: |
+              (
+                sum(rate(video_uploads_total{status="failed"}[5m])) /
+                sum(rate(video_uploads_total[5m]))
+              ) > 0.05
+            for: 10m
+            labels:
+              severity: critical
+              service: video-ingestion
+              team: engineering
+              impact: customer
+            annotations:
+              summary: "High video upload failure rate"
+              description: "Video upload failure rate is {{ $value | humanizePercentage }}"
+
+          - alert: UserSessionFailureHigh
+            expr: |
+              (
+                sum(rate(user_sessions_total{status="failed"}[5m])) /
+                sum(rate(user_sessions_total[5m]))
+              ) > 0.1
+            for: 15m
+            labels:
+              severity: critical
+              service: platform
+              team: engineering
+              impact: customer
+            annotations:
+              summary: "High user session failure rate"
+              description: "User session failure rate is {{ $value | humanizePercentage }}"
+
+          - alert: AnalyticsGenerationSlow
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(analytics_generation_duration_seconds_bucket[5m])) by (le)
+              ) > 600
+            for: 20m
+            labels:
+              severity: warning
+              service: analytics-engine
+              team: engineering
+              impact: customer
+            annotations:
+              summary: "Analytics generation is slow"
+              description: "Analytics generation P95 time is {{ $value | humanizeDuration }}"
+
+  slo-burn-rate-alerts.yaml: |
+    groups:
+      - name: slo.burn-rate
+        interval: 30s
+        rules:
+          # Fast burn rate alerts (2% error budget in 1 hour)
+          - alert: PlatformAvailabilityFastBurn
+            expr: |
+              (
+                (1 - sli:platform_availability:rate5m) / (1 - 0.999)
+              ) > 14.4
+            for: 2m
+            labels:
+              severity: critical
+              service: platform
+              team: engineering
+              alert_type: slo_burn_rate
+              burn_rate: fast
+            annotations:
+              summary: "Platform availability SLO fast burn rate"
+              description: "Platform is burning through error budget at 14.4x rate"
+
+          # Slow burn rate alerts (5% error budget in 6 hours)
+          - alert: PlatformAvailabilitySlowBurn
+            expr: |
+              (
+                (1 - sli:platform_availability:rate5m) / (1 - 0.999)
+              ) > 6
+            for: 15m
+            labels:
+              severity: warning
+              service: platform
+              team: engineering
+              alert_type: slo_burn_rate
+              burn_rate: slow
+            annotations:
+              summary: "Platform availability SLO slow burn rate"
+              description: "Platform is burning through error budget at 6x rate"
