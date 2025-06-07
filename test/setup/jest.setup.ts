@@ -29,6 +29,14 @@ declare global {
       toBeValidPossession(): R;
       toBeValidPosition(): R;
       toMatchAnalyticsSnapshot(): R;
+      toBeValidUUID(): R;
+      toBeValidVideoId(): R;
+      toBeValidMatchId(): R;
+      toHaveValidDomainEvent(): R;
+      toBeImmutable(): R;
+      toSatisfyDomainInvariants(): R;
+      toBeWithinTimeRange(start: Date, end: Date): R;
+      toHavePerformanceWithin(maxMs: number): R;
     }
   }
 }
@@ -70,6 +78,114 @@ expect.extend({
     return {
       message: () => `expected object to have all required analytics snapshot fields`,
       pass: hasAllFields,
+    };
+  },
+
+  toBeValidUUID(received: string) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const pass = uuidRegex.test(received);
+
+    return {
+      message: () => `expected ${received} ${pass ? 'not ' : ''}to be a valid UUID`,
+      pass
+    };
+  },
+
+  toBeValidVideoId(received: any) {
+    const hasValue = received && typeof received.value === 'string';
+    const isValidUUID = hasValue && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(received.value);
+    const pass = hasValue && isValidUUID;
+
+    return {
+      message: () => `expected ${received} ${pass ? 'not ' : ''}to be a valid VideoId`,
+      pass
+    };
+  },
+
+  toBeValidMatchId(received: any) {
+    const hasValue = received && typeof received.value === 'string';
+    const isValidUUID = hasValue && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(received.value);
+    const pass = hasValue && isValidUUID;
+
+    return {
+      message: () => `expected ${received} ${pass ? 'not ' : ''}to be a valid MatchId`,
+      pass
+    };
+  },
+
+  toHaveValidDomainEvent(received: any) {
+    const hasEventType = received && typeof received.eventType === 'string';
+    const hasTimestamp = received && received.timestamp instanceof Date;
+    const hasCorrelationId = received && typeof received.correlationId === 'string';
+    const pass = hasEventType && hasTimestamp && hasCorrelationId;
+
+    return {
+      message: () => `expected ${received} ${pass ? 'not ' : ''}to be a valid domain event`,
+      pass
+    };
+  },
+
+  toBeImmutable(received: any) {
+    let pass = true;
+
+    try {
+      if (received && typeof received === 'object') {
+        for (const key in received) {
+          const originalProp = received[key];
+          received[key] = 'modified';
+          if (received[key] === 'modified') {
+            pass = false;
+            break;
+          }
+          received[key] = originalProp;
+        }
+      }
+    } catch (error) {
+      pass = true; // If modification throws an error, object is immutable
+    }
+
+    return {
+      message: () => `expected object ${pass ? 'not ' : ''}to be immutable`,
+      pass
+    };
+  },
+
+  toSatisfyDomainInvariants(received: any) {
+    let pass = true;
+
+    if (received && typeof received.validateInvariants === 'function') {
+      try {
+        received.validateInvariants();
+      } catch (error) {
+        pass = false;
+      }
+    }
+
+    return {
+      message: () => `expected object ${pass ? 'not ' : ''}to satisfy domain invariants`,
+      pass
+    };
+  },
+
+  toBeWithinTimeRange(received: Date, start: Date, end: Date) {
+    const pass = received >= start && received <= end;
+
+    return {
+      message: () => `expected ${received} ${pass ? 'not ' : ''}to be within time range ${start} - ${end}`,
+      pass
+    };
+  },
+
+  toHavePerformanceWithin(received: () => any, maxMs: number) {
+    const startTime = performance.now();
+    received();
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    const pass = duration <= maxMs;
+
+    return {
+      message: () => `expected function to execute within ${maxMs}ms but took ${duration.toFixed(2)}ms`,
+      pass
     };
   },
 });
