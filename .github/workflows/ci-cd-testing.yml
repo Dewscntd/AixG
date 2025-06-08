@@ -11,7 +11,6 @@ on:
 
 env:
   NODE_VERSION: '18.x'
-  PYTHON_VERSION: '3.11'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -328,7 +327,7 @@ jobs:
         run: docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.31.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: 'sarif'
@@ -393,7 +392,7 @@ jobs:
           output-file: sbom.spdx.json
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: sbom.spdx.json
@@ -434,11 +433,32 @@ jobs:
 
       - name: Wait for ArgoCD sync
         run: |
-          # Wait for ArgoCD to sync the changes
-          sleep 60
+          echo "Waiting for ArgoCD application footanalytics-staging to sync..."
+          timeout=300 # 5 minutes timeout
+          interval=15 # Poll every 15 seconds
+          elapsed_time=0
 
-          # Check deployment status
-          kubectl get applications -n argocd footanalytics-staging -o jsonpath='{.status.sync.status}'
+          while true; do
+            status=$(kubectl get applications -n argocd footanalytics-staging -o jsonpath='{.status.sync.status}' 2>/dev/null || echo "ErrorFetchingStatus")
+            echo "Current ArgoCD sync status for footanalytics-staging: $status"
+
+            if [ "$status" = "Synced" ]; then
+              echo "Application footanalytics-staging successfully synced."
+              exit 0
+            elif [ "$status" = "ErrorFetchingStatus" ]; then
+              echo "Error fetching application status. Retrying..."
+            fi
+
+            if [ "$elapsed_time" -ge "$timeout" ]; then
+              echo "Timeout waiting for ArgoCD application footanalytics-staging to sync."
+              # Optionally, dump more debug info here if needed
+              kubectl get applications -n argocd footanalytics-staging -o yaml
+              exit 1
+            fi
+
+            sleep "$interval"
+            elapsed_time=$((elapsed_time + interval))
+          done
 
       - name: Run smoke tests
         run: npm run test:smoke:staging
