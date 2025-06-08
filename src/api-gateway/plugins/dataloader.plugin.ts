@@ -43,7 +43,7 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
             response.http.headers.set('X-DataLoader-Loads', stats.totalLoads.toString());
             response.http.headers.set('X-DataLoader-Cache-Hits', stats.cacheHits.toString());
             response.http.headers.set('X-DataLoader-Cache-Hit-Rate', 
-              ((stats.cacheHits / stats.totalLoads) * 100).toFixed(2) + '%'
+              `${((stats.cacheHits / stats.totalLoads) * 100).toFixed(2)  }%`
             );
           }
 

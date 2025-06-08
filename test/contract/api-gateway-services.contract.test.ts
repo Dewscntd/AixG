@@ -176,7 +176,7 @@ describe('API Gateway → Services Contract Tests', () => {
             'Content-Type': 'application/json'
           },
           body: {
-            videoId: videoId,
+            videoId,
             status: 'PROCESSING',
             progress: 65,
             estimatedCompletion: '2023-12-01T10:20:00Z',
@@ -226,7 +226,7 @@ describe('API Gateway → Services Contract Tests', () => {
             'Content-Type': 'application/json'
           },
           body: {
-            matchId: matchId,
+            matchId,
             homeTeam: {
               teamId: TestDataFactory.createTeamId(),
               xG: 2.15,
@@ -312,8 +312,8 @@ describe('API Gateway → Services Contract Tests', () => {
             'Content-Type': 'application/json'
           },
           body: {
-            playerId: playerId,
-            matchId: matchId,
+            playerId,
+            matchId,
             position: 'Forward',
             minutesPlayed: 87,
             xG: 0.92,

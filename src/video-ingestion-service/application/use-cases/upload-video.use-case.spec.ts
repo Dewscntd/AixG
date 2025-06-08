@@ -219,15 +219,13 @@ describe('UploadVideoUseCase', () => {
 
       const commands = Array.from({ length: 5 }, (_, i) => createUploadCommand(i));
 
-      storageService.upload.mockImplementation(async (stream, metadata) => {
-        return new StorageResult({
+      storageService.upload.mockImplementation(async (stream, metadata) => new StorageResult({
           uploadId: metadata.uploadId,
           key: `videos/${metadata.filename}`,
           bucket: 'test-bucket',
           url: `https://test-bucket.s3.amazonaws.com/videos/${metadata.filename}`,
           size: metadata.size
-        });
-      });
+        }));
 
       eventPublisher.publishBatch.mockResolvedValue();
 

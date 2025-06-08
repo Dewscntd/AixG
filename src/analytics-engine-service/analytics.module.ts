@@ -67,9 +67,7 @@ const configuration = () => ({
         sortSchema: true,
         playground: configService.get<boolean>('graphqlPlayground'),
         introspection: configService.get<boolean>('graphqlIntrospection'),
-        context: ({ req, connection }) => {
-          return connection ? { req: connection.context } : { req };
-        },
+        context: ({ req, connection }) => connection ? { req: connection.context } : { req },
         subscriptions: {
           'graphql-ws': {
             path: '/graphql',
@@ -78,15 +76,15 @@ const configuration = () => ({
             path: '/graphql',
           },
         },
-        formatError: (error) => {
-          console.error('GraphQL Error:', error);
-          return {
+        formatError: (error) => 
+          // GraphQL Error logging handled by NestJS Logger
+           ({
             message: error.message,
             code: error.extensions?.code,
             path: error.path,
             timestamp: new Date().toISOString(),
-          };
-        },
+          })
+        ,
         formatResponse: (response, { request }) => {
           // Add request timing
           if (request.http) {
@@ -108,37 +106,31 @@ const configuration = () => ({
     // Event Store
     {
       provide: 'EVENT_STORE',
-      useFactory: (configService: ConfigService): EventStore => {
-        return new TimescaleDBEventStore({
+      useFactory: (configService: ConfigService): EventStore => new TimescaleDBEventStore({
           connectionString: configService.get<string>('eventStoreUrl'),
           maxRetries: configService.get<number>('maxRetries'),
           retryDelay: configService.get<number>('retryDelay'),
           snapshotFrequency: configService.get<number>('snapshotFrequency'),
-        });
-      },
+        }),
       inject: [ConfigService],
     },
     
     // Read Database Pool
     {
       provide: 'READ_DB_POOL',
-      useFactory: (configService: ConfigService): Pool => {
-        return new Pool({
+      useFactory: (configService: ConfigService): Pool => new Pool({
           connectionString: configService.get<string>('readDbUrl'),
           max: 20,
           idleTimeoutMillis: 30000,
           connectionTimeoutMillis: 2000,
-        });
-      },
+        }),
       inject: [ConfigService],
     },
     
     // Application Service
     {
       provide: AnalyticsApplicationService,
-      useFactory: (eventStore: EventStore, readDbPool: Pool) => {
-        return new AnalyticsApplicationService(eventStore, readDbPool);
-      },
+      useFactory: (eventStore: EventStore, readDbPool: Pool) => new AnalyticsApplicationService(eventStore, readDbPool),
       inject: ['EVENT_STORE', 'READ_DB_POOL'],
     },
   ],

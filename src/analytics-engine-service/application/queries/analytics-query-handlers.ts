@@ -6,12 +6,7 @@ import { Pool } from 'pg';
 import {
   GetMatchAnalyticsQuery,
   GetTeamAnalyticsQuery,
-  GetPlayerAnalyticsQuery,
-  GetComparativeAnalyticsQuery,
   GetTimeSeriesAnalyticsQuery,
-  GetLeagueStandingsQuery,
-  GetFormationAnalyticsQuery,
-  GetLiveMatchAnalyticsQuery,
   AnalyticsQuery
 } from './analytics-queries';
 

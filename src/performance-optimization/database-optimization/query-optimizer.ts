@@ -483,7 +483,7 @@ export class QueryOptimizer extends EventEmitter {
       if (avgTime > this.slowQueryThreshold) {
         slowQueryCount += metrics.length;
         slowQueries.push({
-          query: metrics[0].query.substring(0, 100) + '...',
+          query: `${metrics[0].query.substring(0, 100)  }...`,
           avgTime,
           executions: metrics.length
         });

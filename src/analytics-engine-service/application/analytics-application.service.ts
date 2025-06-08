@@ -4,6 +4,7 @@
 
 import { EventStore } from '../infrastructure/event-store/event-store.interface';
 import { Pool } from 'pg';
+import { Logger } from '@nestjs/common';
 import {
   CreateMatchAnalyticsCommandHandler,
   UpdateXGCommandHandler,
@@ -34,6 +35,7 @@ import { ProjectionManager } from '../infrastructure/projections/projection-mana
 import { matchAnalyticsProjection } from '../infrastructure/projections/match-analytics-projection';
 
 export class AnalyticsApplicationService {
+  private readonly logger = new Logger(AnalyticsApplicationService.name);
   private commandHandlers: Map<string, any> = new Map();
   private queryHandlers: Map<string, any> = new Map();
   private projectionManager: ProjectionManager;
@@ -59,7 +61,8 @@ export class AnalyticsApplicationService {
     try {
       await handler.handle(command);
     } catch (error) {
-      console.error(`Error executing command ${commandType}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error executing command ${commandType}: ${errorMessage}`);
       throw error;
     }
   }
@@ -76,7 +79,8 @@ export class AnalyticsApplicationService {
     try {
       return await handler.handle(query);
     } catch (error) {
-      console.error(`Error executing query ${queryType}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error executing query ${queryType}: ${errorMessage}`);
       throw error;
     }
   }
@@ -201,7 +205,8 @@ export class AnalyticsApplicationService {
       await this.eventStore.streamExists('health-check');
       health.eventStore = true;
     } catch (error) {
-      console.error('Event store health check failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Event store health check failed: ${errorMessage}`);
     }
 
     try {
@@ -211,14 +216,16 @@ export class AnalyticsApplicationService {
       client.release();
       health.readDatabase = true;
     } catch (error) {
-      console.error('Read database health check failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Read database health check failed: ${errorMessage}`);
     }
 
     try {
       // Check projections (simplified)
       health.projections = true; // Would check projection status in real implementation
     } catch (error) {
-      console.error('Projections health check failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Projections health check failed: ${errorMessage}`);
     }
 
     return health;

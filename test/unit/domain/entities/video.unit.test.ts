@@ -279,7 +279,7 @@ describe('Video Entity', () => {
           }),
           (props) => {
             const metadata = new UploadMetadata({
-              filename: props.filename + '.mp4',
+              filename: `${props.filename  }.mp4`,
               mimeType: 'video/mp4',
               size: props.size,
               uploadedBy: props.uploadedBy,

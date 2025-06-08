@@ -115,13 +115,11 @@ export const PropertyTestUtils = {
   testDeterministic: <T extends (...args: any[]) => any>(
     fn: T,
     arbitrary: fc.Arbitrary<Parameters<T>>
-  ) => {
-    return fc.property(arbitrary, (input) => {
+  ) => fc.property(arbitrary, (input) => {
       const result1 = fn(...input);
       const result2 = fn(...input);
       expect(result1).toEqual(result2);
-    });
-  },
+    }),
   
   /**
    * Tests that a function satisfies mathematical properties
@@ -131,12 +129,10 @@ export const PropertyTestUtils = {
     arbitrary: fc.Arbitrary<T>,
     property: (input: T, output: number) => boolean,
     description: string
-  ) => {
-    return fc.property(arbitrary, (input) => {
+  ) => fc.property(arbitrary, (input) => {
       const output = fn(input);
       expect(property(input, output)).toBe(true);
-    });
-  },
+    }),
   
   /**
    * Tests that a function maintains invariants
@@ -146,12 +142,10 @@ export const PropertyTestUtils = {
     arbitrary: fc.Arbitrary<T>,
     invariant: (input: T, output: R) => boolean,
     description: string
-  ) => {
-    return fc.property(arbitrary, (input) => {
+  ) => fc.property(arbitrary, (input) => {
       const output = fn(input);
       expect(invariant(input, output)).toBe(true);
-    });
-  },
+    }),
   
   /**
    * Tests composition properties (f(g(x)) = h(x))
@@ -161,13 +155,11 @@ export const PropertyTestUtils = {
     g: (input: T) => U,
     h: (input: T) => V,
     arbitrary: fc.Arbitrary<T>
-  ) => {
-    return fc.property(arbitrary, (input) => {
+  ) => fc.property(arbitrary, (input) => {
       const composed = f(g(input));
       const direct = h(input);
       expect(composed).toEqual(direct);
-    });
-  },
+    }),
   
   /**
    * Tests that operations are commutative (f(a, b) = f(b, a))
@@ -175,13 +167,11 @@ export const PropertyTestUtils = {
   testCommutative: <T>(
     fn: (a: T, b: T) => T,
     arbitrary: fc.Arbitrary<T>
-  ) => {
-    return fc.property(arbitrary, arbitrary, (a, b) => {
+  ) => fc.property(arbitrary, arbitrary, (a, b) => {
       const result1 = fn(a, b);
       const result2 = fn(b, a);
       expect(result1).toEqual(result2);
-    });
-  },
+    }),
   
   /**
    * Tests that operations are associative ((a + b) + c = a + (b + c))
@@ -189,13 +179,11 @@ export const PropertyTestUtils = {
   testAssociative: <T>(
     fn: (a: T, b: T) => T,
     arbitrary: fc.Arbitrary<T>
-  ) => {
-    return fc.property(arbitrary, arbitrary, arbitrary, (a, b, c) => {
+  ) => fc.property(arbitrary, arbitrary, arbitrary, (a, b, c) => {
       const result1 = fn(fn(a, b), c);
       const result2 = fn(a, fn(b, c));
       expect(result1).toEqual(result2);
-    });
-  },
+    }),
 };
 
 // Configure property test reporting

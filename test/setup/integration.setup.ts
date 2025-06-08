@@ -111,9 +111,7 @@ export const IntegrationTestUtils = {
   /**
    * Waits for async operations to complete
    */
-  waitForAsyncOperations: async (timeoutMs: number = 5000) => {
-    return new Promise(resolve => setTimeout(resolve, timeoutMs));
-  },
+  waitForAsyncOperations: async (timeoutMs: number = 5000) => new Promise(resolve => setTimeout(resolve, timeoutMs)),
   
   /**
    * Asserts database state

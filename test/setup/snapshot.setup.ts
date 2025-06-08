@@ -47,8 +47,7 @@ export const SnapshotTestUtils = {
   /**
    * Normalizes ML output data for consistent snapshots
    */
-  normalizeMLOutput: (output: any) => {
-    return {
+  normalizeMLOutput: (output: any) => ({
       ...output,
       // Remove timestamps and random IDs
       timestamp: 'normalized',
@@ -81,14 +80,12 @@ export const SnapshotTestUtils = {
         processingTime: 'normalized',
         timestamp: 'normalized',
       } : undefined,
-    };
-  },
+    }),
 
   /**
    * Normalizes analytics data for consistent snapshots
    */
-  normalizeAnalyticsData: (data: any) => {
-    return {
+  normalizeAnalyticsData: (data: any) => ({
       ...data,
       // Round metrics to consistent precision
       xG: typeof data.xG === 'number' ? Math.round(data.xG * 1000) / 1000 : data.xG,
@@ -109,8 +106,7 @@ export const SnapshotTestUtils = {
       // Recursively normalize nested objects
       homeTeam: data.homeTeam ? SnapshotTestUtils.normalizeAnalyticsData(data.homeTeam) : undefined,
       awayTeam: data.awayTeam ? SnapshotTestUtils.normalizeAnalyticsData(data.awayTeam) : undefined,
-    };
-  },
+    }),
 
   /**
    * Compares two snapshots with tolerance for floating point numbers

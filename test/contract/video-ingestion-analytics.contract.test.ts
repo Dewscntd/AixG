@@ -183,7 +183,7 @@ describe('Video Ingestion → Analytics Service Contract', () => {
             'Content-Type': 'application/json'
           },
           body: {
-            matchId: matchId,
+            matchId,
             homeTeam: {
               teamId: TestDataFactory.createTeamId(),
               xG: 1.85,

@@ -135,8 +135,7 @@ const pipe = <T>(...functions: Array<(arg: T) => T>) => (arg: T): T =>
 // Main xG calculation using functional composition
 export const calculateXG: XGCalculator = (shotData: ShotData): XGValue => {
   // Create a pipeline of modifiers
-  const modifierPipeline = (baseXG: number): number => {
-    return pipe(
+  const modifierPipeline = (baseXG: number): number => pipe(
       (xg: number) => applyDistanceModifier(xg, shotData),
       (xg: number) => applyAngleModifier(xg, shotData),
       (xg: number) => applyDefenderModifier(xg, shotData),
@@ -144,7 +143,6 @@ export const calculateXG: XGCalculator = (shotData: ShotData): XGValue => {
       (xg: number) => applyBodyPartModifier(xg, shotData),
       (xg: number) => applySituationModifier(xg, shotData)
     )(baseXG);
-  };
   
   const baseXG = baseXGCalculation(shotData);
   const finalXG = modifierPipeline(baseXG);
@@ -200,16 +198,12 @@ export const calculateXA = (passData: any, subsequentShot: ShotData): XGValue =>
 };
 
 // Batch xG calculation for multiple shots
-export const calculateBatchXG = (shots: ShotData[]): XGValue[] => {
-  return shots.map(calculateXG);
-};
+export const calculateBatchXG = (shots: ShotData[]): XGValue[] => shots.map(calculateXG);
 
 // Total xG calculation for multiple shots (uncapped for team totals)
-export const calculateTotalXG = (shots: ShotData[]): number => {
-  return shots
+export const calculateTotalXG = (shots: ShotData[]): number => shots
     .map(calculateXG)
     .reduce((total, xg) => total + xg.value, 0);
-};
 
 // xG per minute calculation
 export const calculateXGPerMinute = (shots: ShotData[], matchDuration: number): number => {

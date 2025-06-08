@@ -2,7 +2,7 @@
  * Pure functional possession calculation service
  */
 
-import { PassData, PossessionPercentage, Position } from '../value-objects/analytics-metrics';
+import { PossessionPercentage, Position } from '../value-objects/analytics-metrics';
 
 export interface PossessionEvent {
   readonly timestamp: number;
@@ -26,11 +26,9 @@ export interface PossessionSequence {
 const calculateTeamPossessionDuration = (
   sequences: ReadonlyArray<PossessionSequence>,
   teamId: string
-): number => {
-  return sequences
+): number => sequences
     .filter(seq => seq.teamId === teamId)
     .reduce((total, seq) => total + (seq.endTime - seq.startTime), 0);
-};
 
 // Pure function to calculate total match duration from sequences
 const calculateTotalMatchDuration = (
@@ -147,16 +145,13 @@ const FIELD_ZONES: ReadonlyArray<FieldZone> = [
   { name: 'attacking_third', minX: 66.67, maxX: 100, minY: 0, maxY: 100 }
 ];
 
-const isPositionInZone = (position: Position, zone: FieldZone): boolean => {
-  return position.x >= zone.minX && position.x <= zone.maxX &&
+const isPositionInZone = (position: Position, zone: FieldZone): boolean => position.x >= zone.minX && position.x <= zone.maxX &&
          position.y >= zone.minY && position.y <= zone.maxY;
-};
 
 export const calculatePossessionByZone = (
   sequences: ReadonlyArray<PossessionSequence>,
   teamId: string
-): ReadonlyArray<{ zone: string; possession: PossessionPercentage }> => {
-  return FIELD_ZONES.map(zone => {
+): ReadonlyArray<{ zone: string; possession: PossessionPercentage }> => FIELD_ZONES.map(zone => {
     const zoneSequences = sequences.filter(seq => 
       seq.teamId === teamId &&
       seq.events.some(event => isPositionInZone(event.position, zone))
@@ -188,7 +183,6 @@ export const calculatePossessionByZone = (
       possession: PossessionPercentage.fromNumber(zonePercentage)
     };
   });
-};
 
 // Calculate possession efficiency (successful actions per possession)
 export const calculatePossessionEfficiency = (

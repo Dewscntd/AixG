@@ -199,18 +199,14 @@ export class MetricsCalculationStage implements AnalysisStage {
   private calculateAverageSpeed(players: Player[]): number {
     if (players.length === 0) return 0;
     
-    const totalSpeed = players.reduce((sum, player) => {
-      return sum + Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
-    }, 0);
+    const totalSpeed = players.reduce((sum, player) => sum + Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2), 0);
     
     return totalSpeed / players.length;
   }
 
   private calculateTotalDistance(players: Player[]): number {
     // Simplified - would need to track over time
-    return players.reduce((sum, player) => {
-      return sum + Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
-    }, 0);
+    return players.reduce((sum, player) => sum + Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2), 0);
   }
 
   private countHighIntensityRuns(players: Player[]): number {

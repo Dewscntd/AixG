@@ -281,8 +281,6 @@ export class LoggingInterceptor implements NestInterceptor {
       return false;
     }
 
-    return info.operation.selectionSet.selections.some((selection: any) => {
-      return selection.name?.value === '__schema' || selection.name?.value === '__type';
-    });
+    return info.operation.selectionSet.selections.some((selection: any) => selection.name?.value === '__schema' || selection.name?.value === '__type');
   }
 }

@@ -1,11 +1,9 @@
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 import { DomainEvent } from '../../domain/events/domain-event';
-import { 
-  EventStore, 
-  EventStoreOptions, 
-  OptimisticConcurrencyError, 
-  StreamNotFoundError,
-  EventStoreConnectionError 
+import {
+  EventStore,
+  EventStoreOptions,
+  OptimisticConcurrencyError
 } from './event-store.interface';
 
 export class TimescaleDBEventStore implements EventStore {

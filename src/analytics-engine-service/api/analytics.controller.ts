@@ -2,18 +2,19 @@
  * GraphQL resolvers for analytics operations
  */
 
-import { 
-  Resolver, 
-  Query, 
-  Mutation, 
-  Args, 
-  Subscription, 
-  Context,
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Subscription,
   ID,
   Float,
-  Int
+  Int,
+  ObjectType,
+  Field
 } from '@nestjs/graphql';
-import { UseGuards, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 import { AnalyticsApplicationService } from '../application/analytics-application.service';
 
@@ -128,7 +129,8 @@ export class AnalyticsController {
       
       return true;
     } catch (error) {
-      this.logger.error(`Failed to create match analytics: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to create match analytics: ${errorMessage}`);
       throw error;
     }
   }
@@ -159,7 +161,8 @@ export class AnalyticsController {
       
       return true;
     } catch (error) {
-      this.logger.error(`Failed to update match xG: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to update match xG: ${errorMessage}`);
       throw error;
     }
   }
@@ -189,7 +192,8 @@ export class AnalyticsController {
       
       return true;
     } catch (error) {
-      this.logger.error(`Failed to update match possession: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to update match possession: ${errorMessage}`);
       throw error;
     }
   }
@@ -217,7 +221,8 @@ export class AnalyticsController {
       
       return true;
     } catch (error) {
-      this.logger.error(`Failed to process ML pipeline output: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to process ML pipeline output: ${errorMessage}`);
       throw error;
     }
   }
@@ -232,19 +237,18 @@ export class AnalyticsController {
       await this.analyticsService.rebuildProjection(projectionName);
       return true;
     } catch (error) {
-      this.logger.error(`Failed to rebuild projection: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to rebuild projection: ${errorMessage}`);
       throw error;
     }
   }
 
   // Subscriptions (Real-time updates)
   @Subscription(() => MatchAnalyticsType, {
-    filter: (payload, variables) => {
-      return payload.matchAnalyticsUpdated.matchId === variables.matchId;
-    }
+    filter: (payload, variables) => payload.matchAnalyticsUpdated.matchId === variables.matchId
   })
   matchAnalyticsUpdated(
-    @Args('matchId', { type: () => ID }) matchId: string
+    @Args('matchId', { type: () => ID }) _matchId: string
   ) {
     return this.pubSub.asyncIterator('MATCH_ANALYTICS_UPDATED');
   }
@@ -261,7 +265,7 @@ export class AnalyticsController {
 
   @Subscription(() => PossessionUpdateType)
   possessionUpdated(
-    @Args('matchId', { type: () => ID, nullable: true }) matchId?: string
+    @Args('matchId', { type: () => ID, nullable: true }) _matchId?: string
   ) {
     return this.pubSub.asyncIterator('POSSESSION_UPDATED');
   }
@@ -287,64 +291,63 @@ export class AnalyticsController {
 }
 
 // Additional GraphQL types for subscriptions
-import { ObjectType, Field } from '@nestjs/graphql';
 
 @ObjectType()
 export class XGUpdateType {
   @Field(() => ID)
-  matchId: string;
+  matchId!: string;
 
   @Field(() => ID)
-  teamId: string;
+  teamId!: string;
 
   @Field(() => Float)
-  newXG: number;
+  newXG!: number;
 
   @Field()
-  timestamp: Date;
+  timestamp!: Date;
 }
 
 @ObjectType()
 export class PossessionUpdateType {
   @Field(() => ID)
-  matchId: string;
+  matchId!: string;
 
   @Field(() => Float)
-  homeTeamPossession: number;
+  homeTeamPossession!: number;
 
   @Field(() => Float)
-  awayTeamPossession: number;
+  awayTeamPossession!: number;
 
   @Field()
-  timestamp: Date;
+  timestamp!: Date;
 }
 
 @ObjectType()
 export class MLPipelineProcessedType {
   @Field(() => ID)
-  matchId: string;
+  matchId!: string;
 
   @Field()
-  timestamp: Date;
+  timestamp!: Date;
 
   @Field(() => [String])
-  outputTypes: string[];
+  outputTypes!: string[];
 }
 
 @ObjectType()
 export class HealthCheckType {
   @Field()
-  status: string;
+  status!: string;
 
   @Field()
-  eventStore: boolean;
+  eventStore!: boolean;
 
   @Field()
-  readDatabase: boolean;
+  readDatabase!: boolean;
 
   @Field()
-  projections: boolean;
+  projections!: boolean;
 
   @Field()
-  timestamp: Date;
+  timestamp!: Date;
 }

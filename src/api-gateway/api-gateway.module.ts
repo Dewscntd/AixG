@@ -92,8 +92,7 @@ import { GraphQLContext } from './types/context';
             supergraphSdl: new IntrospectAndCompose({
               subgraphs,
             }),
-            buildService: ({ url }) => {
-              return new RemoteGraphQLDataSource({
+            buildService: ({ url }) => new RemoteGraphQLDataSource({
                 url,
                 willSendRequest({ request, context }) {
                   // Forward authentication headers
@@ -107,8 +106,7 @@ import { GraphQLContext } from './types/context';
                     request.http.headers.set('x-correlation-id', context.correlationId);
                   }
                 },
-              });
-            },
+              }),
           },
           server: {
             // Context creation
@@ -167,9 +165,7 @@ import { GraphQLContext } from './types/context';
               new ComplexityPlugin({
                 maximumComplexity: 1000,
                 variables: {},
-                createError: (max, actual) => {
-                  return new Error(`Query complexity ${actual} exceeds maximum ${max}`);
-                },
+                createError: (max, actual) => new Error(`Query complexity ${actual} exceeds maximum ${max}`),
               }),
             ],
 

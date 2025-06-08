@@ -8,7 +8,7 @@ import { DomainEvent } from '../events/domain-event';
 import { MatchAnalyticsCreatedEvent } from '../events/match-analytics-created.event';
 import { XGCalculatedEvent } from '../events/xg-calculated.event';
 import { PossessionCalculatedEvent } from '../events/possession-calculated.event';
-import { FormationDetectedEvent } from '../events/formation-detected.event';
+
 
 export interface MatchAnalyticsSnapshot {
   readonly matchId: string;
@@ -193,7 +193,7 @@ export class MatchAnalytics {
         // Already handled in constructor
         break;
 
-      case 'XGCalculated':
+      case 'XGCalculated': {
         const xgEvent = event as XGCalculatedEvent;
         const newXG = XGValue.fromNumber(xgEvent.newXG);
         
@@ -203,24 +203,25 @@ export class MatchAnalytics {
           this._awayTeam = this._awayTeam.updateXG(newXG);
         }
         break;
+      }
 
-      case 'PossessionCalculated':
+      case 'PossessionCalculated': {
         const possessionEvent = event as PossessionCalculatedEvent;
         const homePossession = PossessionPercentage.fromNumber(possessionEvent.homeTeamPossession);
         const awayPossession = PossessionPercentage.fromNumber(possessionEvent.awayTeamPossession);
-        
+
         this._homeTeam = this._homeTeam.updatePossession(homePossession);
         this._awayTeam = this._awayTeam.updatePossession(awayPossession);
         break;
+      }
 
-      case 'FormationDetected':
-        const formationEvent = event as FormationDetectedEvent;
+      case 'FormationDetected': {
         // Handle formation updates
         break;
+      }
 
       default:
-        // Unknown event type - log but don't fail
-        console.warn(`Unknown event type: ${event.eventType}`);
+        // Unknown event type - ignore but don't fail
     }
 
     this._lastUpdated = event.timestamp;

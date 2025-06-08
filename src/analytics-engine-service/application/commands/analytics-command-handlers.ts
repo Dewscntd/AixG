@@ -3,18 +3,21 @@
  */
 
 import { EventStore } from '../../infrastructure/event-store/event-store.interface';
-import { MatchAnalytics } from '../../domain/entities/match-analytics';
+import { MatchAnalytics, MatchAnalyticsSnapshot } from '../../domain/entities/match-analytics';
 import { MatchId } from '../../domain/value-objects/match-id';
 import { XGValue, PossessionPercentage } from '../../domain/value-objects/analytics-metrics';
-import { calculateXG, calculateBatchXG } from '../../domain/services/xg-calculation.service';
+import { calculateBatchXG } from '../../domain/services/xg-calculation.service';
 import { calculateBothTeamsPossession } from '../../domain/services/possession-calculation.service';
+import {
+  ShotData,
+  PossessionSequence,
+  FormationData
+} from '../../domain/types/ml-pipeline.types';
 import {
   CreateMatchAnalyticsCommand,
   UpdateXGCommand,
   UpdatePossessionCommand,
-  UpdateFormationCommand,
   ProcessMLPipelineOutputCommand,
-  RecalculateAnalyticsCommand,
   CreateSnapshotCommand,
   AnalyticsCommand
 } from './analytics-commands';
@@ -75,7 +78,7 @@ export class UpdateXGCommandHandler implements AnalyticsCommandHandler<UpdateXGC
 
   private async loadMatchAnalytics(matchId: string): Promise<MatchAnalytics> {
     // Try to load from snapshot first
-    const snapshot = await this.eventStore.getSnapshot<any>(matchId);
+    const snapshot = await this.eventStore.getSnapshot<MatchAnalyticsSnapshot>(matchId);
     
     if (snapshot) {
       const matchAnalytics = MatchAnalytics.fromSnapshot(snapshot.snapshot);
@@ -116,7 +119,7 @@ export class UpdatePossessionCommandHandler
   }
 
   private async loadMatchAnalytics(matchId: string): Promise<MatchAnalytics> {
-    const snapshot = await this.eventStore.getSnapshot<any>(matchId);
+    const snapshot = await this.eventStore.getSnapshot<MatchAnalyticsSnapshot>(matchId);
     
     if (snapshot) {
       const matchAnalytics = MatchAnalytics.fromSnapshot(snapshot.snapshot);
@@ -166,7 +169,7 @@ export class ProcessMLPipelineOutputCommandHandler
     }
   }
 
-  private async processShots(matchAnalytics: MatchAnalytics, shots: any[]): Promise<void> {
+  private async processShots(matchAnalytics: MatchAnalytics, shots: unknown[]): Promise<void> {
     // Group shots by team
     const shotsByTeam = shots.reduce((acc, shot) => {
       if (!acc[shot.teamId]) {
@@ -226,11 +229,8 @@ export class ProcessMLPipelineOutputCommandHandler
     }, {} as Record<string, any>);
 
     // Update formations (this would trigger FormationDetectedEvent)
-    for (const formation of Object.values(latestFormations)) {
-      // Formation update logic would go here
-      // For now, we'll just log it
-      console.log(`Formation detected for team ${formation.teamId}: ${formation.formation}`);
-    }
+    // Formation detection would be implemented here
+    // Currently skipping formation processing
   }
 
   private calculateDistance(from: { x: number; y: number }, to: { x: number; y: number }): number {

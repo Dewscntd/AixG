@@ -61,11 +61,11 @@ export class XGCalculatedHandler implements ProjectionHandler {
     );
 
     if (matchResult.rows.length === 0) {
-      console.warn(`Match not found for xG update: ${typedEvent.aggregateId}`);
+      // Match not found for xG update - skip silently
       return;
     }
 
-    const { home_team_id, away_team_id } = matchResult.rows[0];
+    const { home_team_id } = matchResult.rows[0];
     const isHomeTeam = typedEvent.teamId === home_team_id;
     
     // Update match analytics projection
@@ -194,11 +194,11 @@ export class FormationDetectedHandler implements ProjectionHandler {
     );
 
     if (matchResult.rows.length === 0) {
-      console.warn(`Match not found for formation update: ${typedEvent.aggregateId}`);
+      // Match not found for formation update - skip silently
       return;
     }
 
-    const { home_team_id, away_team_id } = matchResult.rows[0];
+    const { home_team_id } = matchResult.rows[0];
     const isHomeTeam = typedEvent.teamId === home_team_id;
     
     // Update match analytics projection

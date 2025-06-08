@@ -67,8 +67,8 @@ export const UnitTestUtils = {
     const originalConsoleError = console.error;
     const consoleCalls: string[] = [];
     
-    console.log = jest.fn((...args) => consoleCalls.push('log: ' + args.join(' ')));
-    console.error = jest.fn((...args) => consoleCalls.push('error: ' + args.join(' ')));
+    console.log = jest.fn((...args) => consoleCalls.push(`log: ${  args.join(' ')}`));
+    console.error = jest.fn((...args) => consoleCalls.push(`error: ${  args.join(' ')}`));
     
     try {
       fn(...input);

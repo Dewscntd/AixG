@@ -22,14 +22,12 @@ export const ContractTestUtils = {
   /**
    * Creates a new Pact instance for service contract testing
    */
-  createPact: (consumer: string, provider: string, port?: number) => {
-    return new Pact({
+  createPact: (consumer: string, provider: string, port?: number) => new Pact({
       ...pactConfig,
       consumer,
       provider,
       port: port || pactConfig.port,
-    });
-  },
+    }),
 
   /**
    * Standard headers for API requests

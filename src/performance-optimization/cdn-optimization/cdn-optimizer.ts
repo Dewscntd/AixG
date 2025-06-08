@@ -93,7 +93,7 @@ export class CDNOptimizer {
     this.logger.log(`Starting video optimization for: ${optimization.inputPath}`);
 
     try {
-      const outputDir = path.dirname(optimization.inputPath) + '/optimized';
+      const outputDir = `${path.dirname(optimization.inputPath)  }/optimized`;
       await fs.promises.mkdir(outputDir, { recursive: true });
 
       const results = {
