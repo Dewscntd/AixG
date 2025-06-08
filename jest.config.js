@@ -14,14 +14,26 @@ const baseConfig = {
   ],
 
   // Module resolution
-  moduleNameMapping: {
+  moduleNameMapper: {
+    // Global aliases
+    '^@/(.*)$': '<rootDir>/src/$1',
     '^@domain/(.*)$': '<rootDir>/src/domain/$1',
+    '^@shared/(.*)$': '<rootDir>/src/shared/$1',
+
+    // Service-specific aliases
     '^@analytics/(.*)$': '<rootDir>/src/analytics-engine-service/$1',
-    '^@video-ingestion/(.*)$': '<rootDir>/src/video-ingestion-service/$1',
     '^@api-gateway/(.*)$': '<rootDir>/src/api-gateway/$1',
-    '^@ml-pipeline/(.*)$': '<rootDir>/src/ml-pipeline-service/$1',
+    '^@video-ingestion/(.*)$': '<rootDir>/src/video-ingestion-service/$1',
     '^@real-time/(.*)$': '<rootDir>/src/real-time-analysis-service/$1',
-    '^@test-utils/(.*)$': '<rootDir>/test/utils/$1'
+    '^@ml-pipeline/(.*)$': '<rootDir>/src/ml-pipeline-service/$1',
+    '^@performance/(.*)$': '<rootDir>/src/performance-optimization/$1',
+
+    // Test utilities
+    '^@test-utils/(.*)$': '<rootDir>/test/utils/$1',
+    '^@test-setup/(.*)$': '<rootDir>/test/setup/$1',
+
+    // Type definitions
+    '^@types/(.*)$': '<rootDir>/src/types/$1'
   },
 
   // Coverage configuration
@@ -84,6 +96,26 @@ const baseConfig = {
     '^.+\\.ts$': 'ts-jest'
   },
 
+  // TypeScript configuration for ts-jest
+  globals: {
+    'ts-jest': {
+      tsconfig: {
+        // Use the same strict settings as main tsconfig
+        strict: true,
+        exactOptionalPropertyTypes: true,
+        noImplicitAny: true,
+        strictNullChecks: true,
+        // Allow JS for test utilities
+        allowJs: true,
+        // Faster compilation for tests
+        skipLibCheck: true,
+        // Enable decorators for NestJS testing
+        experimentalDecorators: true,
+        emitDecoratorMetadata: true
+      }
+    }
+  },
+
   // Test file patterns
   testMatch: [
     '<rootDir>/test/**/*.test.ts',
@@ -94,12 +126,28 @@ const baseConfig = {
   testPathIgnorePatterns: [
     '/node_modules/',
     '/dist/',
-    '/coverage/'
+    '/coverage/',
+    '/frontend/',
+    '/.next/',
+    '/build/'
+  ],
+
+  // Watch mode ignore patterns
+  watchPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/coverage/',
+    '/frontend/',
+    '/.next/'
   ],
 
   // Global setup and teardown
   globalSetup: '<rootDir>/test/setup/global.setup.ts',
-  globalTeardown: '<rootDir>/test/setup/global.teardown.ts'
+  globalTeardown: '<rootDir>/test/setup/global.teardown.ts',
+
+  // Additional Jest configuration
+  maxWorkers: process.env.CI ? 2 : '50%',
+  workerIdleMemoryLimit: '512MB'
 };
 
 module.exports = baseConfig;

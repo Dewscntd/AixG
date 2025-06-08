@@ -88,11 +88,12 @@ export class ProjectionManager {
       }
 
       // Update projection metadata
+      const lastEvent = events.length > 0 ? events[events.length - 1] : null;
       await client.query(`
-        UPDATE projection_metadata 
+        UPDATE projection_metadata
         SET last_processed_event = $1, last_updated = NOW(), status = 'active'
         WHERE projection_name = $2
-      `, [events.length > 0 ? events[events.length - 1].eventId : null, projectionName]);
+      `, [lastEvent?.eventId || null, projectionName]);
 
       await client.query('COMMIT');
 

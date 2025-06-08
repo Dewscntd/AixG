@@ -31,198 +31,198 @@ registerEnumType(TimeInterval, {
 @ObjectType()
 export class TeamMetricsType {
   @Field(() => ID)
-  teamId: string;
+  teamId!: string;
 
   @Field()
-  teamName: string;
+  teamName!: string;
 
   @Field(() => Float)
-  xG: number;
+  xG!: number;
 
   @Field(() => Float)
-  xA: number;
+  xA!: number;
 
   @Field(() => Float)
-  possession: number;
+  possession!: number;
 
   @Field(() => Float)
-  passAccuracy: number;
+  passAccuracy!: number;
 
   @Field(() => Int)
-  shotsOnTarget: number;
+  shotsOnTarget!: number;
 
   @Field(() => Int)
-  shotsOffTarget: number;
+  shotsOffTarget!: number;
 
   @Field({ nullable: true })
-  formation?: string;
+  formation?: string | undefined;
 }
 
 @ObjectType()
 export class TeamAnalyticsType {
   @Field(() => ID)
-  teamId: string;
+  teamId!: string;
 
   @Field()
-  teamName: string;
+  teamName!: string;
 
   @Field(() => Int)
-  matches: number;
+  matches!: number;
 
   @Field(() => Int)
-  wins: number;
+  wins!: number;
 
   @Field(() => Int)
-  draws: number;
+  draws!: number;
 
   @Field(() => Int)
-  losses: number;
+  losses!: number;
 
   @Field(() => Int)
-  goalsFor: number;
+  goalsFor!: number;
 
   @Field(() => Int)
-  goalsAgainst: number;
+  goalsAgainst!: number;
 
   @Field(() => Float)
-  xGFor: number;
+  xGFor!: number;
 
   @Field(() => Float)
-  xGAgainst: number;
+  xGAgainst!: number;
 
   @Field(() => Float)
-  avgPossession: number;
+  avgPossession!: number;
 
   @Field(() => Float)
-  avgPassAccuracy: number;
+  avgPassAccuracy!: number;
 
   @Field(() => [String])
-  form: string[];
+  form!: string[];
 
   @Field()
-  lastUpdated: Date;
+  lastUpdated!: Date;
 }
 
 // Match Analytics Types
 @ObjectType()
 export class MatchAnalyticsType {
   @Field(() => ID)
-  matchId: string;
+  matchId!: string;
 
   @Field(() => TeamMetricsType)
-  homeTeam: TeamMetricsType;
+  homeTeam!: TeamMetricsType;
 
   @Field(() => TeamMetricsType)
-  awayTeam: TeamMetricsType;
+  awayTeam!: TeamMetricsType;
 
   @Field(() => Int)
-  matchDuration: number;
+  matchDuration!: number;
 
   @Field()
-  lastUpdated: Date;
+  lastUpdated!: Date;
 
   @Field()
-  status: string;
+  status!: string;
 }
 
 // Time Series Types
 @ObjectType()
 export class TimeSeriesDataType {
   @Field()
-  timestamp: Date;
+  timestamp!: Date;
 
   @Field(() => Float)
-  value: number;
+  value!: number;
 }
 
 // Position and Shot Data Types
 @ObjectType()
 export class PositionType {
   @Field(() => Float)
-  x: number;
+  x!: number;
 
   @Field(() => Float)
-  y: number;
+  y!: number;
 }
 
 @ObjectType()
 export class ShotDataType {
   @Field(() => PositionType)
-  position: PositionType;
+  position!: PositionType;
 
   @Field(() => PositionType)
-  targetPosition: PositionType;
+  targetPosition!: PositionType;
 
   @Field(() => Float)
-  distanceToGoal: number;
+  distanceToGoal!: number;
 
   @Field(() => Float)
-  angle: number;
+  angle!: number;
 
   @Field()
-  bodyPart: string;
+  bodyPart!: string;
 
   @Field()
-  situation: string;
+  situation!: string;
 
   @Field(() => Int)
-  defenderCount: number;
+  defenderCount!: number;
 }
 
 // Formation Types
 @ObjectType()
 export class PlayerPositionType {
   @Field(() => ID)
-  playerId: string;
+  playerId!: string;
 
   @Field(() => PositionType)
-  position: PositionType;
+  position!: PositionType;
 
   @Field()
-  role: string;
+  role!: string;
 }
 
 @ObjectType()
 export class FormationType {
   @Field()
-  formation: string;
+  formation!: string;
 
   @Field(() => Float)
-  confidence: number;
+  confidence!: number;
 
   @Field(() => [PlayerPositionType])
-  playerPositions: PlayerPositionType[];
+  playerPositions!: PlayerPositionType[];
 
   @Field(() => Int)
-  timestamp: number;
+  timestamp!: number;
 }
 
 // Input Types
 @InputType()
 export class CreateMatchAnalyticsInput {
   @Field(() => ID)
-  matchId: string;
+  matchId!: string;
 
   @Field(() => ID)
-  homeTeamId: string;
+  homeTeamId!: string;
 
   @Field(() => ID)
-  awayTeamId: string;
+  awayTeamId!: string;
 
   @Field(() => Int, { defaultValue: 0 })
-  matchDuration: number;
+  matchDuration: number = 0;
 }
 
 @InputType()
 export class UpdateXGInput {
   @Field(() => ID)
-  matchId: string;
+  matchId!: string;
 
   @Field(() => ID)
-  teamId: string;
+  teamId!: string;
 
   @Field(() => Float)
-  newXG: number;
+  newXG!: number;
 
   @Field(() => String, { nullable: true })
   shotData?: string; // JSON string
@@ -231,131 +231,131 @@ export class UpdateXGInput {
 @InputType()
 export class UpdatePossessionInput {
   @Field(() => ID)
-  matchId: string;
+  matchId!: string;
 
   @Field(() => Float)
-  homeTeamPossession: number;
+  homeTeamPossession!: number;
 
   @Field(() => Float)
-  awayTeamPossession: number;
+  awayTeamPossession!: number;
 }
 
 @InputType()
 export class PositionInput {
   @Field(() => Float)
-  x: number;
+  x!: number;
 
   @Field(() => Float)
-  y: number;
+  y!: number;
 }
 
 @InputType()
 export class ShotInput {
   @Field(() => ID)
-  teamId: string;
+  teamId!: string;
 
   @Field(() => PositionInput)
-  position: PositionInput;
+  position!: PositionInput;
 
   @Field(() => PositionInput)
-  targetPosition: PositionInput;
+  targetPosition!: PositionInput;
 
   @Field(() => Int)
-  timestamp: number;
+  timestamp!: number;
 
   @Field({ defaultValue: 'foot' })
-  bodyPart: string;
+  bodyPart: string = 'foot';
 
   @Field({ defaultValue: 'open_play' })
-  situation: string;
+  situation: string = 'open_play';
 }
 
 @InputType()
 export class PossessionSequenceInput {
   @Field(() => ID)
-  teamId: string;
+  teamId!: string;
 
   @Field(() => Int)
-  startTime: number;
+  startTime!: number;
 
   @Field(() => Int)
-  endTime: number;
+  endTime!: number;
 
   @Field(() => String)
-  events: string; // JSON string
+  events!: string; // JSON string
 }
 
 @InputType()
 export class FormationInput {
   @Field(() => ID)
-  teamId: string;
+  teamId!: string;
 
   @Field()
-  formation: string;
+  formation!: string;
 
   @Field(() => Float)
-  confidence: number;
+  confidence!: number;
 
   @Field(() => Int)
-  timestamp: number;
+  timestamp!: number;
 
   @Field(() => String)
-  playerPositions: string; // JSON string
+  playerPositions!: string; // JSON string
 }
 
 @InputType()
 export class MLPipelineOutputInput {
   @Field(() => [ShotInput], { nullable: true })
-  shots?: ShotInput[];
+  shots?: ShotInput[] | undefined;
 
   @Field(() => [PossessionSequenceInput], { nullable: true })
-  possessionSequences?: PossessionSequenceInput[];
+  possessionSequences?: PossessionSequenceInput[] | undefined;
 
   @Field(() => [FormationInput], { nullable: true })
-  formations?: FormationInput[];
+  formations?: FormationInput[] | undefined;
 }
 
 @InputType()
 export class ProcessMLPipelineInput {
   @Field(() => ID)
-  matchId: string;
+  matchId!: string;
 
   @Field(() => MLPipelineOutputInput)
-  pipelineOutput: MLPipelineOutputInput;
+  pipelineOutput!: MLPipelineOutputInput;
 }
 
 @InputType()
 export class GetTimeSeriesInput {
   @Field(() => EntityType)
-  entityType: EntityType;
+  entityType!: EntityType;
 
   @Field(() => ID)
-  entityId: string;
+  entityId!: string;
 
   @Field()
-  metric: string;
+  metric!: string;
 
   @Field()
-  fromDate: Date;
+  fromDate!: Date;
 
   @Field()
-  toDate: Date;
+  toDate!: Date;
 
   @Field(() => TimeInterval, { defaultValue: TimeInterval.DAY })
-  interval: TimeInterval;
+  interval: TimeInterval = TimeInterval.DAY;
 }
 
 // Comparative Analytics Types
 @ObjectType()
 export class ComparativeMetricType {
   @Field(() => ID)
-  entityId: string;
+  entityId!: string;
 
   @Field()
-  entityName: string;
+  entityName!: string;
 
   @Field(() => Float)
-  value: number;
+  value!: number;
 
   @Field(() => Float, { nullable: true })
   percentile?: number;
@@ -367,94 +367,94 @@ export class ComparativeMetricType {
 @ObjectType()
 export class ComparativeAnalyticsType {
   @Field()
-  metric: string;
+  metric!: string;
 
   @Field(() => [ComparativeMetricType])
-  entities: ComparativeMetricType[];
+  entities!: ComparativeMetricType[];
 
   @Field()
-  fromDate: Date;
+  fromDate!: Date;
 
   @Field()
-  toDate: Date;
+  toDate!: Date;
 }
 
 // League Standings Types
 @ObjectType()
 export class LeagueStandingType {
   @Field(() => Int)
-  position: number;
+  position!: number;
 
   @Field(() => ID)
-  teamId: string;
+  teamId!: string;
 
   @Field()
-  teamName: string;
+  teamName!: string;
 
   @Field(() => Int)
-  points: number;
+  points!: number;
 
   @Field(() => Int)
-  played: number;
+  played!: number;
 
   @Field(() => Int)
-  won: number;
+  won!: number;
 
   @Field(() => Int)
-  drawn: number;
+  drawn!: number;
 
   @Field(() => Int)
-  lost: number;
+  lost!: number;
 
   @Field(() => Int)
-  goalsFor: number;
+  goalsFor!: number;
 
   @Field(() => Int)
-  goalsAgainst: number;
+  goalsAgainst!: number;
 
   @Field(() => Int)
-  goalDifference: number;
+  goalDifference!: number;
 
   @Field(() => Float)
-  xGFor: number;
+  xGFor!: number;
 
   @Field(() => Float)
-  xGAgainst: number;
+  xGAgainst!: number;
 
   @Field(() => Float)
-  xGDifference: number;
+  xGDifference!: number;
 
   @Field(() => [String])
-  form: string[];
+  form!: string[];
 }
 
 // Match Prediction Types
 @ObjectType()
 export class MatchPredictionType {
   @Field(() => ID)
-  homeTeamId: string;
+  homeTeamId!: string;
 
   @Field(() => ID)
-  awayTeamId: string;
+  awayTeamId!: string;
 
   @Field(() => Float)
-  homeWinProbability: number;
+  homeWinProbability!: number;
 
   @Field(() => Float)
-  drawProbability: number;
+  drawProbability!: number;
 
   @Field(() => Float)
-  awayWinProbability: number;
+  awayWinProbability!: number;
 
   @Field(() => Float)
-  predictedHomeXG: number;
+  predictedHomeXG!: number;
 
   @Field(() => Float)
-  predictedAwayXG: number;
+  predictedAwayXG!: number;
 
   @Field(() => Float)
-  confidence: number;
+  confidence!: number;
 
   @Field()
-  predictionDate: Date;
+  predictionDate!: Date;
 }

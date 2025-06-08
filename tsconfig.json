@@ -1,35 +1,99 @@
 {
   "compilerOptions": {
+    // Module Configuration
     "module": "commonjs",
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
     "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+
+    // Output Configuration
+    "declaration": true,
+    "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
+    "removeComments": true,
+
+    // Decorator Support
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+
+    // Module Interop
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+
+    // Path Resolution
     "baseUrl": "./",
+    "paths": {
+      // Global aliases
+      "@/*": ["src/*"],
+      "@domain/*": ["src/domain/*"],
+      "@shared/*": ["src/shared/*"],
+
+      // Service-specific aliases
+      "@analytics/*": ["src/analytics-engine-service/*"],
+      "@api-gateway/*": ["src/api-gateway/*"],
+      "@video-ingestion/*": ["src/video-ingestion-service/*"],
+      "@real-time/*": ["src/real-time-analysis-service/*"],
+      "@ml-pipeline/*": ["src/ml-pipeline-service/*"],
+      "@performance/*": ["src/performance-optimization/*"],
+
+      // Test utilities
+      "@test-utils/*": ["test/utils/*"],
+      "@test-setup/*": ["test/setup/*"],
+
+      // Type definitions
+      "@types/*": ["src/types/*", "@types/*"]
+    },
+
+    // Type Checking - Strict Mode
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Additional Checks
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Performance & Build
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
-    "noImplicitAny": true,
-    "strictBindCallApply": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "strict": true,
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    "skipDefaultLibCheck": true,
+
+    // Advanced Options
+    "preserveConstEnums": true,
+    "verbatimModuleSyntax": false
   },
+
   "include": [
     "src/**/*",
-    "test/**/*"
+    "test/**/*",
+    "types/**/*"
   ],
+
   "exclude": [
     "node_modules",
-    "dist"
-  ]
+    "dist",
+    "coverage",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "frontend/node_modules",
+    "frontend/dist",
+    "frontend/.next"
+  ],
+
+  "ts-node": {
+    "esm": false,
+    "experimentalSpecifierResolution": "node"
+  }
 }

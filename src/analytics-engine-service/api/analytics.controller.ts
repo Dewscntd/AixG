@@ -22,13 +22,24 @@ import { AnalyticsApplicationService } from '../application/analytics-applicatio
 import {
   MatchAnalyticsType,
   TeamAnalyticsType,
+  TeamMetricsType,
   TimeSeriesDataType,
   CreateMatchAnalyticsInput,
   UpdateXGInput,
   UpdatePossessionInput,
   ProcessMLPipelineInput,
-  GetTimeSeriesInput
+  GetTimeSeriesInput,
+  MLPipelineOutputInput
 } from './types/analytics.types';
+
+// Command Types
+import { ProcessMLPipelineOutputData, ShotDataCommand } from '../application/commands/analytics-commands';
+
+// Application Service Response Types
+import {
+  MatchAnalyticsResponse,
+  TeamAnalyticsResponse
+} from '../application/analytics-application.service';
 
 @Resolver()
 export class AnalyticsController {
@@ -43,17 +54,17 @@ export class AnalyticsController {
   @Query(() => MatchAnalyticsType)
   async getMatchAnalytics(
     @Args('matchId', { type: () => ID }) matchId: string,
-    @Args('includeHistorical', { type: () => Boolean, defaultValue: false }) 
+    @Args('includeHistorical', { type: () => Boolean, defaultValue: false })
     includeHistorical: boolean
   ): Promise<MatchAnalyticsType> {
     this.logger.log(`Getting match analytics for match: ${matchId}`);
-    
+
     const result = await this.analyticsService.getMatchAnalytics(
-      matchId, 
+      matchId,
       includeHistorical
     );
-    
-    return result.data;
+
+    return this.convertToMatchAnalyticsType(result);
   }
 
   @Query(() => TeamAnalyticsType)
@@ -63,14 +74,14 @@ export class AnalyticsController {
     @Args('toDate', { type: () => Date, nullable: true }) toDate?: Date
   ): Promise<TeamAnalyticsType> {
     this.logger.log(`Getting team analytics for team: ${teamId}`);
-    
+
     const result = await this.analyticsService.getTeamAnalytics(
-      teamId, 
-      fromDate, 
+      teamId,
+      fromDate,
       toDate
     );
-    
-    return result.data;
+
+    return this.convertToTeamAnalyticsType(result);
   }
 
   @Query(() => [TimeSeriesDataType])
@@ -140,13 +151,16 @@ export class AnalyticsController {
     @Args('input') input: UpdateXGInput
   ): Promise<boolean> {
     this.logger.log(`Updating match xG: ${JSON.stringify(input)}`);
-    
+
     try {
+      // Convert JSON string to ShotDataCommand if provided
+      const shotData = input.shotData ? JSON.parse(input.shotData) as ShotDataCommand : undefined;
+
       await this.analyticsService.updateMatchXG(
         input.matchId,
         input.teamId,
         input.newXG,
-        input.shotData
+        shotData
       );
       
       // Publish real-time update
@@ -203,11 +217,14 @@ export class AnalyticsController {
     @Args('input') input: ProcessMLPipelineInput
   ): Promise<boolean> {
     this.logger.log(`Processing ML pipeline output for match: ${input.matchId}`);
-    
+
     try {
+      // Convert GraphQL input to command data
+      const pipelineData = this.convertMLPipelineInput(input.pipelineOutput);
+
       await this.analyticsService.processMLPipelineOutput(
         input.matchId,
-        input.pipelineOutput
+        pipelineData
       );
       
       // Publish comprehensive update
@@ -279,13 +296,87 @@ export class AnalyticsController {
   @Query(() => HealthCheckType)
   async healthCheck(): Promise<HealthCheckType> {
     const health = await this.analyticsService.healthCheck();
-    
+
     return {
       status: health.eventStore && health.readDatabase && health.projections ? 'healthy' : 'unhealthy',
       eventStore: health.eventStore,
       readDatabase: health.readDatabase,
       projections: health.projections,
       timestamp: new Date()
+    };
+  }
+
+  // Helper method to convert GraphQL input to command data
+  private convertMLPipelineInput(input: MLPipelineOutputInput): ProcessMLPipelineOutputData {
+    return {
+      shots: input.shots?.map(shot => ({
+        teamId: shot.teamId,
+        position: { x: shot.position.x, y: shot.position.y },
+        targetPosition: { x: shot.targetPosition.x, y: shot.targetPosition.y },
+        timestamp: shot.timestamp,
+        bodyPart: shot.bodyPart,
+        situation: shot.situation
+      })),
+      possessionSequences: input.possessionSequences?.map(seq => ({
+        teamId: seq.teamId,
+        startTime: seq.startTime,
+        endTime: seq.endTime,
+        events: JSON.parse(seq.events) // Parse JSON string to array
+      })),
+      formations: input.formations?.map(formation => ({
+        teamId: formation.teamId,
+        formation: formation.formation,
+        confidence: formation.confidence,
+        timestamp: formation.timestamp,
+        playerPositions: JSON.parse(formation.playerPositions) // Parse JSON string to array
+      }))
+    };
+  }
+
+  // Helper method to convert MatchAnalyticsResponse to MatchAnalyticsType
+  private convertToMatchAnalyticsType(response: MatchAnalyticsResponse): MatchAnalyticsType {
+    return {
+      matchId: response.matchId,
+      homeTeam: this.convertToTeamMetricsType(response.homeTeam),
+      awayTeam: this.convertToTeamMetricsType(response.awayTeam),
+      matchDuration: response.matchDuration,
+      lastUpdated: response.lastUpdated,
+      status: response.status
+    };
+  }
+
+  // Helper method to convert TeamAnalyticsResponse to TeamMetricsType
+  private convertToTeamMetricsType(response: TeamAnalyticsResponse): TeamMetricsType {
+    return {
+      teamId: response.teamId,
+      teamName: 'Unknown Team', // Default value since response doesn't include teamName
+      xG: response.xG,
+      xA: response.xA,
+      possession: response.possession,
+      passAccuracy: response.passAccuracy,
+      shotsOnTarget: response.shotsOnTarget,
+      shotsOffTarget: response.shotsOffTarget,
+      formation: response.formation ?? undefined
+    };
+  }
+
+  // Helper method to convert TeamAnalyticsResponse to TeamAnalyticsType
+  private convertToTeamAnalyticsType(response: TeamAnalyticsResponse): TeamAnalyticsType {
+    return {
+      teamId: response.teamId,
+      teamName: 'Unknown Team', // Default value since response doesn't include teamName
+      matches: 0, // Default values since response doesn't include these fields
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      xGFor: response.xG,
+      xGAgainst: 0,
+      avgPossession: response.possession,
+      avgPassAccuracy: response.passAccuracy,
+      form: [], // Default empty array
+      lastUpdated: new Date()
     };
   }
 }

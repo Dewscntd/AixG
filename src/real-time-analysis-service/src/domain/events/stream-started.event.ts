@@ -41,7 +41,7 @@ export class StreamStartedEvent extends DomainEvent {
     };
   }
 
-  static fromJSON(data: Record<string, any>): StreamStartedEvent {
+  static override fromJSON(data: Record<string, any>): StreamStartedEvent {
     const event = new StreamStartedEvent(
       data.aggregateId,
       new Date(data.startedAt),

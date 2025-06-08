@@ -49,6 +49,19 @@ export interface EventStore {
    * Get the latest snapshot for a stream
    */
   getSnapshot<T>(streamId: string): Promise<{ snapshot: T; version: number } | null>;
+
+  /**
+   * Subscribe to all events
+   */
+  subscribeToAll(
+    onEvent: (event: DomainEvent) => Promise<void>,
+    onError?: (error: Error) => void
+  ): Promise<() => void>;
+
+  /**
+   * Close the event store connection
+   */
+  close(): Promise<void>;
 }
 
 export interface EventStoreSubscription {
@@ -140,9 +153,11 @@ export class StreamNotFoundError extends Error {
 }
 
 export class EventStoreConnectionError extends Error {
+  public readonly cause?: Error | undefined;
+
   constructor(message: string, cause?: Error) {
     super(message);
     this.name = 'EventStoreConnectionError';
-    this.cause = cause;
+    this.cause = cause ?? undefined;
   }
 }

@@ -61,7 +61,7 @@ export class FrameAnalyzedEvent extends DomainEvent {
     };
   }
 
-  static fromJSON(data: Record<string, unknown>): FrameAnalyzedEvent {
+  static override fromJSON(data: Record<string, unknown>): FrameAnalyzedEvent {
     const event = new FrameAnalyzedEvent(
       data.aggregateId as string,
       data.frameNumber as number,

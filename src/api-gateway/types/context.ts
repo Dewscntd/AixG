@@ -20,10 +20,10 @@ export interface User {
 
 export interface GraphQLContext {
   // HTTP Request (for HTTP operations)
-  req?: Request;
+  req?: Request | undefined;
 
   // Authenticated user
-  user?: User;
+  user?: User | undefined;
 
   // Correlation ID for tracing
   correlationId: string;
@@ -35,10 +35,10 @@ export interface GraphQLContext {
   redis: Redis;
 
   // Request start time for performance tracking
-  startTime?: number;
+  startTime?: number | undefined;
 
   // Additional metadata
-  metadata?: GraphQLMetadata;
+  metadata?: GraphQLMetadata | undefined;
 }
 
 export interface GraphQLMetadata {

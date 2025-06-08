@@ -46,7 +46,7 @@ export class StreamStoppedEvent extends DomainEvent {
     };
   }
 
-  static fromJSON(data: Record<string, any>): StreamStoppedEvent {
+  static override fromJSON(data: Record<string, any>): StreamStoppedEvent {
     const event = new StreamStoppedEvent(
       data.aggregateId,
       new Date(data.stoppedAt),

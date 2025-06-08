@@ -15,7 +15,8 @@ import {
 import {
   GetMatchAnalyticsQueryHandler,
   GetTeamAnalyticsQueryHandler,
-  GetTimeSeriesAnalyticsQueryHandler
+  GetTimeSeriesAnalyticsQueryHandler,
+  AnalyticsResult
 } from './queries/analytics-query-handlers';
 import {
   CreateMatchAnalyticsCommand,
@@ -115,7 +116,7 @@ export class AnalyticsApplicationService {
   }
 
   // Query operations (Read side)
-  async executeQuery<T>(query: AnalyticsQuery): Promise<T> {
+  async executeQuery<T>(query: AnalyticsQuery): Promise<AnalyticsResult<T>> {
     const queryType = query.constructor.name;
     const handler = this.queryHandlers.get(queryType);
 
@@ -124,7 +125,7 @@ export class AnalyticsApplicationService {
     }
 
     try {
-      return await handler.handle(query) as T;
+      return await handler.handle(query) as AnalyticsResult<T>;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error executing query ${queryType}: ${errorMessage}`);
@@ -185,7 +186,8 @@ export class AnalyticsApplicationService {
     includeHistorical: boolean = false
   ): Promise<MatchAnalyticsResponse> {
     const query = new GetMatchAnalyticsQuery(matchId, includeHistorical);
-    return await this.executeQuery<MatchAnalyticsResponse>(query);
+    const result = await this.executeQuery<MatchAnalyticsResponse>(query);
+    return result.data;
   }
 
   async getTeamAnalytics(
@@ -194,7 +196,8 @@ export class AnalyticsApplicationService {
     toDate?: Date
   ): Promise<TeamAnalyticsResponse> {
     const query = new GetTeamAnalyticsQuery(teamId, fromDate, toDate);
-    return await this.executeQuery<TeamAnalyticsResponse>(query);
+    const result = await this.executeQuery<TeamAnalyticsResponse>(query);
+    return result.data;
   }
 
   async getTimeSeriesAnalytics(
@@ -213,7 +216,8 @@ export class AnalyticsApplicationService {
       toDate,
       interval
     );
-    return await this.executeQuery<TimeSeriesAnalyticsResponse>(query);
+    const result = await this.executeQuery<TimeSeriesAnalyticsResponse>(query);
+    return result.data;
   }
 
   // Projection management

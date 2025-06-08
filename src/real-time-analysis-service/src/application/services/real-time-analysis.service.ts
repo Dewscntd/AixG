@@ -161,7 +161,8 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       };
 
     } catch (error) {
-      throw new Error(`Failed to start stream: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to start stream: ${errorMessage}`);
     }
   }
 
@@ -207,7 +208,8 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       });
 
     } catch (error) {
-      throw new Error(`Failed to stop stream: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to stop stream: ${errorMessage}`);
     }
   }
 
@@ -218,7 +220,8 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.webrtcManager.signal(peerId, signalData);
     } catch (error) {
-      throw new Error(`Failed to signal peer: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to signal peer: ${errorMessage}`);
     }
   }
 
@@ -247,8 +250,8 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       processingRate: stream.getCurrentFrameRate(),
       averageLatency: 0, // TODO: Implement in pipeline
       errorCount: 0, // TODO: Implement error tracking
-      uptime: stream.getDuration(),
-      lastFrameTimestamp: undefined // TODO: Implement timestamp tracking
+      uptime: stream.getDuration()
+      // lastFrameTimestamp is optional and undefined, so we omit it
     };
   }
 
@@ -305,10 +308,11 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.error(`Error processing frame for stream ${streamId.value}:`, error);
 
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.eventEmitter.emit('frame.processing.error', {
         streamId: streamId.value,
         frameNumber: frame.frameNumber,
-        error: error.message
+        error: errorMessage
       });
     }
   }

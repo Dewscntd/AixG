@@ -9,9 +9,9 @@ export interface DomainEvent {
   readonly aggregateType: string;
   readonly version: number;
   readonly timestamp: Date;
-  readonly correlationId?: string;
-  readonly causationId?: string;
-  readonly metadata?: Record<string, unknown>;
+  readonly correlationId?: string | undefined;
+  readonly causationId?: string | undefined;
+  readonly metadata?: Record<string, unknown> | undefined;
   toJSON?(): Record<string, unknown>;
 }
 
@@ -22,9 +22,9 @@ export abstract class BaseDomainEvent implements DomainEvent {
   public readonly aggregateType: string;
   public readonly version: number;
   public readonly timestamp: Date;
-  public readonly correlationId?: string;
-  public readonly causationId?: string;
-  public readonly metadata?: Record<string, unknown>;
+  public readonly correlationId?: string | undefined;
+  public readonly causationId?: string | undefined;
+  public readonly metadata?: Record<string, unknown> | undefined;
 
   constructor(
     eventType: string,
@@ -41,9 +41,9 @@ export abstract class BaseDomainEvent implements DomainEvent {
     this.aggregateType = aggregateType;
     this.version = version;
     this.timestamp = new Date();
-    this.correlationId = correlationId;
-    this.causationId = causationId;
-    this.metadata = metadata;
+    this.correlationId = correlationId ?? undefined;
+    this.causationId = causationId ?? undefined;
+    this.metadata = metadata ?? undefined;
   }
 
   private generateEventId(): string {

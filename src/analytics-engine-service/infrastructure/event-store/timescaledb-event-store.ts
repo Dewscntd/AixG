@@ -317,11 +317,62 @@ export class TimescaleDBEventStore implements EventStore {
     }
   }
 
+  async subscribeToAll(
+    onEvent: (event: DomainEvent) => Promise<void>,
+    onError?: (error: Error) => void
+  ): Promise<() => void> {
+    // This is a simplified implementation
+    // In a production system, you'd use PostgreSQL LISTEN/NOTIFY or a message queue
+    let isSubscribed = true;
+
+    const pollForEvents = async () => {
+      try {
+        if (!isSubscribed) return;
+
+        // Poll for new events every second
+        const client = await this.pool.connect();
+        try {
+          const result = await client.query(`
+            SELECT event_data, timestamp
+            FROM events
+            WHERE timestamp > NOW() - INTERVAL '1 second'
+            ORDER BY timestamp ASC
+          `);
+
+          for (const row of result.rows) {
+            if (!isSubscribed) break;
+            const event = this.deserializeEvent(row.event_data, row.timestamp);
+            await onEvent(event);
+          }
+        } finally {
+          client.release();
+        }
+
+        // Schedule next poll
+        if (isSubscribed) {
+          setTimeout(pollForEvents, 1000);
+        }
+      } catch (error) {
+        if (onError && error instanceof Error) {
+          onError(error);
+        }
+      }
+    };
+
+    // Start polling
+    pollForEvents();
+
+    // Return unsubscribe function
+    return () => {
+      isSubscribed = false;
+    };
+  }
+
   private deserializeEvent(eventData: unknown, timestamp: Date): DomainEvent {
     // This is a simplified deserialization
     // In a real implementation, you'd have a proper event registry
     const data = typeof eventData === 'string' ? JSON.parse(eventData) : eventData;
-    
+
     return {
       ...data,
       timestamp: new Date(timestamp)

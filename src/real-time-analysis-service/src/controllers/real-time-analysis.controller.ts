@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { RealTimeAnalysisService } from '../application/services/real-time-analysis.service';
 import { StreamId } from '../domain/value-objects/stream-id';
+import { WebRTCSignalData } from '../infrastructure/webrtc/webrtc-stream-manager';
 import { StartStreamDto, SignalPeerDto } from './dto/real-time-analysis.dto';
 
 /**
@@ -52,9 +53,11 @@ export class RealTimeAnalysisController {
       };
 
     } catch (error) {
-      this.logger.error(`Failed to start stream: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to start stream: ${errorMessage}`, errorStack);
       throw new HttpException(
-        `Failed to start stream: ${error.message}`,
+        `Failed to start stream: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -84,17 +87,19 @@ export class RealTimeAnalysisController {
       };
 
     } catch (error) {
-      this.logger.error(`Failed to stop stream ${streamId}: ${error.message}`, error.stack);
-      
-      if (error.message.includes('not found')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to stop stream ${streamId}: ${errorMessage}`, errorStack);
+
+      if (errorMessage.includes('not found')) {
         throw new HttpException(
           `Stream ${streamId} not found`,
           HttpStatus.NOT_FOUND
         );
       }
-      
+
       throw new HttpException(
-        `Failed to stop stream: ${error.message}`,
+        `Failed to stop stream: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -126,14 +131,16 @@ export class RealTimeAnalysisController {
       };
 
     } catch (error) {
-      this.logger.error(`Failed to get stream metrics ${streamId}: ${error.message}`, error.stack);
-      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to get stream metrics ${streamId}: ${errorMessage}`, errorStack);
+
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       throw new HttpException(
-        `Failed to get stream metrics: ${error.message}`,
+        `Failed to get stream metrics: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -158,9 +165,11 @@ export class RealTimeAnalysisController {
       };
 
     } catch (error) {
-      this.logger.error(`Failed to get active streams: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to get active streams: ${errorMessage}`, errorStack);
       throw new HttpException(
-        `Failed to get active streams: ${error.message}`,
+        `Failed to get active streams: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -182,7 +191,7 @@ export class RealTimeAnalysisController {
     try {
       this.logger.log(`Signaling peer: ${peerId}`);
       
-      await this.realTimeAnalysisService.signalPeer(peerId, signalDto.signalData);
+      await this.realTimeAnalysisService.signalPeer(peerId, signalDto.signalData as WebRTCSignalData);
       
       return {
         success: true,
@@ -190,9 +199,11 @@ export class RealTimeAnalysisController {
       };
 
     } catch (error) {
-      this.logger.error(`Failed to signal peer ${peerId}: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to signal peer ${peerId}: ${errorMessage}`, errorStack);
       throw new HttpException(
-        `Failed to signal peer: ${error.message}`,
+        `Failed to signal peer: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -214,9 +225,11 @@ export class RealTimeAnalysisController {
       };
 
     } catch (error) {
-      this.logger.error(`Failed to get service stats: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to get service stats: ${errorMessage}`, errorStack);
       throw new HttpException(
-        `Failed to get service statistics: ${error.message}`,
+        `Failed to get service statistics: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }

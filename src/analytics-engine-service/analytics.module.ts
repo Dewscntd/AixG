@@ -65,8 +65,8 @@ const configuration = () => ({
       useFactory: (configService: ConfigService) => ({
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
         sortSchema: true,
-        playground: configService.get<boolean>('graphqlPlayground'),
-        introspection: configService.get<boolean>('graphqlIntrospection'),
+        playground: configService.get<boolean>('graphqlPlayground') ?? false,
+        introspection: configService.get<boolean>('graphqlIntrospection') ?? false,
         context: ({ req, connection }: any) => connection ? { req: connection.context } : { req },
         subscriptions: {
           'graphql-ws': {
@@ -108,9 +108,9 @@ const configuration = () => ({
       provide: 'EVENT_STORE',
       useFactory: (configService: ConfigService): EventStore => new TimescaleDBEventStore({
           connectionString: configService.get<string>('eventStoreUrl') || 'postgresql://localhost:5432/footanalytics',
-          maxRetries: configService.get<number>('maxRetries'),
-          retryDelay: configService.get<number>('retryDelay'),
-          snapshotFrequency: configService.get<number>('snapshotFrequency'),
+          maxRetries: configService.get<number>('maxRetries') ?? 3,
+          retryDelay: configService.get<number>('retryDelay') ?? 1000,
+          snapshotFrequency: configService.get<number>('snapshotFrequency') ?? 100,
         }),
       inject: [ConfigService],
     },

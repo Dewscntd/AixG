@@ -5,7 +5,7 @@
 export interface AnalyticsCommand {
   readonly commandId: string;
   readonly timestamp: Date;
-  readonly correlationId?: string;
+  readonly correlationId?: string | undefined;
 }
 
 // Command-specific types
@@ -48,15 +48,15 @@ export interface FormationCommand {
 }
 
 export interface ProcessMLPipelineOutputData {
-  shots?: ShotDataCommand[];
-  possessionSequences?: PossessionSequenceCommand[];
-  formations?: FormationCommand[];
+  shots?: ShotDataCommand[] | undefined;
+  possessionSequences?: PossessionSequenceCommand[] | undefined;
+  formations?: FormationCommand[] | undefined;
 }
 
 export class CreateMatchAnalyticsCommand implements AnalyticsCommand {
   readonly commandId: string;
   readonly timestamp: Date;
-  readonly correlationId?: string;
+  readonly correlationId?: string | undefined;
 
   constructor(
     public readonly matchId: string,
@@ -74,7 +74,7 @@ export class CreateMatchAnalyticsCommand implements AnalyticsCommand {
 export class UpdateXGCommand implements AnalyticsCommand {
   readonly commandId: string;
   readonly timestamp: Date;
-  readonly correlationId?: string;
+  readonly correlationId?: string | undefined;
 
   constructor(
     public readonly matchId: string,
@@ -92,7 +92,7 @@ export class UpdateXGCommand implements AnalyticsCommand {
 export class UpdatePossessionCommand implements AnalyticsCommand {
   readonly commandId: string;
   readonly timestamp: Date;
-  readonly correlationId?: string;
+  readonly correlationId?: string | undefined;
 
   constructor(
     public readonly matchId: string,
@@ -110,7 +110,7 @@ export class UpdatePossessionCommand implements AnalyticsCommand {
 export class UpdateFormationCommand implements AnalyticsCommand {
   readonly commandId: string;
   readonly timestamp: Date;
-  readonly correlationId?: string;
+  readonly correlationId?: string | undefined;
 
   constructor(
     public readonly matchId: string,
@@ -130,7 +130,7 @@ export class UpdateFormationCommand implements AnalyticsCommand {
 export class ProcessMLPipelineOutputCommand implements AnalyticsCommand {
   readonly commandId: string;
   readonly timestamp: Date;
-  readonly correlationId?: string;
+  readonly correlationId?: string | undefined;
 
   constructor(
     public readonly matchId: string,
@@ -146,7 +146,7 @@ export class ProcessMLPipelineOutputCommand implements AnalyticsCommand {
 export class RecalculateAnalyticsCommand implements AnalyticsCommand {
   readonly commandId: string;
   readonly timestamp: Date;
-  readonly correlationId?: string;
+  readonly correlationId?: string | undefined;
 
   constructor(
     public readonly matchId: string,
@@ -164,7 +164,7 @@ export class RecalculateAnalyticsCommand implements AnalyticsCommand {
 export class CreateSnapshotCommand implements AnalyticsCommand {
   readonly commandId: string;
   readonly timestamp: Date;
-  readonly correlationId?: string;
+  readonly correlationId?: string | undefined;
 
   constructor(
     public readonly matchId: string,

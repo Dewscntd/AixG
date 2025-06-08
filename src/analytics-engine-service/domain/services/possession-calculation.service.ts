@@ -223,10 +223,15 @@ export const calculatePossessionTransitions = (
   for (let i = 1; i < sequences.length; i++) {
     const prevSequence = sequences[i - 1];
     const currentSequence = sequences[i];
-    
+
+    // Add null checks for TypeScript strict mode
+    if (!prevSequence || !currentSequence) {
+      continue;
+    }
+
     if (prevSequence.teamId !== currentSequence.teamId) {
       const lastEvent = prevSequence.events[prevSequence.events.length - 1];
-      
+
       transitions.push({
         fromTeam: prevSequence.teamId,
         toTeam: currentSequence.teamId,

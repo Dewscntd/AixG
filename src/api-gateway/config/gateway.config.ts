@@ -8,30 +8,30 @@ import { registerAs } from '@nestjs/config';
 
 export const gatewayConfiguration = registerAs('gateway', () => ({
   // Server Configuration
-  port: parseInt(process.env.PORT, 10) || 4000,
+  port: parseInt(process.env.PORT || '4000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  
+
   // GraphQL Configuration
   graphqlPlayground: process.env.GRAPHQL_PLAYGROUND === 'true' || process.env.NODE_ENV !== 'production',
   graphqlIntrospection: process.env.GRAPHQL_INTROSPECTION === 'true' || process.env.NODE_ENV !== 'production',
-  
+
   // CORS Configuration
   corsOrigin: process.env.CORS_ORIGIN || '*',
-  
+
   // Redis Configuration
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-  
+
   // Authentication Configuration
   jwtSecret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
-  
+
   // Rate Limiting Configuration
-  rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000, // 15 minutes
-  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX, 10) || 1000,
-  
+  rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes
+  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '1000', 10),
+
   // Cache Configuration
-  cacheDefaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL, 10) || 300, // 5 minutes
-  cacheMaxTtl: parseInt(process.env.CACHE_MAX_TTL, 10) || 3600, // 1 hour
+  cacheDefaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL || '300', 10), // 5 minutes
+  cacheMaxTtl: parseInt(process.env.CACHE_MAX_TTL || '3600', 10), // 1 hour
   
   // Subgraph Service URLs
   analyticsServiceUrl: process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3000/graphql',
@@ -52,20 +52,20 @@ export const gatewayConfiguration = registerAs('gateway', () => ({
   compressionEnabled: process.env.COMPRESSION_ENABLED === 'true' || process.env.NODE_ENV === 'production',
   
   // Query Complexity Configuration
-  maxQueryComplexity: parseInt(process.env.MAX_QUERY_COMPLEXITY, 10) || 1000,
-  maxQueryDepth: parseInt(process.env.MAX_QUERY_DEPTH, 10) || 15,
-  
+  maxQueryComplexity: parseInt(process.env.MAX_QUERY_COMPLEXITY || '1000', 10),
+  maxQueryDepth: parseInt(process.env.MAX_QUERY_DEPTH || '15', 10),
+
   // File Upload Configuration
-  maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 100 * 1024 * 1024, // 100MB
+  maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '104857600', 10), // 100MB
   allowedFileTypes: (process.env.ALLOWED_FILE_TYPES || 'video/mp4,video/avi,video/mov').split(','),
-  
+
   // WebSocket Configuration
   websocketPath: process.env.WEBSOCKET_PATH || '/graphql',
-  websocketKeepAlive: parseInt(process.env.WEBSOCKET_KEEP_ALIVE, 10) || 30000, // 30 seconds
-  
+  websocketKeepAlive: parseInt(process.env.WEBSOCKET_KEEP_ALIVE || '30000', 10), // 30 seconds
+
   // Health Check Configuration
   healthCheckPath: process.env.HEALTH_CHECK_PATH || '/health',
-  healthCheckInterval: parseInt(process.env.HEALTH_CHECK_INTERVAL, 10) || 30000, // 30 seconds
+  healthCheckInterval: parseInt(process.env.HEALTH_CHECK_INTERVAL || '30000', 10), // 30 seconds
   
   // Logging Configuration
   logLevel: process.env.LOG_LEVEL || 'info',

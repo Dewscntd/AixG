@@ -13,7 +13,7 @@ export class XGCalculatedEvent extends BaseDomainEvent {
   public readonly teamId: string;
   public readonly newXG: number;
   public readonly previousXG: number;
-  public readonly shotData?: ShotEventData;
+  public readonly shotData?: ShotEventData | undefined;
 
   constructor(
     matchId: string,
@@ -37,7 +37,7 @@ export class XGCalculatedEvent extends BaseDomainEvent {
     this.teamId = teamId;
     this.newXG = newXG;
     this.previousXG = previousXG;
-    this.shotData = shotData;
+    this.shotData = shotData ?? undefined;
 
     if (timestamp) {
       // Use Object.defineProperty to modify readonly timestamp

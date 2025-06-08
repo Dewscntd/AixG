@@ -17,7 +17,7 @@ export class StartStreamDto {
   })
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -33,7 +33,7 @@ export class SignalPeerDto {
   })
   @IsNotEmpty()
   @IsObject()
-  signalData: any;
+  signalData!: Record<string, unknown>;
 }
 
 /**
@@ -44,13 +44,13 @@ export class StreamCreatedResponseDto {
     description: 'Unique identifier for the created stream',
     example: 'stream_12345678-1234-1234-1234-123456789012'
   })
-  streamId: string;
+  streamId!: string;
 
   @ApiProperty({
     description: 'WebRTC peer connection ID',
     example: 'peer_12345678-1234-1234-1234-123456789012_1640995200000'
   })
-  peerId: string;
+  peerId!: string;
 }
 
 /**
@@ -61,38 +61,38 @@ export class StreamMetricsResponseDto {
     description: 'Stream identifier',
     example: 'stream_12345678-1234-1234-1234-123456789012'
   })
-  streamId: string;
+  streamId!: string;
 
   @ApiProperty({
     description: 'Current stream status',
     enum: ['created', 'active', 'stopped', 'error'],
     example: 'active'
   })
-  status: string;
+  status!: string;
 
   @ApiProperty({
     description: 'Total number of frames processed',
     example: 1500
   })
-  frameCount: number;
+  frameCount!: number;
 
   @ApiProperty({
     description: 'Stream duration in milliseconds',
     example: 50000
   })
-  duration: number;
+  duration!: number;
 
   @ApiProperty({
     description: 'Current frame rate (frames per second)',
     example: 30.0
   })
-  frameRate: number;
+  frameRate!: number;
 
   @ApiProperty({
     description: 'Frame buffer utilization percentage',
     example: 75.5
   })
-  bufferUtilization: number;
+  bufferUtilization!: number;
 
   @ApiProperty({
     description: 'Pipeline processing metrics',
@@ -102,13 +102,13 @@ export class StreamMetricsResponseDto {
       averageProcessingRate: 29.8
     }
   })
-  pipelineMetrics: any;
+  pipelineMetrics!: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Whether the stream is healthy',
     example: true
   })
-  isHealthy: boolean;
+  isHealthy!: boolean;
 }
 
 /**
@@ -122,13 +122,13 @@ export class ActiveStreamsResponseDto {
       'stream_87654321-4321-4321-4321-210987654321'
     ]
   })
-  activeStreams: string[];
+  activeStreams!: string[];
 
   @ApiProperty({
     description: 'Number of active streams',
     example: 2
   })
-  count: number;
+  count!: number;
 }
 
 /**
@@ -139,19 +139,19 @@ export class ServiceStatsResponseDto {
     description: 'Number of active streams',
     example: 3
   })
-  activeStreams: number;
+  activeStreams!: number;
 
   @ApiProperty({
     description: 'Number of active analysis pipelines',
     example: 3
   })
-  activePipelines: number;
+  activePipelines!: number;
 
   @ApiProperty({
     description: 'Number of WebRTC connections',
     example: 5
   })
-  webrtcConnections: number;
+  webrtcConnections!: number;
 
   @ApiProperty({
     description: 'ML inference statistics',
@@ -163,18 +163,18 @@ export class ServiceStatsResponseDto {
       memoryUsage: 1024000000
     }
   })
-  mlInferenceStats: any;
+  mlInferenceStats!: Record<string, unknown>;
 }
 
 /**
  * Generic API response wrapper
  */
-export class ApiResponseDto<T = any> {
+export class ApiResponseDto<T = unknown> {
   @ApiProperty({
     description: 'Whether the request was successful',
     example: true
   })
-  success: boolean;
+  success!: boolean;
 
   @ApiPropertyOptional({
     description: 'Response data'
