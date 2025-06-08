@@ -212,7 +212,7 @@ import { GraphQLContext } from './types/context';
             },
 
             // Response formatting
-            formatResponse: (response, { request, context }) => {
+            formatResponse: (response, { request: _request, context }) => {
               // Add performance metrics
               if (context.startTime) {
                 const duration = Date.now() - context.startTime;

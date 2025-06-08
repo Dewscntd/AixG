@@ -1,10 +1,19 @@
 import { BaseDomainEvent } from './domain-event';
 
+export interface ShotEventData {
+  teamId: string;
+  position: { x: number; y: number };
+  targetPosition: { x: number; y: number };
+  timestamp: number;
+  bodyPart: string;
+  situation: string;
+}
+
 export class XGCalculatedEvent extends BaseDomainEvent {
   public readonly teamId: string;
   public readonly newXG: number;
   public readonly previousXG: number;
-  public readonly shotData?: any;
+  public readonly shotData?: ShotEventData;
 
   constructor(
     matchId: string,
@@ -12,7 +21,7 @@ export class XGCalculatedEvent extends BaseDomainEvent {
     newXG: number,
     previousXG: number,
     timestamp?: Date,
-    shotData?: any,
+    shotData?: ShotEventData,
     correlationId?: string,
     causationId?: string
   ) {
@@ -24,18 +33,24 @@ export class XGCalculatedEvent extends BaseDomainEvent {
       correlationId,
       causationId
     );
-    
+
     this.teamId = teamId;
     this.newXG = newXG;
     this.previousXG = previousXG;
     this.shotData = shotData;
-    
+
     if (timestamp) {
-      (this as any).timestamp = timestamp;
+      // Use Object.defineProperty to modify readonly timestamp
+      Object.defineProperty(this, 'timestamp', {
+        value: timestamp,
+        writable: false,
+        enumerable: true,
+        configurable: false
+      });
     }
   }
 
-  getEventData(): Record<string, any> {
+  getEventData(): Record<string, unknown> {
     return {
       teamId: this.teamId,
       newXG: this.newXG,

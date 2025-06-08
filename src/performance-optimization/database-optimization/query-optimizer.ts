@@ -1,11 +1,8 @@
 import { Pool, PoolClient } from 'pg';
-import { Logger } from '@nestjs/common';
-import { Injectable } from '@nestjs/common';
+import { Logger, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
 import { EventEmitter } from 'events';
-import { performance } from 'perf_hooks';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+// fs and path imports removed as they're not used
 
 interface QueryPlan {
   planRows: number;
@@ -383,7 +380,7 @@ export class QueryOptimizer extends EventEmitter {
     
     try {
       // Analyze current configuration
-      const config = await client.query(`
+      const _config = await client.query(`
         SELECT name, setting, unit, category, short_desc
         FROM pg_settings 
         WHERE category IN (
@@ -475,7 +472,7 @@ export class QueryOptimizer extends EventEmitter {
     let slowQueryCount = 0;
     
     // Analyze all tracked queries
-    for (const [queryHash, metrics] of this.queryMetrics) {
+    for (const [_queryHash, metrics] of this.queryMetrics) {
       const avgTime = metrics.reduce((sum, m) => sum + m.executionTime, 0) / metrics.length;
       totalQueries += metrics.length;
       totalExecutionTime += metrics.reduce((sum, m) => sum + m.executionTime, 0);

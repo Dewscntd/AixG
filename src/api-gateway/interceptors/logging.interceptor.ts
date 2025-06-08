@@ -12,6 +12,26 @@ import { tap, catchError } from 'rxjs/operators';
 import { ConfigService } from '@nestjs/config';
 import { GraphQLContext } from '../types/context';
 
+// GraphQL Info type definitions
+export interface GraphQLInfo {
+  operation?: {
+    name?: {
+      value: string;
+    };
+    operation: 'query' | 'mutation' | 'subscription';
+    selectionSet?: {
+      selections: GraphQLSelection[];
+    };
+  };
+}
+
+export interface GraphQLSelection {
+  name?: {
+    value: string;
+  };
+  kind: string;
+}
+
 export interface LogEntry {
   timestamp: string;
   correlationId: string;
@@ -23,7 +43,7 @@ export interface LogEntry {
   success: boolean;
   errorMessage?: string;
   errorCode?: string;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
   complexity?: number;
   depth?: number;
   clientIP?: string;
@@ -41,7 +61,7 @@ export class LoggingInterceptor implements NestInterceptor {
     this.isProduction = this.configService.get<string>('nodeEnv') === 'production';
   }
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     // Check if this is a GraphQL context
     const gqlContext = GqlExecutionContext.create(context);
     const ctx = gqlContext.getContext<GraphQLContext>();
@@ -88,7 +108,7 @@ export class LoggingInterceptor implements NestInterceptor {
   /**
    * Creates the base log entry with common fields
    */
-  private createBaseLogEntry(context: GraphQLContext, info: any, startTime: number): LogEntry {
+  private createBaseLogEntry(context: GraphQLContext, info: GraphQLInfo, _startTime: number): LogEntry {
     const operationName = info?.operation?.name?.value || 'anonymous';
     const operationType = this.getOperationType(info);
 
@@ -125,7 +145,7 @@ export class LoggingInterceptor implements NestInterceptor {
   /**
    * Logs the response (success or error)
    */
-  private logResponse(logEntry: LogEntry, result?: any, error?: any): void {
+  private logResponse(logEntry: LogEntry, result?: unknown, _error?: Error): void {
     const logData = {
       ...logEntry,
       resultSize: result ? this.calculateResultSize(result) : undefined,
@@ -187,7 +207,7 @@ export class LoggingInterceptor implements NestInterceptor {
   /**
    * Determines the operation type from GraphQL info
    */
-  private getOperationType(info: any): string {
+  private getOperationType(info: GraphQLInfo): string {
     if (!info?.operation?.operation) {
       return 'unknown';
     }
@@ -227,7 +247,7 @@ export class LoggingInterceptor implements NestInterceptor {
   /**
    * Calculates the approximate size of the result
    */
-  private calculateResultSize(result: any): number {
+  private calculateResultSize(result: unknown): number {
     try {
       return JSON.stringify(result).length;
     } catch {
@@ -276,11 +296,13 @@ export class LoggingInterceptor implements NestInterceptor {
   /**
    * Checks if the operation is an introspection query
    */
-  private isIntrospectionQuery(info: any): boolean {
+  private isIntrospectionQuery(info: GraphQLInfo): boolean {
     if (!info?.operation?.selectionSet?.selections) {
       return false;
     }
 
-    return info.operation.selectionSet.selections.some((selection: any) => selection.name?.value === '__schema' || selection.name?.value === '__type');
+    return info.operation.selectionSet.selections.some((selection: GraphQLSelection) =>
+      selection.name?.value === '__schema' || selection.name?.value === '__type'
+    );
   }
 }

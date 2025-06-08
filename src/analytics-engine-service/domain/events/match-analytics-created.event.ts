@@ -25,11 +25,17 @@ export class MatchAnalyticsCreatedEvent extends BaseDomainEvent {
     this.awayTeamId = awayTeamId;
     
     if (timestamp) {
-      (this as any).timestamp = timestamp;
+      // Use Object.defineProperty to modify readonly timestamp
+      Object.defineProperty(this, 'timestamp', {
+        value: timestamp,
+        writable: false,
+        enumerable: true,
+        configurable: false
+      });
     }
   }
 
-  getEventData(): Record<string, any> {
+  getEventData(): Record<string, unknown> {
     return {
       homeTeamId: this.homeTeamId,
       awayTeamId: this.awayTeamId

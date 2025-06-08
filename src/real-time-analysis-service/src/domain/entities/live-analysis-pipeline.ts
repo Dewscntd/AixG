@@ -1,14 +1,18 @@
+import { Logger } from '@nestjs/common';
 import { StreamId } from '../value-objects/stream-id';
 import { VideoFrame } from '../value-objects/video-frame';
 import { RingBuffer } from '../value-objects/ring-buffer';
 import { DomainEvent } from '../events/domain-event';
 import { FrameAnalyzedEvent } from '../events/frame-analyzed.event';
+import { FramePreprocessingStage, PlayerDetectionStage, BallTrackingStage, TeamClassificationStage, EventDetectionStage, FormationAnalysisStage, MetricsCalculationStage } from '../stages';
+import { PlayerDetection, BallDetection, TeamClassification, EventDetection } from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Live Analysis Pipeline - Core component for real-time video analysis
  * Implements the composition pattern for stream processing stages
  */
 export class LiveAnalysisPipeline {
+  private readonly logger = new Logger(LiveAnalysisPipeline.name);
   private readonly _streamId: StreamId;
   private readonly _frameBuffer: RingBuffer<VideoFrame>;
   private readonly _mlInference: EdgeMLInference;
@@ -18,6 +22,20 @@ export class LiveAnalysisPipeline {
   private _processedFrameCount: number = 0;
   private _lastProcessedTimestamp?: number;
   private _domainEvents: DomainEvent[] = [];
+
+  /**
+   * Get domain events
+   */
+  getDomainEvents(): DomainEvent[] {
+    return [...this._domainEvents];
+  }
+
+  /**
+   * Clear domain events
+   */
+  clearDomainEvents(): void {
+    this._domainEvents = [];
+  }
 
   constructor(
     streamId: StreamId,
@@ -95,7 +113,7 @@ export class LiveAnalysisPipeline {
         };
       } catch (error) {
         // Handle stage failure gracefully
-        console.error(`Stage ${stage.name} failed:`, error);
+        this.logger.error(`Stage ${stage.name} failed:`, error);
         stageResults.push({
           stageName: stage.name,
           success: false,
@@ -118,7 +136,22 @@ export class LiveAnalysisPipeline {
       this._streamId.value,
       frame.frameNumber,
       frame.timestamp,
-      analysisResult.toJSON()
+      {
+        frameNumber: analysisResult.frameNumber,
+        timestamp: analysisResult.timestamp,
+        processingTimeMs: analysisResult.completedAt - analysisResult.timestamp,
+        detections: [],
+        ballDetection: null,
+        teamClassification: {
+          confidence: 0,
+          processingTimeMs: 0,
+          homeTeam: { color: 'unknown', players: [] },
+          awayTeam: { color: 'unknown', players: [] }
+        },
+        eventDetection: [],
+        confidence: 0,
+        metadata: {}
+      }
     ));
 
     this._processedFrameCount++;
@@ -138,7 +171,7 @@ export class LiveAnalysisPipeline {
         try {
           await this.processFrame(frame);
         } catch (error) {
-          console.error('Frame processing error:', error);
+          this.logger.error('Frame processing error:', error);
         }
       } else {
         // No frames available, wait briefly
@@ -169,7 +202,7 @@ export class LiveAnalysisPipeline {
   /**
    * Get recent analysis results
    */
-  getRecentResults(count: number): FrameAnalysisResult[] {
+  getRecentResults(_count: number): FrameAnalysisResult[] {
     // In a real implementation, this would retrieve from a results buffer
     return [];
   }
@@ -193,11 +226,54 @@ export interface AnalysisStage {
 }
 
 /**
+ * Analysis context for pipeline stages
+ */
+export interface AnalysisContext {
+  preprocessedFrame?: VideoFrame;
+  players?: PlayerDetection[];
+  classifiedPlayers?: PlayerDetection[];
+  ball?: BallDetection | null;
+  teamClassification?: TeamClassification;
+  events?: EventDetection[];
+  lastEvents?: EventDetection[];
+  previousPlayers?: PlayerDetection[];
+  formation?: {
+    homeTeam: string;
+    awayTeam: string;
+  };
+  metrics?: {
+    possession: number;
+    passAccuracy: number;
+  };
+}
+
+/**
  * Stage input data
  */
 export interface StageInput {
   frame: VideoFrame;
-  context: Record<string, any>;
+  context: AnalysisContext;
+}
+
+/**
+ * Stage output interface
+ */
+export interface StageOutput {
+  preprocessedFrame?: VideoFrame;
+  players?: PlayerDetection[];
+  classifiedPlayers?: PlayerDetection[];
+  ball?: BallDetection | null;
+  teamClassification?: TeamClassification;
+  events?: EventDetection[];
+  lastEvents?: EventDetection[];
+  formation?: {
+    homeTeam: string;
+    awayTeam: string;
+  };
+  metrics?: {
+    possession: number;
+    passAccuracy: number;
+  };
 }
 
 /**
@@ -208,7 +284,7 @@ export interface StageResult {
   success: boolean;
   error?: string;
   processingTimeMs: number;
-  output: Record<string, any>;
+  output: StageOutput;
 }
 
 /**
@@ -222,7 +298,7 @@ export class FrameAnalysisResult {
     public readonly completedAt: number
   ) {}
 
-  toJSON(): Record<string, any> {
+  toJSON(): Record<string, unknown> {
     return {
       frameNumber: this.frameNumber,
       timestamp: this.timestamp,
@@ -251,7 +327,17 @@ export interface PipelineMetrics {
  * Edge ML Inference interface
  */
 export interface EdgeMLInference {
-  analyze(frame: VideoFrame): Promise<any>;
+  analyze(frame: VideoFrame): Promise<{
+    frameNumber: number;
+    timestamp: number;
+    processingTimeMs: number;
+    detections: PlayerDetection[];
+    ballDetection: BallDetection | null;
+    teamClassification: TeamClassification;
+    eventDetection: EventDetection[];
+    confidence: number;
+    metadata: Record<string, unknown>;
+  }>;
   isReady(): boolean;
   getModelVersion(): string;
 }

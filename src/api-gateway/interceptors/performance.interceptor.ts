@@ -12,6 +12,14 @@ import { tap, timeout, catchError } from 'rxjs/operators';
 import { ConfigService } from '@nestjs/config';
 import { MetricsService } from '../services/metrics.service';
 import { GraphQLContext } from '../types/context';
+import { GraphQLInfo, GraphQLSelection } from './logging.interceptor';
+
+// Health check metrics interface
+export interface HealthCheckMetrics {
+  memoryUsagePercent: string;
+  uptimeHours: string;
+  [key: string]: unknown;
+}
 
 export interface PerformanceMetrics {
   operationName: string;
@@ -53,7 +61,7 @@ export class PerformanceInterceptor implements NestInterceptor {
     this.memoryWarningThreshold = this.configService.get<number>('memoryWarningThreshold', 100 * 1024 * 1024); // 100MB
   }
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const gqlContext = GqlExecutionContext.create(context);
     const ctx = gqlContext.getContext<GraphQLContext>();
     const info = gqlContext.getInfo();
@@ -103,7 +111,7 @@ export class PerformanceInterceptor implements NestInterceptor {
    */
   private recordSuccessfulCompletion(
     metrics: PerformanceMetrics,
-    result: any,
+    result: unknown,
     context: GraphQLContext
   ): void {
     this.finalizeMetrics(metrics, result);
@@ -116,7 +124,7 @@ export class PerformanceInterceptor implements NestInterceptor {
    */
   private recordErrorCompletion(
     metrics: PerformanceMetrics,
-    error: any,
+    error: Error,
     context: GraphQLContext
   ): void {
     this.finalizeMetrics(metrics);
@@ -127,7 +135,7 @@ export class PerformanceInterceptor implements NestInterceptor {
   /**
    * Finalizes performance metrics calculation
    */
-  private finalizeMetrics(metrics: PerformanceMetrics, result?: any): void {
+  private finalizeMetrics(metrics: PerformanceMetrics, result?: unknown): void {
     metrics.endTime = Date.now();
     metrics.duration = metrics.endTime - metrics.startTime;
     metrics.memoryUsageAfter = process.memoryUsage();
@@ -153,7 +161,7 @@ export class PerformanceInterceptor implements NestInterceptor {
   private analyzePerformance(
     metrics: PerformanceMetrics,
     context: GraphQLContext,
-    error?: any
+    _error?: Error
   ): void {
     const logData = {
       operationName: metrics.operationName,
@@ -221,7 +229,7 @@ export class PerformanceInterceptor implements NestInterceptor {
   /**
    * Calculates the size of the result in bytes
    */
-  private calculateResultSize(result: any): number {
+  private calculateResultSize(result: unknown): number {
     try {
       return Buffer.byteLength(JSON.stringify(result), 'utf8');
     } catch {
@@ -232,7 +240,7 @@ export class PerformanceInterceptor implements NestInterceptor {
   /**
    * Determines the operation type from GraphQL info
    */
-  private getOperationType(info: any): string {
+  private getOperationType(info: GraphQLInfo): string {
     if (!info?.operation?.operation) {
       return 'unknown';
     }
@@ -242,12 +250,14 @@ export class PerformanceInterceptor implements NestInterceptor {
   /**
    * Checks if the operation is an introspection query
    */
-  private isIntrospectionQuery(info: any): boolean {
+  private isIntrospectionQuery(info: GraphQLInfo): boolean {
     if (!info?.operation?.selectionSet?.selections) {
       return false;
     }
 
-    return info.operation.selectionSet.selections.some((selection: any) => selection.name?.value === '__schema' || selection.name?.value === '__type');
+    return info.operation.selectionSet.selections.some((selection: GraphQLSelection) =>
+      selection.name?.value === '__schema' || selection.name?.value === '__type'
+    );
   }
 
   /**
@@ -271,7 +281,7 @@ export class PerformanceInterceptor implements NestInterceptor {
   async healthCheck(): Promise<{
     monitoring: boolean;
     systemHealth: 'good' | 'warning' | 'critical';
-    metrics: any;
+    metrics: HealthCheckMetrics;
   }> {
     try {
       const systemMetrics = this.getSystemMetrics();
@@ -298,7 +308,10 @@ export class PerformanceInterceptor implements NestInterceptor {
       return {
         monitoring: false,
         systemHealth: 'critical',
-        metrics: {},
+        metrics: {
+          memoryUsagePercent: 'unknown',
+          uptimeHours: 'unknown',
+        },
       };
     }
   }

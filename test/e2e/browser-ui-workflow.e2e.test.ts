@@ -4,15 +4,13 @@
  */
 
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { TestDataFactory } from '@test-utils/test-data-factory';
+// TestDataFactory import removed as it's not used
 
 test.describe('FootAnalytics UI Workflow E2E', () => {
   let page: Page;
-  let context: BrowserContext;
 
-  test.beforeEach(async ({ page: testPage, context: testContext }) => {
+  test.beforeEach(async ({ page: testPage }) => {
     page = testPage;
-    context = testContext;
     
     // Setup test environment
     await page.goto('/');

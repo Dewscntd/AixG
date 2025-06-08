@@ -148,7 +148,7 @@ export class AuthenticationPlugin implements ApolloServerPlugin<GraphQLContext> 
   /**
    * Checks if an error is authentication-related
    */
-  private isAuthenticationError(error: any): boolean {
+  private isAuthenticationError(error: Error): boolean {
     const authErrorMessages = [
       'Authentication required',
       'Invalid token',

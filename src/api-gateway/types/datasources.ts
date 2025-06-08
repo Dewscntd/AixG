@@ -5,6 +5,7 @@
  */
 
 import DataLoader from 'dataloader';
+import { User } from './context';
 
 // Entity types from domain models
 export interface Match {
@@ -110,7 +111,21 @@ export interface MatchEvent {
     x: number;
     y: number;
   };
-  metadata?: Record<string, any>;
+  metadata?: MatchEventMetadata;
+}
+
+export interface MatchEventMetadata {
+  shotType?: 'header' | 'left_foot' | 'right_foot' | 'other';
+  bodyPart?: 'foot' | 'head' | 'chest' | 'other';
+  cardType?: 'yellow' | 'red';
+  foulType?: 'dangerous_play' | 'unsporting_behavior' | 'dissent' | 'other';
+  passType?: 'short' | 'long' | 'cross' | 'through_ball';
+  substitutionType?: 'tactical' | 'injury' | 'disciplinary';
+  xG?: number;
+  distance?: number;
+  angle?: number;
+  pressure?: number;
+  [key: string]: unknown;
 }
 
 // DataLoader definitions
@@ -136,8 +151,8 @@ export interface DataSources {
   matchEventsLoader: DataLoader<string, MatchEvent[]>;
   
   // User-related loaders (for authentication/authorization)
-  userLoader: DataLoader<string, any>;
-  usersByTeamLoader: DataLoader<string, any[]>;
+  userLoader: DataLoader<string, User>;
+  usersByTeamLoader: DataLoader<string, User[]>;
 }
 
 // Batch loading function types

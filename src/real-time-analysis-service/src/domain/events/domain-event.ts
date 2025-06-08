@@ -58,7 +58,7 @@ export abstract class DomainEvent {
   /**
    * Create event from JSON
    */
-  static fromJSON(data: Record<string, any>): DomainEvent {
+  static fromJSON(_data: Record<string, any>): DomainEvent {
     throw new Error('fromJSON must be implemented by concrete event classes');
   }
 }

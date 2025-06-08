@@ -8,7 +8,7 @@ import { VideoId } from '@video-ingestion/domain/value-objects/video-id.value-ob
 import { UploadMetadata } from '@video-ingestion/domain/value-objects/upload-metadata.value-object';
 import { VideoMetadata } from '@video-ingestion/domain/value-objects/video-metadata.value-object';
 import { StorageResult } from '@video-ingestion/domain/value-objects/storage-result.value-object';
-import { TestDataFactory } from '@test-utils/test-data-factory';
+// TestDataFactory import removed as it's not used
 import * as fc from 'fast-check';
 
 describe('Video Entity', () => {

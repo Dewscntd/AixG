@@ -7,10 +7,20 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { SchemaDirectiveVisitor } from '@graphql-tools/utils';
-import { GraphQLField, GraphQLObjectType, defaultFieldResolver } from 'graphql';
+import { GraphQLField, GraphQLObjectType, defaultFieldResolver, GraphQLResolveInfo } from 'graphql';
 import Redis from 'ioredis';
 import { ConfigService } from '@nestjs/config';
 import { GraphQLContext } from '../types/context';
+
+export interface GraphQLResolverArgs {
+  [key: string]: unknown;
+}
+
+export interface GraphQLResolverSource {
+  [key: string]: unknown;
+  teamId?: string;
+  team?: { id: string };
+}
 import { MetricsService } from '../services/metrics.service';
 
 export interface CacheDirectiveArgs {
@@ -36,11 +46,11 @@ export class CacheDirective extends SchemaDirectiveVisitor {
     this.defaultTtl = this.configService.get<number>('cacheDefaultTtl', 300); // 5 minutes
   }
 
-  visitFieldDefinition(field: GraphQLField<any, any>, details: { objectType: GraphQLObjectType }) {
+  visitFieldDefinition(field: GraphQLField<unknown, GraphQLContext>, _details: { objectType: GraphQLObjectType }) {
     const { resolve = defaultFieldResolver } = field;
     const directiveArgs = this.args as CacheDirectiveArgs;
 
-    field.resolve = async function (source, args, context: GraphQLContext, info) {
+    field.resolve = async function (source: unknown, args: unknown, context: GraphQLContext, info: GraphQLResolveInfo) {
       const startTime = Date.now();
       
       try {
@@ -106,10 +116,10 @@ export class CacheDirective extends SchemaDirectiveVisitor {
    * Generates a cache key based on the directive configuration
    */
   private generateCacheKey(
-    source: any,
-    args: any,
+    source: unknown,
+    args: unknown,
     context: GraphQLContext,
-    info: any,
+    info: GraphQLResolveInfo,
     directiveArgs: CacheDirectiveArgs
   ): string {
     const field = `${info.parentType.name}.${info.fieldName}`;
@@ -124,9 +134,10 @@ export class CacheDirective extends SchemaDirectiveVisitor {
       case 'private':
         return `cache:private:${context.user?.id}:${field}:${this.hashArgs(args)}`;
       
-      case 'team':
+      case 'team': {
         const teamId = context.user?.teamId || this.extractTeamId(source, args);
         return `cache:team:${teamId}:${field}:${this.hashArgs(args)}`;
+      }
       
       case 'public':
       default:
@@ -139,21 +150,24 @@ export class CacheDirective extends SchemaDirectiveVisitor {
    */
   private interpolateKeyTemplate(
     template: string,
-    source: any,
-    args: any,
+    source: unknown,
+    args: unknown,
     context: GraphQLContext
   ): string {
+    const argsObj = args as Record<string, unknown>;
+    const sourceObj = source as Record<string, unknown>;
+
     return template
       .replace(/\{userId\}/g, context.user?.id || 'anonymous')
       .replace(/\{teamId\}/g, context.user?.teamId || 'none')
-      .replace(/\{args\.(\w+)\}/g, (match, argName) => args[argName] || 'null')
-      .replace(/\{source\.(\w+)\}/g, (match, fieldName) => source?.[fieldName] || 'null');
+      .replace(/\{args\.(\w+)\}/g, (match, argName) => String(argsObj[argName] || 'null'))
+      .replace(/\{source\.(\w+)\}/g, (match, fieldName) => String(sourceObj?.[fieldName] || 'null'));
   }
 
   /**
    * Creates a hash of the arguments for cache key uniqueness
    */
-  private hashArgs(args: any): string {
+  private hashArgs(args: unknown): string {
     if (!args || Object.keys(args).length === 0) {
       return 'no-args';
     }
@@ -174,7 +188,7 @@ export class CacheDirective extends SchemaDirectiveVisitor {
   /**
    * Retrieves value from cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await this.redis.get(key);
       return cached ? JSON.parse(cached) : null;
@@ -187,7 +201,7 @@ export class CacheDirective extends SchemaDirectiveVisitor {
   /**
    * Stores value in cache
    */
-  private async setInCache(key: string, value: any, directiveArgs: CacheDirectiveArgs): Promise<void> {
+  private async setInCache(key: string, value: unknown, directiveArgs: CacheDirectiveArgs): Promise<void> {
     try {
       const ttl = directiveArgs.ttl || this.defaultTtl;
       const serialized = JSON.stringify(value);
@@ -254,8 +268,12 @@ export class CacheDirective extends SchemaDirectiveVisitor {
   /**
    * Extracts team ID from source or args
    */
-  private extractTeamId(source: any, args: any): string {
-    return args.teamId || source?.teamId || source?.team?.id || 'unknown';
+  private extractTeamId(source: unknown, args: unknown): string {
+    const argsObj = args as Record<string, unknown>;
+    const sourceObj = source as Record<string, unknown>;
+    const teamObj = sourceObj?.team as Record<string, unknown>;
+
+    return String(argsObj.teamId || sourceObj?.teamId || teamObj?.id || 'unknown');
   }
 }
 

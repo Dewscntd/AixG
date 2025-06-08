@@ -150,6 +150,47 @@ data:
               summary: "ML model accuracy is below threshold"
               description: "Model accuracy is {{ $value | humanizePercentage }} which is below 80% threshold"
 
+          - alert: VideoValidationQueueBacklog
+            expr: video_validation_queue_length > 50
+            for: 10m
+            labels:
+              severity: warning
+              service: video-ingestion
+              team: engineering
+            annotations:
+              summary: "Video validation queue has significant backlog"
+              description: "Validation queue has {{ $value }} videos pending processing"
+
+          - alert: VideoValidationFailureRate
+            expr: rate(video_validation_failures_total[5m]) > 0.1
+            for: 5m
+            labels:
+              severity: critical
+              service: video-ingestion
+              team: engineering
+              runbook: "https://runbooks.footanalytics.com/video-validation"
+            annotations:
+              summary: "High video validation failure rate"
+              description: "Video validation failure rate is {{ $value | humanizePercentage }}"
+
+          - alert: PerformanceOptimizationNeeded
+            expr: |
+              (
+                avg(request_duration_seconds{quantile="0.95"}) > 2.0
+                or
+                avg(cpu_usage_percent) > 80
+                or
+                avg(memory_usage_percent) > 85
+              )
+            for: 15m
+            labels:
+              severity: warning
+              service: platform
+              team: engineering
+            annotations:
+              summary: "Performance optimization may be needed"
+              description: "System performance metrics indicate optimization opportunities"
+
           - alert: VideoProcessingFailure
             expr: |
               (

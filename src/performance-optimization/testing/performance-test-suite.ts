@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as autocannon from 'autocannon';
-import { performance } from 'perf_hooks';
-import * as os from 'os';
+// performance and os imports removed as they're not used
 
 interface LoadTestConfig {
   url: string;
@@ -49,7 +48,7 @@ interface LoadTestResult {
   finish: Date;
 }
 
-interface PerformanceTestSuite {
+interface PerformanceTestSuiteConfig {
   name: string;
   tests: PerformanceTest[];
   baseline?: LoadTestResult;
@@ -77,7 +76,7 @@ export class PerformanceTestSuite {
   /**
    * Run comprehensive performance test suite
    */
-  async runTestSuite(suite: PerformanceTestSuite): Promise<{
+  async runTestSuite(suite: PerformanceTestSuiteConfig): Promise<{
     results: Map<string, LoadTestResult>;
     summary: {
       passed: number;
@@ -427,7 +426,7 @@ export class PerformanceTestSuite {
 }
 
 // Example test suite configuration
-export const FootAnalyticsTestSuite: PerformanceTestSuite = {
+export const FootAnalyticsTestSuite: PerformanceTestSuiteConfig = {
   name: 'FootAnalytics Performance Test Suite',
   tests: [
     {

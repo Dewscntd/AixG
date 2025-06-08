@@ -5,17 +5,47 @@
  * Implements composition pattern for flexible error handling strategies
  */
 
-import { Catch, ExceptionFilter, ArgumentsHost, Logger } from '@nestjs/common';
+import { Catch, ArgumentsHost, Logger } from '@nestjs/common';
 import { GqlArgumentsHost, GqlExceptionFilter } from '@nestjs/graphql';
 import { GraphQLError } from 'graphql';
 import { ConfigService } from '@nestjs/config';
+
+// Exception type definitions
+export interface GraphQLException extends Error {
+  extensions?: {
+    code?: string;
+    exception?: {
+      stacktrace?: string[];
+    };
+  };
+  locations?: Array<{
+    line: number;
+    column: number;
+  }>;
+  path?: Array<string | number>;
+}
 
 export interface ErrorContext {
   operationName?: string;
   userId?: string;
   correlationId?: string;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
   query?: string;
+}
+
+export interface ErrorExtensions {
+  code: string;
+  timestamp: string;
+  correlationId?: string;
+  operationName?: string;
+  userId?: string;
+  userMessage?: string;
+  originalError?: {
+    name: string;
+    message: string;
+    stack?: string;
+  };
+  [key: string]: unknown;
 }
 
 @Catch()
@@ -27,7 +57,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     this.isProduction = this.configService.get<string>('nodeEnv') === 'production';
   }
 
-  catch(exception: any, host: ArgumentsHost): GraphQLError {
+  catch(exception: GraphQLException, host: ArgumentsHost): GraphQLError {
     const gqlHost = GqlArgumentsHost.create(host);
     const context = gqlHost.getContext();
     const info = gqlHost.getInfo();
@@ -51,7 +81,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
   /**
    * Logs the error with appropriate level and context
    */
-  private logError(exception: any, context: ErrorContext): void {
+  private logError(exception: GraphQLException, context: ErrorContext): void {
     const errorLevel = this.getErrorLevel(exception);
     const logData = {
       message: exception.message,
@@ -81,11 +111,11 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
   /**
    * Formats the error for the GraphQL response
    */
-  private formatError(exception: any, context: ErrorContext): GraphQLError {
+  private formatError(exception: GraphQLException, context: ErrorContext): GraphQLError {
     const errorCode = this.getErrorCode(exception);
     const message = this.sanitizeErrorMessage(exception.message, errorCode);
 
-    const extensions: Record<string, any> = {
+    const extensions: ErrorExtensions = {
       code: errorCode,
       timestamp: new Date().toISOString(),
       correlationId: context.correlationId,
@@ -118,7 +148,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
   /**
    * Determines the appropriate error code for the exception
    */
-  private getErrorCode(exception: any): string {
+  private getErrorCode(exception: GraphQLException): string {
     // Check if the exception already has a code
     if (exception.extensions?.code) {
       return exception.extensions.code;
@@ -176,7 +206,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
   /**
    * Determines the appropriate log level for the error
    */
-  private getErrorLevel(exception: any): 'error' | 'warn' | 'debug' | 'log' {
+  private getErrorLevel(exception: GraphQLException): 'error' | 'warn' | 'debug' | 'log' {
     const errorCode = this.getErrorCode(exception);
 
     switch (errorCode) {
@@ -228,7 +258,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
   /**
    * Checks if the error should be shown to users
    */
-  private isUserError(exception: any): boolean {
+  private isUserError(exception: GraphQLException): boolean {
     const userErrorCodes = [
       'UNAUTHENTICATED',
       'FORBIDDEN',

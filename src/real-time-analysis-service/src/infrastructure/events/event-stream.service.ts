@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DomainEvent } from '../../domain/events/domain-event';
 import { EventStream } from '../../domain/entities/live-analysis-pipeline';
@@ -9,6 +9,7 @@ import { EventStream } from '../../domain/entities/live-analysis-pipeline';
  */
 @Injectable()
 export class EventStreamService implements EventStream {
+  private readonly logger = new Logger(EventStreamService.name);
   private subscribers: Map<string, Array<(event: DomainEvent) => void>> = new Map();
 
   constructor(private readonly eventEmitter: EventEmitter2) {}
@@ -27,7 +28,7 @@ export class EventStreamService implements EventStream {
         try {
           handler(event);
         } catch (error) {
-          console.error(`Error in event handler for ${event.eventType}:`, error);
+          this.logger.error(`Error in event handler for ${event.eventType}:`, error);
         }
       }
 
@@ -37,12 +38,12 @@ export class EventStreamService implements EventStream {
         try {
           handler(event);
         } catch (error) {
-          console.error(`Error in wildcard event handler:`, error);
+          this.logger.error(`Error in wildcard event handler:`, error);
         }
       }
 
     } catch (error) {
-      console.error(`Failed to emit event ${event.eventType}:`, error);
+      this.logger.error(`Failed to emit event ${event.eventType}:`, error);
     }
   }
 

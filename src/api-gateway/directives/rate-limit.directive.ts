@@ -7,7 +7,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { SchemaDirectiveVisitor } from '@graphql-tools/utils';
-import { GraphQLField, GraphQLObjectType, defaultFieldResolver } from 'graphql';
+import { GraphQLField, GraphQLObjectType, defaultFieldResolver, GraphQLResolveInfo } from 'graphql';
 import Redis from 'ioredis';
 import { ConfigService } from '@nestjs/config';
 import { GraphQLContext } from '../types/context';
@@ -31,7 +31,7 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
     this.redis = new Redis(this.configService.get<string>('redisUrl'));
   }
 
-  visitFieldDefinition(field: GraphQLField<any, any>, details: { objectType: GraphQLObjectType }) {
+  visitFieldDefinition(field: GraphQLField<unknown, GraphQLContext>, _details: { objectType: GraphQLObjectType }) {
     const { resolve = defaultFieldResolver } = field;
     const directiveArgs = this.args as RateLimitDirectiveArgs;
 
@@ -89,7 +89,7 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
    */
   private generateRateLimitKey(
     context: GraphQLContext,
-    info: any,
+    info: GraphQLResolveInfo,
     keyGenerator: string = 'user'
   ): string {
     const field = `${info.parentType.name}.${info.fieldName}`;
@@ -98,16 +98,18 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
       case 'user':
         return `rate_limit:user:${context.user?.id || 'anonymous'}`;
       
-      case 'ip':
+      case 'ip': {
         const ip = this.getClientIP(context);
         return `rate_limit:ip:${ip}`;
-      
+      }
+
       case 'user_and_field':
         return `rate_limit:user_field:${context.user?.id || 'anonymous'}:${field}`;
-      
-      case 'ip_and_field':
+
+      case 'ip_and_field': {
         const clientIP = this.getClientIP(context);
         return `rate_limit:ip_field:${clientIP}:${field}`;
+      }
       
       default:
         return `rate_limit:user:${context.user?.id || 'anonymous'}`;
@@ -117,7 +119,7 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
   /**
    * Checks if the request is within rate limit
    */
-  private async checkRateLimit(key: string, max: number, windowSeconds: number): Promise<boolean> {
+  private async checkRateLimit(key: string, max: number, _windowSeconds: number): Promise<boolean> {
     try {
       const current = await this.redis.get(key);
       const currentCount = current ? parseInt(current, 10) : 0;

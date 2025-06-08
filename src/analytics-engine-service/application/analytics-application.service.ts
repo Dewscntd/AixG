@@ -23,7 +23,9 @@ import {
   UpdatePossessionCommand,
   ProcessMLPipelineOutputCommand,
   CreateSnapshotCommand,
-  AnalyticsCommand
+  AnalyticsCommand,
+  ProcessMLPipelineOutputData,
+  ShotDataCommand
 } from './commands/analytics-commands';
 import {
   GetMatchAnalyticsQuery,
@@ -34,11 +36,56 @@ import {
 import { ProjectionManager } from '../infrastructure/projections/projection-manager';
 import { matchAnalyticsProjection } from '../infrastructure/projections/match-analytics-projection';
 
+// Command and Query Handler interfaces
+interface CommandHandler<T extends AnalyticsCommand> {
+  handle(command: T): Promise<void>;
+}
+
+interface QueryHandler<T extends AnalyticsQuery, R> {
+  handle(query: T): Promise<R>;
+}
+
+// Application Service Response Types
+export interface MatchAnalyticsResponse {
+  matchId: string;
+  homeTeam: TeamAnalyticsResponse;
+  awayTeam: TeamAnalyticsResponse;
+  matchDuration: number;
+  lastUpdated: Date;
+  status: string;
+}
+
+export interface TeamAnalyticsResponse {
+  teamId: string;
+  xG: number;
+  xA: number;
+  possession: number;
+  passAccuracy: number;
+  shotsOnTarget: number;
+  shotsOffTarget: number;
+  corners: number;
+  fouls: number;
+  yellowCards: number;
+  redCards: number;
+  formation?: string;
+}
+
+export interface TimeSeriesAnalyticsResponse {
+  entityType: 'team' | 'player' | 'match';
+  entityId: string;
+  metric: string;
+  data: Array<{
+    timestamp: Date;
+    value: number;
+  }>;
+  interval: 'minute' | 'hour' | 'day' | 'week' | 'month';
+}
+
 export class AnalyticsApplicationService {
   private readonly logger = new Logger(AnalyticsApplicationService.name);
-  private commandHandlers: Map<string, any> = new Map();
-  private queryHandlers: Map<string, any> = new Map();
-  private projectionManager: ProjectionManager;
+  private commandHandlers: Map<string, CommandHandler<AnalyticsCommand>> = new Map();
+  private queryHandlers: Map<string, QueryHandler<AnalyticsQuery, unknown>> = new Map();
+  private projectionManager!: ProjectionManager;
 
   constructor(
     private readonly eventStore: EventStore,
@@ -68,16 +115,16 @@ export class AnalyticsApplicationService {
   }
 
   // Query operations (Read side)
-  async executeQuery(query: AnalyticsQuery): Promise<any> {
+  async executeQuery<T>(query: AnalyticsQuery): Promise<T> {
     const queryType = query.constructor.name;
     const handler = this.queryHandlers.get(queryType);
-    
+
     if (!handler) {
       throw new Error(`No handler found for query type: ${queryType}`);
     }
 
     try {
-      return await handler.handle(query);
+      return await handler.handle(query) as T;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error executing query ${queryType}: ${errorMessage}`);
@@ -106,7 +153,7 @@ export class AnalyticsApplicationService {
     matchId: string,
     teamId: string,
     newXG: number,
-    shotData?: any
+    shotData?: ShotDataCommand
   ): Promise<void> {
     const command = new UpdateXGCommand(matchId, teamId, newXG, shotData);
     await this.executeCommand(command);
@@ -127,7 +174,7 @@ export class AnalyticsApplicationService {
 
   async processMLPipelineOutput(
     matchId: string,
-    pipelineOutput: any
+    pipelineOutput: ProcessMLPipelineOutputData
   ): Promise<void> {
     const command = new ProcessMLPipelineOutputCommand(matchId, pipelineOutput);
     await this.executeCommand(command);
@@ -136,18 +183,18 @@ export class AnalyticsApplicationService {
   async getMatchAnalytics(
     matchId: string,
     includeHistorical: boolean = false
-  ): Promise<any> {
+  ): Promise<MatchAnalyticsResponse> {
     const query = new GetMatchAnalyticsQuery(matchId, includeHistorical);
-    return await this.executeQuery(query);
+    return await this.executeQuery<MatchAnalyticsResponse>(query);
   }
 
   async getTeamAnalytics(
     teamId: string,
     fromDate?: Date,
     toDate?: Date
-  ): Promise<any> {
+  ): Promise<TeamAnalyticsResponse> {
     const query = new GetTeamAnalyticsQuery(teamId, fromDate, toDate);
-    return await this.executeQuery(query);
+    return await this.executeQuery<TeamAnalyticsResponse>(query);
   }
 
   async getTimeSeriesAnalytics(
@@ -157,7 +204,7 @@ export class AnalyticsApplicationService {
     fromDate: Date,
     toDate: Date,
     interval: 'minute' | 'hour' | 'day' | 'week' | 'month' = 'day'
-  ): Promise<any> {
+  ): Promise<TimeSeriesAnalyticsResponse> {
     const query = new GetTimeSeriesAnalyticsQuery(
       entityType,
       entityId,
@@ -166,7 +213,7 @@ export class AnalyticsApplicationService {
       toDate,
       interval
     );
-    return await this.executeQuery(query);
+    return await this.executeQuery<TimeSeriesAnalyticsResponse>(query);
   }
 
   // Projection management

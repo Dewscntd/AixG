@@ -32,7 +32,7 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
     it('should receive valid video analysis results', async () => {
       const matchId = TestDataFactory.createMatchId();
       const homeTeamId = TestDataFactory.createTeamId();
-      const awayTeamId = TestDataFactory.createTeamId();
+      const _awayTeamId = TestDataFactory.createTeamId();
 
       const expectedAnalysisResult = {
         eventType: 'VideoAnalysisCompleted',

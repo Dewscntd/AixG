@@ -71,7 +71,7 @@ export class FramePreprocessingStage implements AnalysisStage {
   /**
    * Normalize frame properties
    */
-  private normalizeFrame(frame: VideoFrame): Record<string, any> {
+  private normalizeFrame(_frame: VideoFrame): Record<string, any> {
     // In a real implementation, this would analyze and normalize:
     // - Brightness levels
     // - Contrast

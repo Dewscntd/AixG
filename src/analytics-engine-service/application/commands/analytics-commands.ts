@@ -8,6 +8,51 @@ export interface AnalyticsCommand {
   readonly correlationId?: string;
 }
 
+// Command-specific types
+export interface ShotDataCommand {
+  teamId: string;
+  position: { x: number; y: number };
+  targetPosition: { x: number; y: number };
+  timestamp: number;
+  bodyPart: string;
+  situation: string;
+}
+
+export interface PossessionEventCommand {
+  timestamp: number;
+  playerId: string;
+  eventType: string;
+  position: { x: number; y: number };
+  successful: boolean;
+}
+
+export interface PossessionSequenceCommand {
+  teamId: string;
+  startTime: number;
+  endTime: number;
+  events: PossessionEventCommand[];
+}
+
+export interface PlayerPositionCommand {
+  playerId: string;
+  position: { x: number; y: number };
+  role: string;
+}
+
+export interface FormationCommand {
+  teamId: string;
+  formation: string;
+  confidence: number;
+  timestamp: number;
+  playerPositions: PlayerPositionCommand[];
+}
+
+export interface ProcessMLPipelineOutputData {
+  shots?: ShotDataCommand[];
+  possessionSequences?: PossessionSequenceCommand[];
+  formations?: FormationCommand[];
+}
+
 export class CreateMatchAnalyticsCommand implements AnalyticsCommand {
   readonly commandId: string;
   readonly timestamp: Date;
@@ -20,7 +65,7 @@ export class CreateMatchAnalyticsCommand implements AnalyticsCommand {
     public readonly matchDuration: number = 0,
     correlationId?: string
   ) {
-    this.commandId = `create-match-analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.commandId = `create-match-analytics-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -35,10 +80,10 @@ export class UpdateXGCommand implements AnalyticsCommand {
     public readonly matchId: string,
     public readonly teamId: string,
     public readonly newXG: number,
-    public readonly shotData?: any,
+    public readonly shotData?: ShotDataCommand,
     correlationId?: string
   ) {
-    this.commandId = `update-xg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.commandId = `update-xg-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -56,7 +101,7 @@ export class UpdatePossessionCommand implements AnalyticsCommand {
     public readonly calculationMethod: string = 'time_based',
     correlationId?: string
   ) {
-    this.commandId = `update-possession-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.commandId = `update-possession-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -72,15 +117,11 @@ export class UpdateFormationCommand implements AnalyticsCommand {
     public readonly teamId: string,
     public readonly formation: string,
     public readonly confidence: number,
-    public readonly playerPositions: Array<{
-      playerId: string;
-      position: { x: number; y: number };
-      role: string;
-    }>,
+    public readonly playerPositions: PlayerPositionCommand[],
     public readonly detectionTimestamp: number,
     correlationId?: string
   ) {
-    this.commandId = `update-formation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.commandId = `update-formation-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -93,32 +134,10 @@ export class ProcessMLPipelineOutputCommand implements AnalyticsCommand {
 
   constructor(
     public readonly matchId: string,
-    public readonly pipelineOutput: {
-      shots?: Array<{
-        teamId: string;
-        position: { x: number; y: number };
-        targetPosition: { x: number; y: number };
-        timestamp: number;
-        bodyPart: string;
-        situation: string;
-      }>;
-      possessionSequences?: Array<{
-        teamId: string;
-        startTime: number;
-        endTime: number;
-        events: Array<any>;
-      }>;
-      formations?: Array<{
-        teamId: string;
-        formation: string;
-        confidence: number;
-        timestamp: number;
-        playerPositions: Array<any>;
-      }>;
-    },
+    public readonly pipelineOutput: ProcessMLPipelineOutputData,
     correlationId?: string
   ) {
-    this.commandId = `process-ml-output-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.commandId = `process-ml-output-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -136,7 +155,7 @@ export class RecalculateAnalyticsCommand implements AnalyticsCommand {
     public readonly recalculateFormations: boolean = true,
     correlationId?: string
   ) {
-    this.commandId = `recalculate-analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.commandId = `recalculate-analytics-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -151,7 +170,7 @@ export class CreateSnapshotCommand implements AnalyticsCommand {
     public readonly matchId: string,
     correlationId?: string
   ) {
-    this.commandId = `create-snapshot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.commandId = `create-snapshot-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }

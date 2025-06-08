@@ -21,7 +21,7 @@ import { AnalyticsController } from './api/analytics.controller';
 
 // Configuration
 const configuration = () => ({
-  port: parseInt(process.env.PORT, 10) || 3000,
+  port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   
   // Database Configuration
@@ -29,9 +29,9 @@ const configuration = () => ({
   readDbUrl: process.env.READ_DB_URL || 'postgresql://localhost:5432/analytics_read',
   
   // Event Store Configuration
-  snapshotFrequency: parseInt(process.env.SNAPSHOT_FREQUENCY, 10) || 100,
-  maxRetries: parseInt(process.env.MAX_RETRIES, 10) || 3,
-  retryDelay: parseInt(process.env.RETRY_DELAY, 10) || 1000,
+  snapshotFrequency: parseInt(process.env.SNAPSHOT_FREQUENCY || '100', 10),
+  maxRetries: parseInt(process.env.MAX_RETRIES || '3', 10),
+  retryDelay: parseInt(process.env.RETRY_DELAY || '1000', 10),
   
   // GraphQL Configuration
   graphqlPlayground: process.env.GRAPHQL_PLAYGROUND === 'true' || process.env.NODE_ENV !== 'production',
@@ -67,7 +67,7 @@ const configuration = () => ({
         sortSchema: true,
         playground: configService.get<boolean>('graphqlPlayground'),
         introspection: configService.get<boolean>('graphqlIntrospection'),
-        context: ({ req, connection }) => connection ? { req: connection.context } : { req },
+        context: ({ req, connection }: any) => connection ? { req: connection.context } : { req },
         subscriptions: {
           'graphql-ws': {
             path: '/graphql',
@@ -76,7 +76,7 @@ const configuration = () => ({
             path: '/graphql',
           },
         },
-        formatError: (error) => 
+        formatError: (error: any) =>
           // GraphQL Error logging handled by NestJS Logger
            ({
             message: error.message,
@@ -85,7 +85,7 @@ const configuration = () => ({
             timestamp: new Date().toISOString(),
           })
         ,
-        formatResponse: (response, { request }) => {
+        formatResponse: (response: any, { request }: any) => {
           // Add request timing
           if (request.http) {
             response.extensions = {
@@ -107,7 +107,7 @@ const configuration = () => ({
     {
       provide: 'EVENT_STORE',
       useFactory: (configService: ConfigService): EventStore => new TimescaleDBEventStore({
-          connectionString: configService.get<string>('eventStoreUrl'),
+          connectionString: configService.get<string>('eventStoreUrl') || 'postgresql://localhost:5432/footanalytics',
           maxRetries: configService.get<number>('maxRetries'),
           retryDelay: configService.get<number>('retryDelay'),
           snapshotFrequency: configService.get<number>('snapshotFrequency'),

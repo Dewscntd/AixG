@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
 import * as os from 'os';
 import * as fs from 'fs/promises';
-import * as path from 'path';
+// path import removed as it's not used
 
 interface BenchmarkConfig {
   name: string;
@@ -186,7 +186,7 @@ export class PerformanceBenchmarker extends EventEmitter {
     benchmarkFunction: () => Promise<T> | T,
     timeout: number = 30000
   ): Promise<T> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         reject(new Error('Benchmark iteration timeout'));
       }, timeout);

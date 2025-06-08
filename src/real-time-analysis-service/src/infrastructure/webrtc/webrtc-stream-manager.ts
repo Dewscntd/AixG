@@ -4,6 +4,16 @@ import { StreamId } from '../../domain/value-objects/stream-id';
 import { VideoFrame, VideoFrameFormat } from '../../domain/value-objects/video-frame';
 
 /**
+ * WebRTC signal data interface
+ */
+export interface WebRTCSignalData {
+  type: 'offer' | 'answer' | 'candidate';
+  sdp?: string;
+  candidate?: RTCIceCandidate;
+  [key: string]: unknown;
+}
+
+/**
  * WebRTC Stream Manager
  * Manages WebRTC connections for low-latency video streaming
  */
@@ -44,7 +54,7 @@ export class WebRTCStreamManager extends EventEmitter {
   async createPeerConnection(
     streamId: StreamId,
     isInitiator: boolean = false,
-    constraints: MediaStreamConstraints = DEFAULT_MEDIA_CONSTRAINTS
+    _constraints: MediaStreamConstraints = DEFAULT_MEDIA_CONSTRAINTS
   ): Promise<string> {
     const peerId = `peer_${streamId.value}_${Date.now()}`;
 
@@ -102,7 +112,7 @@ export class WebRTCStreamManager extends EventEmitter {
   /**
    * Signal peer connection (exchange SDP/ICE candidates)
    */
-  async signal(peerId: string, signalData: any): Promise<void> {
+  async signal(peerId: string, signalData: WebRTCSignalData): Promise<void> {
     const peer = this.peers.get(peerId);
     if (!peer) {
       throw new Error(`Peer ${peerId} not found`);

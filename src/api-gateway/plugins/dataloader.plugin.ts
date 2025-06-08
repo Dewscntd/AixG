@@ -104,7 +104,14 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
       // Iterate through all DataLoaders and collect stats
       Object.values(dataSources).forEach(dataLoader => {
         if (dataLoader && typeof dataLoader === 'object' && 'stats' in dataLoader) {
-          const stats = (dataLoader as any).stats;
+          const stats = (dataLoader as {
+            stats?: {
+              totalLoads?: number;
+              cacheHits?: number;
+              cacheMisses?: number;
+              batchLoads?: number;
+            }
+          }).stats;
           if (stats) {
             totalLoads += stats.totalLoads || 0;
             cacheHits += stats.cacheHits || 0;
@@ -128,7 +135,7 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
   /**
    * Checks if an error is DataLoader-related
    */
-  private isDataLoaderError(error: any): boolean {
+  private isDataLoaderError(error: Error): boolean {
     const dataLoaderErrorIndicators = [
       'DataLoader',
       'batch loading',

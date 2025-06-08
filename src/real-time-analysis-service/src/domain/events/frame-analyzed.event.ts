@@ -1,4 +1,20 @@
 import { DomainEvent } from './domain-event';
+import { PlayerDetection, BallDetection, TeamClassification, EventDetection } from '../../infrastructure/ml/edge-ml-inference';
+
+/**
+ * Analysis result interface for type safety
+ */
+export interface AnalysisResult {
+  frameNumber: number;
+  timestamp: number;
+  processingTimeMs: number;
+  detections: PlayerDetection[];
+  ballDetection: BallDetection | null;
+  teamClassification: TeamClassification;
+  eventDetection: EventDetection[];
+  confidence: number;
+  metadata: Record<string, unknown>;
+}
 
 /**
  * Event fired when a frame has been analyzed by the pipeline
@@ -6,13 +22,13 @@ import { DomainEvent } from './domain-event';
 export class FrameAnalyzedEvent extends DomainEvent {
   public readonly frameNumber: number;
   public readonly timestamp: number;
-  public readonly analysisResult: Record<string, any>;
+  public readonly analysisResult: AnalysisResult;
 
   constructor(
     streamId: string,
     frameNumber: number,
     timestamp: number,
-    analysisResult: Record<string, any>,
+    analysisResult: AnalysisResult,
     correlationId?: string,
     causationId?: string
   ) {
@@ -22,7 +38,7 @@ export class FrameAnalyzedEvent extends DomainEvent {
     this.analysisResult = analysisResult;
   }
 
-  toDict(): Record<string, any> {
+  toDict(): Record<string, unknown> {
     return {
       eventId: this.eventId,
       eventType: this.eventType,
@@ -37,7 +53,7 @@ export class FrameAnalyzedEvent extends DomainEvent {
     };
   }
 
-  getPayload(): Record<string, any> {
+  getPayload(): Record<string, unknown> {
     return {
       frameNumber: this.frameNumber,
       timestamp: this.timestamp,
@@ -45,20 +61,20 @@ export class FrameAnalyzedEvent extends DomainEvent {
     };
   }
 
-  static fromJSON(data: Record<string, any>): FrameAnalyzedEvent {
+  static fromJSON(data: Record<string, unknown>): FrameAnalyzedEvent {
     const event = new FrameAnalyzedEvent(
-      data.aggregateId,
-      data.frameNumber,
-      data.timestamp,
-      data.analysisResult,
-      data.correlationId,
-      data.causationId
+      data.aggregateId as string,
+      data.frameNumber as number,
+      data.timestamp as number,
+      data.analysisResult as AnalysisResult,
+      data.correlationId as string,
+      data.causationId as string
     );
-    
+
     // Override generated values with persisted ones
-    (event as any).eventId = data.eventId;
-    (event as any).occurredOn = new Date(data.occurredOn);
-    
+    (event as unknown as { eventId: string }).eventId = data.eventId as string;
+    (event as unknown as { occurredOn: Date }).occurredOn = new Date(data.occurredOn as string);
+
     return event;
   }
 }

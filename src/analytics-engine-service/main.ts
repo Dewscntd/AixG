@@ -100,7 +100,7 @@ async function bootstrap() {
 }
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason, _promise) => {
   const logger = new Logger('UnhandledRejection');
   logger.error('Unhandled Promise Rejection:', reason);
   process.exit(1);

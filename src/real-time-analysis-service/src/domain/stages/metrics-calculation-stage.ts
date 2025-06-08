@@ -75,8 +75,9 @@ export class MetricsCalculationStage implements AnalysisStage {
     ball: BallPosition | null,
     events: FootballEvent[]
   ): PossessionMetrics {
-    const teamAPlayers = players.filter(p => p.team === 'teamA');
-    const teamBPlayers = players.filter(p => p.team === 'teamB');
+    // Team player filtering for future use
+    players.filter(p => p.team === 'teamA');
+    players.filter(p => p.team === 'teamB');
 
     // Determine current possession
     let currentPossession: string | null = null;

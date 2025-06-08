@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter } from 'events';
 import * as os from 'os';
 import * as process from 'process';
-import { performance } from 'perf_hooks';
+// performance import removed as it's not used
 
 interface PerformanceMetrics {
   timestamp: number;

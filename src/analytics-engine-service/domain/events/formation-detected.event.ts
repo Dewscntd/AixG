@@ -42,11 +42,17 @@ export class FormationDetectedEvent extends BaseDomainEvent {
     this.detectionTimestamp = detectionTimestamp;
     
     if (timestamp) {
-      (this as any).timestamp = timestamp;
+      // Use Object.defineProperty to modify readonly timestamp
+      Object.defineProperty(this, 'timestamp', {
+        value: timestamp,
+        writable: false,
+        enumerable: true,
+        configurable: false
+      });
     }
   }
 
-  getEventData(): Record<string, any> {
+  getEventData(): Record<string, unknown> {
     return {
       teamId: this.teamId,
       formation: this.formation,

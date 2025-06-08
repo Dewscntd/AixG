@@ -1,5 +1,6 @@
 import { PerformanceTestSuite } from './performance-test-suite';
-import { PerformanceBenchmarker, BenchmarkConfig } from '../benchmarking/performance-benchmarker';
+import { BenchmarkConfig } from '../benchmarking/performance-benchmarker';
+// PerformanceBenchmarker import removed as it's not used
 
 /**
  * Comprehensive Performance Test Suite for FootAnalytics

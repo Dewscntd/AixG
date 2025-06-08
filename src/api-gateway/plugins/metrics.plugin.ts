@@ -168,7 +168,7 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
   /**
    * Extracts error code from GraphQL error
    */
-  private extractErrorCode(error: any): string | undefined {
+  private extractErrorCode(error: Error): string | undefined {
     if (!error) return undefined;
     
     // Check extensions for error code

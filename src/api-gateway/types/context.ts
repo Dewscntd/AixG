@@ -21,24 +21,51 @@ export interface User {
 export interface GraphQLContext {
   // HTTP Request (for HTTP operations)
   req?: Request;
-  
+
   // Authenticated user
   user?: User;
-  
+
   // Correlation ID for tracing
   correlationId: string;
-  
+
   // Data sources for efficient data loading
   dataSources: DataSources;
-  
+
   // Redis client for caching and pub/sub
   redis: Redis;
-  
+
   // Request start time for performance tracking
   startTime?: number;
-  
+
   // Additional metadata
-  metadata?: Record<string, any>;
+  metadata?: GraphQLMetadata;
+}
+
+export interface GraphQLMetadata {
+  queryComplexity?: number;
+  queryDepth?: number;
+  operationName?: string;
+  operationType?: 'query' | 'mutation' | 'subscription';
+  variables?: Record<string, unknown>;
+  cacheKey?: string;
+  cacheTTL?: number;
+  rateLimitInfo?: RateLimitInfo;
+  performanceMetrics?: PerformanceMetrics;
+}
+
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  resetTime: Date;
+  windowMs: number;
+}
+
+export interface PerformanceMetrics {
+  startTime: number;
+  endTime?: number;
+  duration?: number;
+  memoryUsage?: NodeJS.MemoryUsage;
+  cpuUsage?: NodeJS.CpuUsage;
 }
 
 export interface AuthenticationContext {
@@ -68,5 +95,5 @@ export interface MetricsContext {
   complexity?: number;
   depth?: number;
   startTime: number;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
 }

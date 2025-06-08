@@ -10,15 +10,15 @@ import {
   AnalyticsQuery
 } from './analytics-queries';
 
-export interface AnalyticsResult {
+export interface AnalyticsResult<T = unknown> {
   readonly queryId: string;
   readonly timestamp: Date;
-  readonly data: any;
-  readonly metadata?: Record<string, any>;
+  readonly data: T;
+  readonly metadata?: Record<string, unknown>;
 }
 
-export interface AnalyticsQueryHandler<T extends AnalyticsQuery, R extends AnalyticsResult> {
-  handle(query: T): Promise<R>;
+export interface AnalyticsQueryHandler<T extends AnalyticsQuery, R = unknown> {
+  handle(query: T): Promise<AnalyticsResult<R>>;
 }
 
 // Read model interfaces
@@ -51,6 +51,11 @@ export interface MatchAnalyticsReadModel {
   status: 'live' | 'completed' | 'scheduled';
 }
 
+export interface TimeSeriesDataPoint {
+  timestamp: Date;
+  value: number;
+}
+
 export interface TeamAnalyticsReadModel {
   teamId: string;
   teamName: string;
@@ -68,12 +73,12 @@ export interface TeamAnalyticsReadModel {
   lastUpdated: Date;
 }
 
-export class GetMatchAnalyticsQueryHandler 
-  implements AnalyticsQueryHandler<GetMatchAnalyticsQuery, AnalyticsResult> {
-  
+export class GetMatchAnalyticsQueryHandler
+  implements AnalyticsQueryHandler<GetMatchAnalyticsQuery, MatchAnalyticsReadModel> {
+
   constructor(private readonly readDb: Pool) {}
 
-  async handle(query: GetMatchAnalyticsQuery): Promise<AnalyticsResult> {
+  async handle(query: GetMatchAnalyticsQuery): Promise<AnalyticsResult<MatchAnalyticsReadModel>> {
     const client = await this.readDb.connect();
     
     try {
@@ -178,17 +183,17 @@ export class GetMatchAnalyticsQueryHandler
   }
 }
 
-export class GetTeamAnalyticsQueryHandler 
-  implements AnalyticsQueryHandler<GetTeamAnalyticsQuery, AnalyticsResult> {
-  
+export class GetTeamAnalyticsQueryHandler
+  implements AnalyticsQueryHandler<GetTeamAnalyticsQuery, TeamAnalyticsReadModel> {
+
   constructor(private readonly readDb: Pool) {}
 
-  async handle(query: GetTeamAnalyticsQuery): Promise<AnalyticsResult> {
+  async handle(query: GetTeamAnalyticsQuery): Promise<AnalyticsResult<TeamAnalyticsReadModel>> {
     const client = await this.readDb.connect();
     
     try {
       let whereClause = 'WHERE t.team_id = $1';
-      const params: any[] = [query.teamId];
+      const params: (string | Date)[] = [query.teamId];
       let paramIndex = 2;
 
       if (query.fromDate) {
@@ -300,12 +305,12 @@ export class GetTeamAnalyticsQueryHandler
   }
 }
 
-export class GetTimeSeriesAnalyticsQueryHandler 
-  implements AnalyticsQueryHandler<GetTimeSeriesAnalyticsQuery, AnalyticsResult> {
-  
+export class GetTimeSeriesAnalyticsQueryHandler
+  implements AnalyticsQueryHandler<GetTimeSeriesAnalyticsQuery, TimeSeriesDataPoint[]> {
+
   constructor(private readonly readDb: Pool) {}
 
-  async handle(query: GetTimeSeriesAnalyticsQuery): Promise<AnalyticsResult> {
+  async handle(query: GetTimeSeriesAnalyticsQuery): Promise<AnalyticsResult<TimeSeriesDataPoint[]>> {
     const client = await this.readDb.connect();
     
     try {
@@ -319,9 +324,9 @@ export class GetTimeSeriesAnalyticsQueryHandler
       };
 
       const interval = intervalMap[query.interval];
-      
+
       let timeSeriesQuery = '';
-      let params: any[] = [];
+      let params: (string | Date)[] = [];
 
       if (query.entityType === 'match') {
         timeSeriesQuery = `

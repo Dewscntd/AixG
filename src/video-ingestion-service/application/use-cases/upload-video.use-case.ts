@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { VideoRepository } from '../../domain/ports/video.repository';
 import { StorageService } from '../../domain/ports/storage.service';
 import { EventPublisher } from '../../domain/ports/event.publisher';
 import { Video } from '../../domain/entities/video.entity';
 import { UploadMetadata } from '../../domain/value-objects/upload-metadata.value-object';
-import { VideoValidationService } from '../../domain/services/video-validation.service';
+import { AsyncValidationService } from '../services/async-validation.service';
 
 export interface UploadVideoCommand {
   stream: ReadableStream;
@@ -25,11 +25,13 @@ export interface UploadVideoResult {
 
 @Injectable()
 export class UploadVideoUseCase {
+  private readonly logger = new Logger(UploadVideoUseCase.name);
+
   constructor(
     private readonly videoRepository: VideoRepository,
     private readonly storageService: StorageService,
     private readonly eventPublisher: EventPublisher,
-    private readonly validationService: VideoValidationService
+    private readonly asyncValidationService: AsyncValidationService
   ) {}
 
   async execute(command: UploadVideoCommand): Promise<UploadVideoResult> {
@@ -63,8 +65,12 @@ export class UploadVideoUseCase {
       // Publish domain events
       await this.publishDomainEvents(video);
 
-      // Start validation asynchronously (fire and forget)
-      this.startValidationAsync(video.id.value, storageResult.key);
+      // Start validation asynchronously using proper queue
+      await this.asyncValidationService.addValidationJob(
+        video.id.value,
+        storageResult.key,
+        'medium'
+      );
 
       return {
         videoId: video.id.value,
@@ -73,7 +79,8 @@ export class UploadVideoUseCase {
       };
 
     } catch (error) {
-      throw new Error(`Failed to upload video: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to upload video: ${errorMessage}`);
     }
   }
 
@@ -86,38 +93,5 @@ export class UploadVideoUseCase {
     }
   }
 
-  private async startValidationAsync(videoId: string, storageKey: string): Promise<void> {
-    // This would typically be handled by a separate validation service
-    // For now, we'll simulate async validation
-    setTimeout(async () => {
-      try {
-        const video = await this.videoRepository.findById({ value: videoId } as any);
-        if (!video) return;
 
-        video.startValidation();
-        await this.videoRepository.update(video);
-
-        // In real implementation, this would download the file temporarily for validation
-        const validationResult = await this.validationService.validateVideo(storageKey);
-        
-        if (validationResult.isValid) {
-          const metadata = await this.validationService.extractMetadata(storageKey);
-          video.completeValidation(metadata, validationResult.errors, validationResult.warnings);
-        } else {
-          video.completeValidation(
-            null as any, // Would need a default metadata or handle this case
-            validationResult.errors,
-            validationResult.warnings
-          );
-        }
-
-        await this.videoRepository.update(video);
-        await this.publishDomainEvents(video);
-
-      } catch (error) {
-        console.error('Validation failed:', error);
-        // Handle validation failure
-      }
-    }, 1000); // Start validation after 1 second
-  }
 }

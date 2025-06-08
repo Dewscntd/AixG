@@ -6,7 +6,7 @@
 import { TestDataFactory } from '../setup/jest.setup';
 import { IntegrationTestUtils } from '../setup/integration.setup';
 import supertest from 'supertest';
-import { createReadStream } from 'fs';
+// createReadStream import removed as it's not used
 import { join } from 'path';
 
 describe('Video Analysis Workflow - E2E Tests', () => {
@@ -220,7 +220,7 @@ describe('Video Analysis Workflow - E2E Tests', () => {
       expect(videoStatusResponse.body.error).toBeDefined();
 
       // Verify no analytics were created
-      const analyticsResponse = await request
+      await request
         .get(`/api/analytics/matches/${matchId}`)
         .expect(404);
     });
@@ -230,7 +230,7 @@ describe('Video Analysis Workflow - E2E Tests', () => {
       const matchId = TestDataFactory.createMatchId();
 
       // Start live stream
-      const streamResponse = await request
+      await request
         .post('/api/streams/start')
         .send({
           streamId,
@@ -287,7 +287,7 @@ describe('Video Analysis Workflow - E2E Tests', () => {
 
   describe('Performance and Scalability', () => {
     it('should handle multiple concurrent video uploads', async () => {
-      const uploadPromises = Array.from({ length: 5 }, async (_, i) => {
+      const uploadPromises = Array.from({ length: 5 }, async () => {
         const matchId = TestDataFactory.createMatchId();
         const homeTeamId = TestDataFactory.createTeamId();
         const awayTeamId = TestDataFactory.createTeamId();
@@ -393,7 +393,7 @@ async function startTestApplication() {
   };
 }
 
-async function stopTestApplication(app: any) {
+async function stopTestApplication(_app: any) {
   // Mock implementation - would stop the application
   return Promise.resolve();
 }
@@ -441,7 +441,7 @@ function generatePlayerData(homeTeamId: string, awayTeamId: string) {
   }));
 }
 
-function generateFormationData(teamId: string) {
+function generateFormationData(_teamId: string) {
   return Array.from({ length: 11 }, (_, i) => ({
     playerId: TestDataFactory.createPlayerId(),
     position: ['goalkeeper', 'defender', 'midfielder', 'forward'][Math.floor(i / 3)],

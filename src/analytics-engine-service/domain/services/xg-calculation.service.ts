@@ -184,8 +184,20 @@ export const calculateAngle = (shotPosition: Position, goalPosition: Position): 
   return Math.abs(angleLeft - angleRight) * (180 / Math.PI);
 };
 
+// Pass data interface for xA calculations
+export interface PassData {
+  successful: boolean;
+  type: 'through_ball' | 'cross' | 'regular' | 'long_ball' | 'corner' | 'free_kick';
+  position: { x: number; y: number };
+  targetPosition: { x: number; y: number };
+  playerId: string;
+  timestamp: number;
+  accuracy?: number;
+  speed?: number;
+}
+
 // Expected Assists (xA) calculation
-export const calculateXA = (passData: any, subsequentShot: ShotData): XGValue => {
+export const calculateXA = (passData: PassData, subsequentShot: ShotData): XGValue => {
   // xA is the xG value of the shot that resulted from the pass
   const shotXG = calculateXG(subsequentShot);
   

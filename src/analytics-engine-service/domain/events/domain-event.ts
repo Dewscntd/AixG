@@ -11,7 +11,8 @@ export interface DomainEvent {
   readonly timestamp: Date;
   readonly correlationId?: string;
   readonly causationId?: string;
-  readonly metadata?: Record<string, any>;
+  readonly metadata?: Record<string, unknown>;
+  toJSON?(): Record<string, unknown>;
 }
 
 export abstract class BaseDomainEvent implements DomainEvent {
@@ -23,7 +24,7 @@ export abstract class BaseDomainEvent implements DomainEvent {
   public readonly timestamp: Date;
   public readonly correlationId?: string;
   public readonly causationId?: string;
-  public readonly metadata?: Record<string, any>;
+  public readonly metadata?: Record<string, unknown>;
 
   constructor(
     eventType: string,
@@ -32,7 +33,7 @@ export abstract class BaseDomainEvent implements DomainEvent {
     version: number,
     correlationId?: string,
     causationId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) {
     this.eventId = this.generateEventId();
     this.eventType = eventType;
@@ -46,10 +47,10 @@ export abstract class BaseDomainEvent implements DomainEvent {
   }
 
   private generateEventId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
-  toJSON(): Record<string, any> {
+  toJSON(): Record<string, unknown> {
     return {
       eventId: this.eventId,
       eventType: this.eventType,
@@ -64,5 +65,5 @@ export abstract class BaseDomainEvent implements DomainEvent {
     };
   }
 
-  abstract getEventData(): Record<string, any>;
+  abstract getEventData(): Record<string, unknown>;
 }

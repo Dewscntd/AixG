@@ -7,12 +7,18 @@ import { MatchAnalyticsCreatedEvent } from '../../domain/events/match-analytics-
 import { XGCalculatedEvent } from '../../domain/events/xg-calculated.event';
 import { PossessionCalculatedEvent } from '../../domain/events/possession-calculated.event';
 import { FormationDetectedEvent } from '../../domain/events/formation-detected.event';
-import { ProjectionHandler, ProjectionDefinition } from './projection-manager';
+import { ProjectionHandler, ProjectionDefinition, DatabaseClient } from './projection-manager';
+
+// Database query result interfaces
+interface MatchTeamResult {
+  home_team_id: string;
+  away_team_id: string;
+}
 
 export class MatchAnalyticsCreatedHandler implements ProjectionHandler {
   eventType = 'MatchAnalyticsCreated';
 
-  async handle(event: DomainEvent, client: any): Promise<void> {
+  async handle(event: DomainEvent, client: DatabaseClient): Promise<void> {
     const typedEvent = event as MatchAnalyticsCreatedEvent;
     
     // Insert new match analytics record
@@ -39,7 +45,7 @@ export class MatchAnalyticsCreatedHandler implements ProjectionHandler {
     await this.initializeTeamAnalytics(typedEvent.awayTeamId, client);
   }
 
-  private async initializeTeamAnalytics(teamId: string, client: any): Promise<void> {
+  private async initializeTeamAnalytics(teamId: string, client: DatabaseClient): Promise<void> {
     await client.query(`
       INSERT INTO team_analytics_projection (team_id, team_name)
       VALUES ($1, $2)
@@ -51,7 +57,7 @@ export class MatchAnalyticsCreatedHandler implements ProjectionHandler {
 export class XGCalculatedHandler implements ProjectionHandler {
   eventType = 'XGCalculated';
 
-  async handle(event: DomainEvent, client: any): Promise<void> {
+  async handle(event: DomainEvent, client: DatabaseClient): Promise<void> {
     const typedEvent = event as XGCalculatedEvent;
     
     // Determine if this is home or away team
@@ -65,7 +71,7 @@ export class XGCalculatedHandler implements ProjectionHandler {
       return;
     }
 
-    const { home_team_id } = matchResult.rows[0];
+    const { home_team_id } = matchResult.rows[0] as MatchTeamResult;
     const isHomeTeam = typedEvent.teamId === home_team_id;
     
     // Update match analytics projection
@@ -91,7 +97,7 @@ export class XGCalculatedHandler implements ProjectionHandler {
     await this.updateTeamXGStats(typedEvent.teamId, typedEvent.newXG, client);
   }
 
-  private async updateTeamXGStats(teamId: string, newXG: number, client: any): Promise<void> {
+  private async updateTeamXGStats(teamId: string, newXG: number, client: DatabaseClient): Promise<void> {
     // This is a simplified update - in reality, you'd recalculate based on all matches
     await client.query(`
       UPDATE team_analytics_projection 
@@ -106,7 +112,7 @@ export class XGCalculatedHandler implements ProjectionHandler {
 export class PossessionCalculatedHandler implements ProjectionHandler {
   eventType = 'PossessionCalculated';
 
-  async handle(event: DomainEvent, client: any): Promise<void> {
+  async handle(event: DomainEvent, client: DatabaseClient): Promise<void> {
     const typedEvent = event as PossessionCalculatedEvent;
     
     // Update match analytics projection
@@ -157,8 +163,8 @@ export class PossessionCalculatedHandler implements ProjectionHandler {
 
   private async updateTeamPossessionStats(
     teamId: string,
-    possession: number,
-    client: any
+    _possession: number, // Marked as unused - in real implementation would use this for incremental updates
+    client: DatabaseClient
   ): Promise<void> {
     // Recalculate average possession for the team
     await client.query(`
@@ -184,7 +190,7 @@ export class PossessionCalculatedHandler implements ProjectionHandler {
 export class FormationDetectedHandler implements ProjectionHandler {
   eventType = 'FormationDetected';
 
-  async handle(event: DomainEvent, client: any): Promise<void> {
+  async handle(event: DomainEvent, client: DatabaseClient): Promise<void> {
     const typedEvent = event as FormationDetectedEvent;
     
     // Determine if this is home or away team
@@ -198,7 +204,7 @@ export class FormationDetectedHandler implements ProjectionHandler {
       return;
     }
 
-    const { home_team_id } = matchResult.rows[0];
+    const { home_team_id } = matchResult.rows[0] as MatchTeamResult;
     const isHomeTeam = typedEvent.teamId === home_team_id;
     
     // Update match analytics projection

@@ -2,13 +2,13 @@
  * Tests for xG calculation service using functional programming
  */
 
-import { 
-  calculateXG, 
+import {
+  calculateXG,
   calculateXGComposed,
   calculateBatchXG,
-  XGCalculationFunctions 
+  XGCalculationFunctions
 } from '../../domain/services/xg-calculation.service';
-import { ShotData, XGValue } from '../../domain/value-objects/analytics-metrics';
+import { ShotData } from '../../domain/value-objects/analytics-metrics';
 
 describe('XGCalculationService', () => {
   describe('calculateXG', () => {

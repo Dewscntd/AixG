@@ -6,14 +6,14 @@
  */
 
 import { Resolver, Query, Mutation, Subscription, Args, Context } from '@nestjs/graphql';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { AuthService } from '../services/auth.service';
 import { MetricsService } from '../services/metrics.service';
 import { SubscriptionService } from '../services/subscription.service';
 import { DataLoaderService } from '../services/dataloader.service';
-import { GraphQLContext } from '../types/context';
+import { GraphQLContext, User } from '../types/context';
 
 // GraphQL Types
 export class HealthStatus {
@@ -29,7 +29,7 @@ export class ServiceHealth {
   status: 'healthy' | 'unhealthy' | 'degraded';
   responseTime?: number;
   lastCheck: Date;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export class GatewayMetrics {
@@ -45,7 +45,7 @@ export class GatewayMetrics {
 export class AuthenticationResult {
   success: boolean;
   token?: string;
-  user?: any;
+  user?: User;
   expiresAt?: Date;
   message?: string;
 }

@@ -16,8 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadVideoUseCase } from '../application/use-cases/upload-video.use-case';
 import { ResumeUploadUseCase } from '../application/use-cases/resume-upload.use-case';
 import { GetUploadProgressUseCase } from '../application/use-cases/get-upload-progress.use-case';
-import { UploadVideoDto, ResumeUploadDto, GetUploadProgressDto } from '../application/dto/upload-video.dto';
-import { Readable } from 'stream';
+import { UploadVideoDto, ResumeUploadDto } from '../application/dto/upload-video.dto';
 
 @Controller('api/videos')
 export class VideoUploadController {

@@ -3,22 +3,33 @@
  */
 
 import { Pool } from 'pg';
+import { Logger } from '@nestjs/common';
 import { DomainEvent } from '../../domain/events/domain-event';
 import { EventStore } from '../event-store/event-store.interface';
 
+// Database client interface for type safety
+export interface DatabaseClient {
+  query(text: string, params?: unknown[]): Promise<{ rows: unknown[]; rowCount: number }>;
+  release?(): void;
+}
+
+// Projection state can be any JSON-serializable object
+export type ProjectionState = Record<string, unknown> | null;
+
 export interface ProjectionHandler {
   eventType: string;
-  handle(event: DomainEvent, client: any): Promise<void>;
+  handle(event: DomainEvent, client: DatabaseClient): Promise<void>;
 }
 
 export interface ProjectionDefinition {
   name: string;
   handlers: ProjectionHandler[];
-  initialState?: any;
+  initialState?: ProjectionState;
   snapshotFrequency?: number;
 }
 
 export class ProjectionManager {
+  private readonly logger = new Logger(ProjectionManager.name);
   private projections: Map<string, ProjectionDefinition> = new Map();
   private isRunning = false;
   private subscriptions: Array<() => void> = [];
@@ -243,7 +254,7 @@ export class ProjectionManager {
   private async subscribeToEvents(
     projectionName: string,
     projection: ProjectionDefinition,
-    fromEventId: string | null
+    _fromEventId: string | null
   ): Promise<() => void> {
     // This is a simplified subscription - in a real implementation,
     // you'd use the EventStore's subscription capabilities
@@ -271,14 +282,15 @@ export class ProjectionManager {
 
       } catch (error) {
         await client.query('ROLLBACK');
-        console.error(`Error processing event in projection ${projectionName}:`, error);
-        
+        this.logger.error(`Error processing event in projection ${projectionName}:`, error);
+
         // Update projection metadata with error
+        const errorMessage = error instanceof Error ? error.message : String(error);
         await client.query(`
-          UPDATE projection_metadata 
+          UPDATE projection_metadata
           SET error_message = $1, status = 'error'
           WHERE projection_name = $2
-        `, [error.message, projectionName]);
+        `, [errorMessage, projectionName]);
 
       } finally {
         client.release();
@@ -292,7 +304,7 @@ export class ProjectionManager {
   private async processEvent(
     event: DomainEvent,
     projection: ProjectionDefinition,
-    client: any
+    client: DatabaseClient
   ): Promise<void> {
     const handler = projection.handlers.find(h => h.eventType === event.eventType);
     if (handler) {
@@ -300,7 +312,7 @@ export class ProjectionManager {
     }
   }
 
-  private async clearProjectionData(projectionName: string, client: any): Promise<void> {
+  private async clearProjectionData(projectionName: string, client: DatabaseClient): Promise<void> {
     switch (projectionName) {
       case 'match_analytics':
         await client.query('DELETE FROM match_analytics_projection');

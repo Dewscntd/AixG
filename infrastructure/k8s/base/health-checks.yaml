@@ -1,0 +1,229 @@
+# Enhanced Health Check Configurations for FootAnalytics Platform
+# Provides comprehensive health monitoring for all services
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: health-check-config
+  labels:
+    app.kubernetes.io/name: health-checks
+    app.kubernetes.io/part-of: footanalytics
+data:
+  health-check-script.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Health check script for FootAnalytics services
+    SERVICE_NAME=${SERVICE_NAME:-"unknown"}
+    HEALTH_ENDPOINT=${HEALTH_ENDPOINT:-"/health"}
+    PORT=${PORT:-3000}
+    
+    echo "Running health check for $SERVICE_NAME on port $PORT"
+    
+    # Basic HTTP health check
+    response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$PORT$HEALTH_ENDPOINT || echo "000")
+    
+    if [ "$response" = "200" ]; then
+        echo "Health check passed for $SERVICE_NAME"
+        exit 0
+    else
+        echo "Health check failed for $SERVICE_NAME (HTTP $response)"
+        exit 1
+    fi
+
+  advanced-health-check.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Advanced health check with dependency verification
+    SERVICE_NAME=${SERVICE_NAME:-"unknown"}
+    HEALTH_ENDPOINT=${HEALTH_ENDPOINT:-"/health"}
+    PORT=${PORT:-3000}
+    
+    echo "Running advanced health check for $SERVICE_NAME"
+    
+    # Check service health
+    health_response=$(curl -s http://localhost:$PORT$HEALTH_ENDPOINT || echo '{"status":"error"}')
+    health_status=$(echo $health_response | jq -r '.status // "error"')
+    
+    if [ "$health_status" != "ok" ] && [ "$health_status" != "healthy" ]; then
+        echo "Service health check failed: $health_status"
+        exit 1
+    fi
+    
+    # Check dependencies if specified
+    if [ ! -z "$DEPENDENCY_CHECKS" ]; then
+        echo "Checking dependencies: $DEPENDENCY_CHECKS"
+        
+        for dep in $(echo $DEPENDENCY_CHECKS | tr ',' ' '); do
+            dep_response=$(curl -s -o /dev/null -w "%{http_code}" $dep || echo "000")
+            if [ "$dep_response" != "200" ]; then
+                echo "Dependency check failed for $dep (HTTP $dep_response)"
+                exit 1
+            fi
+        done
+    fi
+    
+    echo "Advanced health check passed for $SERVICE_NAME"
+    exit 0
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: readiness-probe-config
+  labels:
+    app.kubernetes.io/name: readiness-probes
+    app.kubernetes.io/part-of: footanalytics
+data:
+  readiness-check.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Readiness check script
+    SERVICE_NAME=${SERVICE_NAME:-"unknown"}
+    READINESS_ENDPOINT=${READINESS_ENDPOINT:-"/ready"}
+    PORT=${PORT:-3000}
+    
+    echo "Running readiness check for $SERVICE_NAME"
+    
+    # Check if service is ready to accept traffic
+    response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$PORT$READINESS_ENDPOINT || echo "000")
+    
+    if [ "$response" = "200" ]; then
+        echo "Readiness check passed for $SERVICE_NAME"
+        exit 0
+    else
+        echo "Readiness check failed for $SERVICE_NAME (HTTP $response)"
+        exit 1
+    fi
+
+  startup-check.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Startup probe for slow-starting services
+    SERVICE_NAME=${SERVICE_NAME:-"unknown"}
+    STARTUP_ENDPOINT=${STARTUP_ENDPOINT:-"/startup"}
+    PORT=${PORT:-3000}
+    MAX_STARTUP_TIME=${MAX_STARTUP_TIME:-300}
+    
+    echo "Running startup check for $SERVICE_NAME (max time: ${MAX_STARTUP_TIME}s)"
+    
+    start_time=$(date +%s)
+    
+    while true; do
+        current_time=$(date +%s)
+        elapsed=$((current_time - start_time))
+        
+        if [ $elapsed -gt $MAX_STARTUP_TIME ]; then
+            echo "Startup check timed out for $SERVICE_NAME after ${elapsed}s"
+            exit 1
+        fi
+        
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$PORT$STARTUP_ENDPOINT || echo "000")
+        
+        if [ "$response" = "200" ]; then
+            echo "Startup check passed for $SERVICE_NAME after ${elapsed}s"
+            exit 0
+        fi
+        
+        echo "Waiting for $SERVICE_NAME to start... (${elapsed}s elapsed)"
+        sleep 5
+    done
+
+---
+# Health Check Service Monitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: health-checks
+  labels:
+    app.kubernetes.io/name: health-checks
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: health-check
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true
+
+---
+# Health Check Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-check-monitor
+  labels:
+    app.kubernetes.io/name: health-check-monitor
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: health-check-monitor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: health-check-monitor
+        app.kubernetes.io/component: health-check
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: health-monitor
+        image: footanalytics/health-monitor:latest
+        ports:
+        - containerPort: 8080
+          name: metrics
+        env:
+        - name: SERVICES_TO_MONITOR
+          value: "api-gateway,video-ingestion,analytics-engine,ml-pipeline"
+        - name: CHECK_INTERVAL
+          value: "30"
+        - name: PROMETHEUS_PORT
+          value: "8080"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+---
+# Service for Health Check Monitor
+apiVersion: v1
+kind: Service
+metadata:
+  name: health-check-monitor
+  labels:
+    app.kubernetes.io/name: health-check-monitor
+    app.kubernetes.io/component: health-check
+    app.kubernetes.io/part-of: footanalytics
+spec:
+  selector:
+    app.kubernetes.io/name: health-check-monitor
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP

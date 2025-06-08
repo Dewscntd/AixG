@@ -290,7 +290,7 @@ export class DataLoaderService {
   }
 
   // Batch loading implementations (to be implemented based on actual data sources)
-  private async batchLoadMatches(ids: readonly string[]): Promise<Match[]> {
+  private async batchLoadMatches(_ids: readonly string[]): Promise<Match[]> {
     // TODO: Implementation will call the appropriate subgraph service
     // For now, return empty array to prevent errors during development
     this.logger.warn('batchLoadMatches not yet implemented');
@@ -302,7 +302,7 @@ export class DataLoaderService {
     return teamIds.map(() => []);
   }
 
-  private async batchLoadVideos(ids: readonly string[]): Promise<Video[]> {
+  private async batchLoadVideos(_ids: readonly string[]): Promise<Video[]> {
     this.logger.warn('batchLoadVideos not yet implemented');
     return [];
   }
@@ -312,7 +312,7 @@ export class DataLoaderService {
     return matchIds.map(() => []);
   }
 
-  private async batchLoadTeams(ids: readonly string[]): Promise<Team[]> {
+  private async batchLoadTeams(_ids: readonly string[]): Promise<Team[]> {
     this.logger.warn('batchLoadTeams not yet implemented');
     return [];
   }
@@ -322,7 +322,7 @@ export class DataLoaderService {
     return [];
   }
 
-  private async batchLoadPlayers(ids: readonly string[]): Promise<Player[]> {
+  private async batchLoadPlayers(_ids: readonly string[]): Promise<Player[]> {
     this.logger.warn('batchLoadPlayers not yet implemented');
     return [];
   }
@@ -332,7 +332,7 @@ export class DataLoaderService {
     return teamIds.map(() => []);
   }
 
-  private async batchLoadMatchAnalytics(matchIds: readonly string[]): Promise<MatchAnalytics[]> {
+  private async batchLoadMatchAnalytics(_matchIds: readonly string[]): Promise<MatchAnalytics[]> {
     this.logger.warn('batchLoadMatchAnalytics not yet implemented');
     return [];
   }
@@ -342,7 +342,7 @@ export class DataLoaderService {
     return matchIds.map(() => []);
   }
 
-  private async batchLoadUsers(ids: readonly string[]): Promise<any[]> {
+  private async batchLoadUsers(_ids: readonly string[]): Promise<any[]> {
     this.logger.warn('batchLoadUsers not yet implemented');
     return [];
   }

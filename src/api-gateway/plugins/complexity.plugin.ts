@@ -12,7 +12,7 @@ import { GraphQLContext } from '../types/context';
 
 export interface ComplexityConfig {
   maximumComplexity: number;
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
   createError: (max: number, actual: number) => Error;
   introspection?: boolean;
   scalarCost?: number;
@@ -99,7 +99,7 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
   /**
    * Calculates query complexity using a simplified algorithm
    */
-  private calculateComplexity(query: string, variables: Record<string, any>): number {
+  private calculateComplexity(query: string, variables: Record<string, unknown>): number {
     if (!query) return 0;
 
     let complexity = 0;
@@ -189,7 +189,7 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
   private calculateFieldComplexity(
     token: { type: string; value: string; args?: string },
     depth: number,
-    variables: Record<string, any>
+    variables: Record<string, unknown>
   ): number {
     let complexity = this.config.objectCost!;
     
@@ -199,7 +199,8 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
       
       // Check for pagination arguments that might increase complexity
       if (args.first || args.last || args.limit) {
-        const limit = args.first || args.last || args.limit || 10;
+        const limitValue = args.first || args.last || args.limit || 10;
+        const limit = typeof limitValue === 'number' ? limitValue : parseInt(String(limitValue), 10) || 10;
         complexity *= Math.min(limit, 100); // Cap at 100 to prevent abuse
       }
       
@@ -223,8 +224,8 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
   /**
    * Parses GraphQL field arguments
    */
-  private parseArguments(argsString: string, variables: Record<string, any>): Record<string, any> {
-    const args: Record<string, any> = {};
+  private parseArguments(argsString: string, variables: Record<string, unknown>): Record<string, unknown> {
+    const args: Record<string, unknown> = {};
     
     try {
       // Simple argument parsing - in production, use a proper GraphQL parser
@@ -253,7 +254,7 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
   /**
    * Parses a simple GraphQL value
    */
-  private parseValue(value: string): any {
+  private parseValue(value: string): unknown {
     if (value === 'true') return true;
     if (value === 'false') return false;
     if (value === 'null') return null;

@@ -30,7 +30,7 @@ export class RealTimeAnalysisGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  server: Server;
+  private server: Server;
 
   private readonly logger = new Logger(RealTimeAnalysisGateway.name);
   private connectedClients: Map<string, Socket> = new Map();
@@ -43,7 +43,7 @@ export class RealTimeAnalysisGateway
   /**
    * Gateway initialization
    */
-  afterInit(server: Server) {
+  afterInit(_server: Server) {
     this.logger.log('Real-time Analysis WebSocket Gateway initialized');
   }
 

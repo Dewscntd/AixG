@@ -1,12 +1,56 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StreamId } from '../../domain/value-objects/stream-id';
 import { LiveStream, StreamStatus } from '../../domain/entities/live-stream';
 import { LiveAnalysisPipeline } from '../../domain/entities/live-analysis-pipeline';
 import { VideoFrame } from '../../domain/value-objects/video-frame';
-import { WebRTCStreamManager } from '../../infrastructure/webrtc/webrtc-stream-manager';
+import { WebRTCStreamManager, WebRTCSignalData } from '../../infrastructure/webrtc/webrtc-stream-manager';
 import { EdgeMLInferenceService } from '../../infrastructure/ml/edge-ml-inference';
 import { EventStreamService } from '../../infrastructure/events/event-stream.service';
+
+/**
+ * Stream metadata interface
+ */
+export interface StreamMetadata {
+  matchId?: string;
+  homeTeam?: string;
+  awayTeam?: string;
+  venue?: string;
+  startTime?: Date;
+  [key: string]: unknown;
+}
+
+/**
+ * Stream metrics interface
+ */
+export interface StreamMetrics {
+  streamId: string;
+  status: StreamStatus;
+  frameCount: number;
+  processingRate: number;
+  averageLatency: number;
+  errorCount: number;
+  uptime: number;
+  lastFrameTimestamp?: number;
+}
+
+/**
+ * Service statistics interface
+ */
+export interface ServiceStatistics {
+  activeStreams: number;
+  activePipelines: number;
+  webrtcConnections: number;
+  totalFramesProcessed: number;
+  averageProcessingTime: number;
+  errorRate: number;
+  uptime: number;
+  memoryUsage: {
+    used: number;
+    total: number;
+    percentage: number;
+  };
+}
 
 /**
  * Real-time Analysis Service
@@ -14,6 +58,7 @@ import { EventStreamService } from '../../infrastructure/events/event-stream.ser
  */
 @Injectable()
 export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(RealTimeAnalysisService.name);
   private activeStreams: Map<string, LiveStream> = new Map();
   private activePipelines: Map<string, LiveAnalysisPipeline> = new Map();
   private webrtcManager: WebRTCStreamManager;
@@ -41,10 +86,10 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       
       // Setup event handlers
       this.setupEventHandlers();
-      
-      console.log('Real-time Analysis Service initialized successfully');
+
+      this.logger.log('Real-time Analysis Service initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize Real-time Analysis Service:', error);
+      this.logger.error('Failed to initialize Real-time Analysis Service:', error);
       throw error;
     }
   }
@@ -68,7 +113,7 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
    * Start a new live analysis stream
    */
   async startStream(
-    metadata?: Record<string, any>
+    metadata?: StreamMetadata
   ): Promise<{ streamId: string; peerId: string }> {
     try {
       // Create new live stream
@@ -169,7 +214,7 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Signal WebRTC peer connection
    */
-  async signalPeer(peerId: string, signalData: any): Promise<void> {
+  async signalPeer(peerId: string, signalData: WebRTCSignalData): Promise<void> {
     try {
       await this.webrtcManager.signal(peerId, signalData);
     } catch (error) {
@@ -188,9 +233,8 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Get stream metrics
    */
-  getStreamMetrics(streamId: StreamId): any {
+  getStreamMetrics(streamId: StreamId): StreamMetrics | null {
     const stream = this.activeStreams.get(streamId.value);
-    const pipeline = this.activePipelines.get(streamId.value);
 
     if (!stream) {
       return null;
@@ -200,11 +244,11 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       streamId: streamId.value,
       status: stream.status,
       frameCount: stream.frameCount,
-      duration: stream.getDuration(),
-      frameRate: stream.getCurrentFrameRate(),
-      bufferUtilization: stream.bufferUtilization,
-      pipelineMetrics: pipeline ? pipeline.getMetrics() : null,
-      isHealthy: stream.isHealthy()
+      processingRate: stream.getCurrentFrameRate(),
+      averageLatency: 0, // TODO: Implement in pipeline
+      errorCount: 0, // TODO: Implement error tracking
+      uptime: stream.getDuration(),
+      lastFrameTimestamp: undefined // TODO: Implement timestamp tracking
     };
   }
 
@@ -218,12 +262,22 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Get service statistics
    */
-  getServiceStats(): any {
+  getServiceStats(): ServiceStatistics {
+    const memoryUsage = process.memoryUsage();
+
     return {
       activeStreams: this.activeStreams.size,
       activePipelines: this.activePipelines.size,
       webrtcConnections: this.webrtcManager.getActiveConnections().length,
-      mlInferenceStats: this.mlInference.getStats()
+      totalFramesProcessed: 0, // TODO: Implement frame counting
+      averageProcessingTime: 0, // TODO: Implement timing metrics
+      errorRate: 0, // TODO: Implement error tracking
+      uptime: process.uptime() * 1000, // Convert to milliseconds
+      memoryUsage: {
+        used: memoryUsage.heapUsed,
+        total: memoryUsage.heapTotal,
+        percentage: (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100
+      }
     };
   }
 
@@ -249,8 +303,8 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       await this.publishDomainEvents(stream);
 
     } catch (error) {
-      console.error(`Error processing frame for stream ${streamId.value}:`, error);
-      
+      this.logger.error(`Error processing frame for stream ${streamId.value}:`, error);
+
       this.eventEmitter.emit('frame.processing.error', {
         streamId: streamId.value,
         frameNumber: frame.frameNumber,

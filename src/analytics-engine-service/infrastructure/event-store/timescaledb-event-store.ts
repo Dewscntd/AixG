@@ -140,7 +140,7 @@ export class TimescaleDBEventStore implements EventStore {
           event.correlationId,
           event.causationId,
           event.metadata ? JSON.stringify(event.metadata) : null,
-          JSON.stringify(event.toJSON())
+          JSON.stringify(event.toJSON ? event.toJSON() : event)
         ]);
       }
 
@@ -217,7 +217,7 @@ export class TimescaleDBEventStore implements EventStore {
         FROM events 
         WHERE event_type = $1
       `;
-      const params: any[] = [eventType];
+      const params: (string | Date)[] = [eventType];
 
       if (fromTimestamp) {
         query += ' AND timestamp >= $2';
@@ -317,7 +317,7 @@ export class TimescaleDBEventStore implements EventStore {
     }
   }
 
-  private deserializeEvent(eventData: any, timestamp: Date): DomainEvent {
+  private deserializeEvent(eventData: unknown, timestamp: Date): DomainEvent {
     // This is a simplified deserialization
     // In a real implementation, you'd have a proper event registry
     const data = typeof eventData === 'string' ? JSON.parse(eventData) : eventData;

@@ -6,14 +6,8 @@ type Timestamp = number;
 
 type TeamFormation = '4-3-3' | '4-4-2' | '3-5-2';
 
-type EventType = 
-  | 'GOAL'
-  | 'PASS'
-  | 'SHOT'
-  | 'TACKLE'
-  | 'SAVE'
-  | 'SUBSTITUTION'
-  | 'FOUL';
+// EventType removed as it's not used in the codebase
+// If needed in the future, it can be re-added
 
 // =======================
 // Shared Kernel
@@ -94,7 +88,7 @@ export class MatchAnalytics {
     return new MatchAnalytics(0, {}, []);
   }
 
-  updateWithEvent(event: MatchEvent): void {
+  updateWithEvent(_event: MatchEvent): void {
     // Implementation omitted for brevity
   }
 }
@@ -313,10 +307,10 @@ export const ServiceRegistry: Record<string, ServiceDefinition> = {
   VIDEO_INGESTION: {
     boundedContext: 'Video Processing',
     commandHandlers: {
-      uploadVideo: async (payload) => { /* Implementation */ }
+      uploadVideo: async (_payload) => { /* Implementation */ }
     },
     eventHandlers: {
-      'MATCH_CREATED': async (event) => { /* Handle match creation */ }
+      'MATCH_CREATED': async (_event) => { /* Handle match creation */ }
     },
     apiEndpoints: {
       healthCheck: { method: 'GET', path: '/health' }
@@ -332,7 +326,7 @@ export const ServiceRegistry: Record<string, ServiceDefinition> = {
     boundedContext: 'Machine Learning',
     commandHandlers: {},
     eventHandlers: {
-      'VIDEO_UPLOADED': async (event) => { /* Trigger processing */ }
+      'VIDEO_UPLOADED': async (_event) => { /* Trigger processing */ }
     },
     apiEndpoints: {
       modelVersion: { method: 'GET', path: '/models/active' }

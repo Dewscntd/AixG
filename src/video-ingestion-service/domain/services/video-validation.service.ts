@@ -112,20 +112,83 @@ export class DefaultVideoValidationService implements VideoValidationService {
   }
 
   private async extractMetadataWithFFprobe(filePath: string): Promise<any> {
-    // Mock implementation - replace with actual FFprobe execution
-    // const { exec } = require('child_process');
-    // const command = `ffprobe -v quiet -print_format json -show_format -show_streams "${filePath}"`;
-    
-    return {
-      duration: 1800, // 30 minutes
-      resolution: { width: 1920, height: 1080 },
-      frameRate: 30,
-      bitrate: 5000000, // 5 Mbps
-      codec: 'h264',
-      format: 'mp4',
-      fileSize: 1073741824, // 1GB
-      checksum: 'mock-checksum-hash'
-    };
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    const crypto = require('crypto');
+    const fs = require('fs').promises;
+
+    try {
+      // Extract metadata using FFprobe
+      const command = `ffprobe -v quiet -print_format json -show_format -show_streams "${filePath}"`;
+      const { stdout } = await execAsync(command);
+      const metadata = JSON.parse(stdout);
+
+      // Find video stream
+      const videoStream = metadata.streams.find((stream: any) => stream.codec_type === 'video');
+      if (!videoStream) {
+        throw new Error('No video stream found in file');
+      }
+
+      // Calculate file checksum
+      const fileBuffer = await fs.readFile(filePath);
+      const checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+      // Extract relevant information
+      const duration = parseFloat(metadata.format.duration);
+      const resolution = {
+        width: parseInt(videoStream.width),
+        height: parseInt(videoStream.height)
+      };
+      const frameRate = this.parseFrameRate(videoStream.r_frame_rate);
+      const bitrate = parseInt(metadata.format.bit_rate) || 0;
+      const codec = videoStream.codec_name;
+      const format = metadata.format.format_name.split(',')[0];
+      const fileSize = parseInt(metadata.format.size);
+
+      return {
+        duration,
+        resolution,
+        frameRate,
+        bitrate,
+        codec,
+        format,
+        fileSize,
+        checksum
+      };
+
+    } catch (error) {
+      // Fallback to basic file information if FFprobe fails
+      console.warn(`FFprobe failed for ${filePath}, using fallback: ${error.message}`);
+
+      const stats = await fs.stat(filePath);
+      const fileBuffer = await fs.readFile(filePath);
+      const checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+      return {
+        duration: 0, // Unknown
+        resolution: { width: 0, height: 0 }, // Unknown
+        frameRate: 0, // Unknown
+        bitrate: 0, // Unknown
+        codec: 'unknown',
+        format: 'unknown',
+        fileSize: stats.size,
+        checksum
+      };
+    }
+  }
+
+  private parseFrameRate(frameRateStr: string): number {
+    if (!frameRateStr) return 0;
+
+    const parts = frameRateStr.split('/');
+    if (parts.length === 2) {
+      const numerator = parseInt(parts[0]);
+      const denominator = parseInt(parts[1]);
+      return denominator > 0 ? numerator / denominator : 0;
+    }
+
+    return parseFloat(frameRateStr) || 0;
   }
 
   private calculateExpectedBitrate(resolution: { width: number; height: number }, frameRate: number): number {

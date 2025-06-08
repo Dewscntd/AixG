@@ -9,13 +9,24 @@ import { Injectable, Logger } from '@nestjs/common';
 import { SchemaDirectiveVisitor } from '@graphql-tools/utils';
 import { GraphQLField, GraphQLObjectType, defaultFieldResolver } from 'graphql';
 import { AuthService } from '../services/auth.service';
-import { GraphQLContext } from '../types/context';
+import { GraphQLContext, User } from '../types/context';
 
 export interface AuthDirectiveArgs {
   requires?: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
   roles?: string[];
   permissions?: string[];
   teamAccess?: boolean;
+}
+
+export interface GraphQLResolverArgs {
+  [key: string]: unknown;
+}
+
+export interface GraphQLResolverSource {
+  [key: string]: unknown;
+  teamId?: string;
+  team?: { id: string };
+  matchId?: string;
 }
 
 @Injectable()
@@ -26,11 +37,11 @@ export class AuthDirective extends SchemaDirectiveVisitor {
     super();
   }
 
-  visitFieldDefinition(field: GraphQLField<any, any>, details: { objectType: GraphQLObjectType }) {
+  visitFieldDefinition(field: GraphQLField<unknown, GraphQLContext>, _details: { objectType: GraphQLObjectType }) {
     const { resolve = defaultFieldResolver } = field;
     const directiveArgs = this.args as AuthDirectiveArgs;
 
-    field.resolve = async function (source, args, context: GraphQLContext, info) {
+    field.resolve = async function (source: GraphQLResolverSource, args: GraphQLResolverArgs, context: GraphQLContext, info) {
       try {
         // Check if user is authenticated
         if (!context.user) {
@@ -111,8 +122,8 @@ export class AuthDirective extends SchemaDirectiveVisitor {
   /**
    * Checks if user meets the required authentication level
    */
-  private checkAuthenticationLevel(user: any, required: string): boolean {
-    const levels = {
+  private checkAuthenticationLevel(user: User, required: string): boolean {
+    const levels: Record<string, number> = {
       'USER': 1,
       'ADMIN': 2,
       'SUPER_ADMIN': 3,
@@ -127,7 +138,7 @@ export class AuthDirective extends SchemaDirectiveVisitor {
   /**
    * Gets the user's authentication level
    */
-  private getUserAuthLevel(user: any): number {
+  private getUserAuthLevel(user: User): number {
     if (user.roles.includes('super_admin')) return 3;
     if (user.roles.includes('admin') || user.roles.includes('team_admin')) return 2;
     return 1; // Regular user
@@ -136,15 +147,18 @@ export class AuthDirective extends SchemaDirectiveVisitor {
   /**
    * Extracts team ID from resolver arguments or source
    */
-  private extractTeamId(args: any, source: any): string | undefined {
+  private extractTeamId(args: GraphQLResolverArgs, source: GraphQLResolverSource): string | undefined {
     // Check common argument names
-    if (args.teamId) return args.teamId;
-    if (args.input?.teamId) return args.input.teamId;
-    
+    if (typeof args.teamId === 'string') return args.teamId;
+
+    // Check for nested input object
+    const input = args.input as Record<string, unknown> | undefined;
+    if (input && typeof input.teamId === 'string') return input.teamId;
+
     // Check source object
     if (source?.teamId) return source.teamId;
     if (source?.team?.id) return source.team.id;
-    
+
     // Check for match-related team access
     if (args.matchId || source?.matchId) {
       // In a real implementation, you would fetch the match and check team ownership
