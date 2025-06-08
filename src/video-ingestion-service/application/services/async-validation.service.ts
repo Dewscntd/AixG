@@ -188,7 +188,10 @@ export class AsyncValidationService {
       }
 
     } catch (error) {
-      throw error; // Re-throw to be handled by processNextJob
+      // Let the error bubble up to be handled by processNextJob
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Validation job failed for video ${videoId}: ${errorMessage}`);
+      throw error;
     }
   }
 

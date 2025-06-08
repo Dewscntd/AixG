@@ -16,7 +16,11 @@ import {
 } from '@nestjs/graphql';
 import { Logger } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
-import { AnalyticsApplicationService } from '../application/analytics-application.service';
+import {
+  AnalyticsApplicationService,
+  MatchAnalyticsResponse,
+  TeamAnalyticsResponse
+} from '../application/analytics-application.service';
 
 // GraphQL Types
 import {
@@ -34,12 +38,6 @@ import {
 
 // Command Types
 import { ProcessMLPipelineOutputData, ShotDataCommand } from '../application/commands/analytics-commands';
-
-// Application Service Response Types
-import {
-  MatchAnalyticsResponse,
-  TeamAnalyticsResponse
-} from '../application/analytics-application.service';
 
 @Resolver()
 export class AnalyticsController {

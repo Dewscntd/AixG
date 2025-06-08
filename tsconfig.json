@@ -85,8 +85,6 @@
     "node_modules",
     "dist",
     "coverage",
-    "**/*.spec.ts",
-    "**/*.test.ts",
     "frontend/node_modules",
     "frontend/dist",
     "frontend/.next"
