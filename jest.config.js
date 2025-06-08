@@ -87,8 +87,7 @@ const baseConfig = {
   reporters: [
     'default',
     'jest-html-reporters',
-    'jest-junit',
-    'jest-sonar-reporter'
+    'jest-junit'
   ],
 
   // Transform configuration

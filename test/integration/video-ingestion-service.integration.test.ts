@@ -13,7 +13,6 @@ describe('Video Ingestion Service Integration Tests', () => {
   let app: INestApplication;
   let uploadVideoUseCase: UploadVideoUseCase;
   let asyncValidationService: AsyncValidationService;
-  let validationProgressController: ValidationProgressController;
 
   // Mock implementations
   const mockVideoRepository = {
@@ -67,7 +66,6 @@ describe('Video Ingestion Service Integration Tests', () => {
 
     uploadVideoUseCase = module.get<UploadVideoUseCase>(UploadVideoUseCase);
     asyncValidationService = module.get<AsyncValidationService>(AsyncValidationService);
-    validationProgressController = module.get<ValidationProgressController>(ValidationProgressController);
 
     // Reset mocks
     jest.clearAllMocks();

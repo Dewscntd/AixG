@@ -5,12 +5,10 @@
 
 import {
   calculateBothTeamsPossession,
-  PossessionEvent,
-  PossessionSequence
+  PossessionEvent
 } from '../../../src/analytics-engine-service/domain/services/possession-calculation.service';
 import { TestDataFactory } from '../../setup/jest.setup';
 import { UnitTestUtils } from '../../setup/unit.setup';
-import '../../setup/jest.setup';
 
 describe('PossessionCalculationService - Unit Tests', () => {
   describe('calculateBothTeamsPossession', () => {
@@ -310,15 +308,4 @@ describe('PossessionCalculationService - Unit Tests', () => {
   });
 });
 
-// Helper function for test data
-function createPossessionEvent(overrides: Partial<PossessionEvent> = {}): PossessionEvent {
-  return {
-    timestamp: Date.now(),
-    teamId: 'team-a',
-    playerId: 'player-1',
-    eventType: 'pass',
-    position: { x: 50, y: 50 },
-    successful: true,
-    ...overrides,
-  };
-}
+

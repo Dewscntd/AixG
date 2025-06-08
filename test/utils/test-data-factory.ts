@@ -6,7 +6,7 @@
 import { faker } from '@faker-js/faker';
 
 // Configure faker for Hebrew locale support
-faker.setLocale('he');
+faker.locale = 'he';
 
 export class TestDataFactory {
   // Core ID generators

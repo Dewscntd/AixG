@@ -128,7 +128,7 @@ export const PropertyTestUtils = {
     fn: (input: T) => number,
     arbitrary: fc.Arbitrary<T>,
     property: (input: T, output: number) => boolean,
-    description: string
+    _description: string
   ) => fc.property(arbitrary, (input) => {
       const output = fn(input);
       expect(property(input, output)).toBe(true);
@@ -141,7 +141,7 @@ export const PropertyTestUtils = {
     fn: (input: T) => R,
     arbitrary: fc.Arbitrary<T>,
     invariant: (input: T, output: R) => boolean,
-    description: string
+    _description: string
   ) => fc.property(arbitrary, (input) => {
       const output = fn(input);
       expect(invariant(input, output)).toBe(true);

@@ -4,8 +4,6 @@
  */
 
 import { AnalyticsApplicationService } from '../../src/analytics-engine-service/application/analytics-application.service';
-import { MatchAnalytics } from '../../src/analytics-engine-service/domain/entities/match-analytics';
-import { MatchId } from '../../src/analytics-engine-service/domain/value-objects/match-id';
 import { IntegrationTestUtils } from '../setup/integration.setup';
 import { TestDataFactory } from '../setup/jest.setup';
 

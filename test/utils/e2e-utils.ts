@@ -3,8 +3,7 @@
  * Provides comprehensive utilities for browser-based testing
  */
 
-import { Page, BrowserContext, expect } from '@playwright/test';
-import { TestDataFactory } from './test-data-factory';
+import { Page, expect } from '@playwright/test';
 import fs from 'fs/promises';
 import path from 'path';
 

@@ -380,7 +380,7 @@ export class QueryOptimizer extends EventEmitter {
     
     try {
       // Analyze current configuration
-      const _config = await client.query(`
+      await client.query(`
         SELECT name, setting, unit, category, short_desc
         FROM pg_settings 
         WHERE category IN (
@@ -472,7 +472,7 @@ export class QueryOptimizer extends EventEmitter {
     let slowQueryCount = 0;
     
     // Analyze all tracked queries
-    for (const [_queryHash, metrics] of this.queryMetrics) {
+    for (const [, metrics] of this.queryMetrics) {
       const avgTime = metrics.reduce((sum, m) => sum + m.executionTime, 0) / metrics.length;
       totalQueries += metrics.length;
       totalExecutionTime += metrics.reduce((sum, m) => sum + m.executionTime, 0);

@@ -220,7 +220,7 @@ function normalizeSnapshotData(data: any, options: SnapshotOptions): any {
   }));
 }
 
-function serializeSnapshotData(data: any, options: SnapshotOptions): string {
+function serializeSnapshotData(data: any, _options: SnapshotOptions): string {
   return JSON.stringify(data, null, 2);
 }
 

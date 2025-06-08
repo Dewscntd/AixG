@@ -3,7 +3,7 @@
  * Tests complete user workflows using Playwright
  */
 
-import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 // TestDataFactory import removed as it's not used
 
 test.describe('FootAnalytics UI Workflow E2E', () => {

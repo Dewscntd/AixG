@@ -50,7 +50,7 @@ export const UnitTestUtils = {
       const results = Array.from({ length: iterations }, () => fn(...input));
       const firstResult = results[0];
       
-      results.forEach((result, index) => {
+      results.forEach((result, _index) => {
         expect(result).toEqual(firstResult);
       });
     });

@@ -46,10 +46,7 @@ process.env.MOCK_S3_STORAGE = 'true';
 // Global test setup
 export default async function globalSetup(): Promise<void> {
   console.log('🚀 Starting global test setup...');
-  
-  // Set global test timeouts
-  jest.setTimeout(30000);
-  
+
   // Configure global test environment
   global.testStartTime = Date.now();
   
@@ -77,10 +74,4 @@ export default async function globalSetup(): Promise<void> {
 // Global test configuration
 declare global {
   var testStartTime: number;
-  
-  namespace NodeJS {
-    interface Global {
-      testStartTime: number;
-    }
-  }
 }

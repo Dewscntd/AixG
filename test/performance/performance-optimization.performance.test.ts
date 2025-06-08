@@ -10,7 +10,7 @@ describe('Performance Optimization Performance Tests', () => {
   let realTimeMonitor: RealTimePerformanceMonitor;
   let gpuOptimizer: GPUOptimizerService;
   let cacheService: AdvancedCacheService;
-  let queryOptimizer: QueryOptimizer;
+  // let queryOptimizer: QueryOptimizer;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

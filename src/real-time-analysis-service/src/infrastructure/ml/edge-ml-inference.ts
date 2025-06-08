@@ -220,7 +220,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
    */
   async cleanup(): Promise<void> {
     // Cleanup ML models and GPU resources
-    for (const [_name, model] of this.models) {
+    for (const [, model] of this.models) {
       if (model && typeof model.dispose === 'function') {
         model.dispose();
       }
