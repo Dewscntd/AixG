@@ -108,4 +108,42 @@ export class VideoMetadata {
       throw new Error('Checksum is required');
     }
   }
+
+  // Snapshot methods for testing
+  toSnapshot(): VideoMetadataSnapshot {
+    return {
+      duration: this._duration,
+      resolution: { ...this._resolution },
+      frameRate: this._frameRate,
+      bitrate: this._bitrate,
+      codec: this._codec,
+      format: this._format,
+      fileSize: this._fileSize,
+      checksum: this._checksum
+    };
+  }
+
+  static fromSnapshot(snapshot: VideoMetadataSnapshot): VideoMetadata {
+    return new VideoMetadata({
+      duration: snapshot.duration,
+      resolution: { ...snapshot.resolution },
+      frameRate: snapshot.frameRate,
+      bitrate: snapshot.bitrate,
+      codec: snapshot.codec,
+      format: snapshot.format,
+      fileSize: snapshot.fileSize,
+      checksum: snapshot.checksum
+    });
+  }
+}
+
+export interface VideoMetadataSnapshot {
+  duration: number;
+  resolution: { width: number; height: number };
+  frameRate: number;
+  bitrate: number;
+  codec: string;
+  format: string;
+  fileSize: number;
+  checksum: string;
 }

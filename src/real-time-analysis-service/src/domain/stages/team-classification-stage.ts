@@ -1,5 +1,6 @@
 import { AnalysisStage, StageInput, StageResult, EdgeMLInference } from '../entities/live-analysis-pipeline';
 import { Player } from './player-detection-stage';
+import { PlayerDetection } from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Team Classification Stage
@@ -15,7 +16,8 @@ export class TeamClassificationStage implements AnalysisStage {
     
     try {
       const { context } = input;
-      const players: Player[] = context.players || [];
+      const playerDetections = context.players || [];
+      const players: Player[] = this.convertFromPlayerDetections(playerDetections);
 
       if (players.length === 0) {
         return {
@@ -23,8 +25,7 @@ export class TeamClassificationStage implements AnalysisStage {
           success: true,
           processingTimeMs: Date.now() - startTime,
           output: {
-            classifiedPlayers: [],
-            teamStats: { teamA: 0, teamB: 0, unclassified: 0 }
+            classifiedPlayers: []
           }
         };
       }
@@ -42,9 +43,7 @@ export class TeamClassificationStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          classifiedPlayers,
-          teamStats,
-          players: classifiedPlayers // Update players with team info
+          classifiedPlayers: this.convertToPlayerDetections(classifiedPlayers)
         }
       };
 
@@ -54,14 +53,45 @@ export class TeamClassificationStage implements AnalysisStage {
       return {
         stageName: this.name,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {
-          classifiedPlayers: input.context.players || [],
-          teamStats: { teamA: 0, teamB: 0, unclassified: 0 }
+          classifiedPlayers: input.context.players || []
         }
       };
     }
+  }
+
+  /**
+   * Convert PlayerDetection[] to Player[] for internal processing
+   */
+  private convertFromPlayerDetections(playerDetections: PlayerDetection[]): Player[] {
+    return playerDetections.map(detection => ({
+      id: detection.playerId,
+      boundingBox: detection.boundingBox,
+      confidence: detection.confidence,
+      position: detection.position,
+      team: detection.teamId || null,
+      jersey: detection.jerseyNumber?.toString() || null,
+      pose: null,
+      velocity: { x: 0, y: 0 },
+      timestamp: Date.now()
+    }));
+  }
+
+  /**
+   * Convert Player[] to PlayerDetection[] for output
+   */
+  private convertToPlayerDetections(players: Player[]): PlayerDetection[] {
+    return players.map(player => ({
+      playerId: player.id,
+      boundingBox: player.boundingBox,
+      confidence: player.confidence,
+      position: player.position,
+      ...(player.team && { teamId: player.team }),
+      ...(player.jersey && { jerseyNumber: parseInt(player.jersey) }),
+      processingTimeMs: 10 // Mock processing time
+    }));
   }
 
   /**

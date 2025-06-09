@@ -1,4 +1,5 @@
 import { AnalysisStage, StageInput, StageResult, EdgeMLInference } from '../entities/live-analysis-pipeline';
+import { PlayerDetection } from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Player Detection Stage
@@ -23,7 +24,8 @@ export class PlayerDetectionStage implements AnalysisStage {
       const players = this.processDetections(detectionResult);
       
       // Track players across frames (using previous context if available)
-      const trackedPlayers = this.trackPlayers(players, context.previousPlayers);
+      const previousPlayerDetections = context.previousPlayers;
+      const trackedPlayers = this.trackPlayers(players, previousPlayerDetections);
 
       // Calculate player statistics
       const playerStats = this.calculatePlayerStats(trackedPlayers);
@@ -35,11 +37,7 @@ export class PlayerDetectionStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          players: trackedPlayers,
-          playerCount: trackedPlayers.length,
-          playerStats,
-          detectionConfidence: this.calculateAverageConfidence(players),
-          previousPlayers: trackedPlayers // For next frame tracking
+          players: this.convertToPlayerDetections(trackedPlayers)
         }
       };
 
@@ -49,11 +47,10 @@ export class PlayerDetectionStage implements AnalysisStage {
       return {
         stageName: this.name,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {
-          players: [],
-          playerCount: 0
+          players: []
         }
       };
     }
@@ -94,9 +91,44 @@ export class PlayerDetectionStage implements AnalysisStage {
   }
 
   /**
+   * Convert PlayerDetection[] to Player[] for internal processing
+   */
+  private convertFromPlayerDetections(playerDetections?: PlayerDetection[]): Player[] {
+    if (!playerDetections) return [];
+
+    return playerDetections.map(detection => ({
+      id: detection.playerId,
+      boundingBox: detection.boundingBox,
+      confidence: detection.confidence,
+      position: detection.position,
+      team: detection.teamId || null,
+      jersey: detection.jerseyNumber?.toString() || null,
+      pose: null,
+      velocity: { x: 0, y: 0 },
+      timestamp: Date.now()
+    }));
+  }
+
+  /**
+   * Convert Player[] to PlayerDetection[] for output
+   */
+  private convertToPlayerDetections(players: Player[]): PlayerDetection[] {
+    return players.map(player => ({
+      playerId: player.id,
+      boundingBox: player.boundingBox,
+      confidence: player.confidence,
+      position: player.position,
+      ...(player.team && { teamId: player.team }),
+      ...(player.jersey && { jerseyNumber: parseInt(player.jersey) }),
+      processingTimeMs: 10 // Mock processing time
+    }));
+  }
+
+  /**
    * Track players across frames using simple position-based matching
    */
-  private trackPlayers(currentPlayers: Player[], previousPlayers?: Player[]): Player[] {
+  private trackPlayers(currentPlayers: Player[], previousPlayerDetections?: PlayerDetection[]): Player[] {
+    const previousPlayers = this.convertFromPlayerDetections(previousPlayerDetections);
     if (!previousPlayers || previousPlayers.length === 0) {
       return currentPlayers;
     }

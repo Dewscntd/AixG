@@ -11,10 +11,10 @@ export interface VideoUploadedEventProps {
   storageKey: string;
   storageBucket: string;
   uploadedBy: string;
-  matchId?: string;
-  teamId?: string;
-  correlationId?: string;
-  causationId?: string;
+  matchId?: string | undefined;
+  teamId?: string | undefined;
+  correlationId?: string | undefined;
+  causationId?: string | undefined;
 }
 
 export class VideoUploadedEvent implements DomainEvent {
@@ -23,8 +23,8 @@ export class VideoUploadedEvent implements DomainEvent {
   readonly aggregateId: string;
   readonly occurredOn: Date;
   readonly version: number = 1;
-  readonly correlationId?: string;
-  readonly causationId?: string;
+  readonly correlationId?: string | undefined;
+  readonly causationId?: string | undefined;
 
   readonly videoId: VideoId;
   readonly uploadId: string;
@@ -34,8 +34,8 @@ export class VideoUploadedEvent implements DomainEvent {
   readonly storageKey: string;
   readonly storageBucket: string;
   readonly uploadedBy: string;
-  readonly matchId?: string;
-  readonly teamId?: string;
+  readonly matchId?: string | undefined;
+  readonly teamId?: string | undefined;
 
   constructor(props: VideoUploadedEventProps) {
     this.eventId = uuidv4();

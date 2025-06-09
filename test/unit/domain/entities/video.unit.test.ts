@@ -221,7 +221,7 @@ describe('Video Entity', () => {
 
       const events = video.domainEvents;
       expect(events).toHaveLength(1);
-      expect(events[0].eventType).toBe('VideoUploaded');
+      expect(events[0]?.eventType).toBe('VideoUploaded');
       expect(events[0]).toHaveValidDomainEvent();
     });
 

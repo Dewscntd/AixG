@@ -129,7 +129,8 @@ describe('XGCalculationService - Property-Based Tests', () => {
 
             batchResults.forEach((batchResult, index) => {
               const individualResult = individualResults[index];
-              expect(Math.abs(batchResult.value - individualResult.value)).toBeLessThan(0.0001);
+              expect(individualResult).toBeDefined();
+              expect(Math.abs(batchResult.value - individualResult!.value)).toBeLessThan(0.0001);
             });
           }
         )

@@ -1,0 +1,294 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Video Ingestion Service Models
+model Video {
+  id                String   @id @default(uuid())
+  filename          String
+  originalName      String
+  size              Int
+  mimeType          String
+  uploadedAt        DateTime @default(now())
+  status            VideoStatus @default(PENDING)
+  processingId      String?
+  
+  // Metadata
+  duration          Float?
+  width             Int?
+  height            Int?
+  frameRate         Float?
+  bitrate           Int?
+  codec             String?
+  
+  // Storage
+  storageUrl        String?
+  thumbnailUrl      String?
+  
+  // Validation
+  validationStatus  ValidationStatus @default(PENDING)
+  validationErrors  String[]
+  validationWarnings String[]
+  
+  // Processing
+  processedAt       DateTime?
+  failedAt          DateTime?
+  errorMessage      String?
+  
+  // Relations
+  matches           Match[]
+  
+  @@map("videos")
+}
+
+model Match {
+  id                String   @id @default(uuid())
+  videoId           String
+  homeTeamId        String
+  awayTeamId        String
+  startTime         DateTime
+  endTime           DateTime?
+  venue             String?
+  competition       String?
+  season            String?
+  
+  // Match state
+  status            MatchStatus @default(SCHEDULED)
+  currentMinute     Int?
+  homeScore         Int @default(0)
+  awayScore         Int @default(0)
+  
+  // Analytics
+  homeTeamXG        Float?
+  awayTeamXG        Float?
+  homeTeamPossession Float?
+  awayTeamPossession Float?
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  video             Video @relation(fields: [videoId], references: [id])
+  homeTeam          Team @relation("HomeMatches", fields: [homeTeamId], references: [id])
+  awayTeam          Team @relation("AwayMatches", fields: [awayTeamId], references: [id])
+  events            MatchEvent[]
+  analytics         MatchAnalytics[]
+  
+  @@map("matches")
+}
+
+model Team {
+  id                String   @id @default(uuid())
+  name              String
+  shortName         String?
+  logo              String?
+  primaryColor      String?
+  secondaryColor    String?
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  homeMatches       Match[] @relation("HomeMatches")
+  awayMatches       Match[] @relation("AwayMatches")
+  players           Player[]
+  
+  @@map("teams")
+}
+
+model Player {
+  id                String   @id @default(uuid())
+  teamId            String
+  name              String
+  jerseyNumber      Int
+  position          PlayerPosition
+  
+  // Physical attributes
+  height            Float?
+  weight            Float?
+  dateOfBirth       DateTime?
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  team              Team @relation(fields: [teamId], references: [id])
+  events            MatchEvent[]
+  
+  @@unique([teamId, jerseyNumber])
+  @@map("players")
+}
+
+model MatchEvent {
+  id                String   @id @default(uuid())
+  matchId           String
+  playerId          String?
+  eventType         EventType
+  minute            Int
+  second            Int?
+  
+  // Position data
+  x                 Float?
+  y                 Float?
+  
+  // Event specific data
+  metadata          Json?
+  
+  // Analytics
+  xG                Float?
+  xA                Float?
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  
+  // Relations
+  match             Match @relation(fields: [matchId], references: [id])
+  player            Player? @relation(fields: [playerId], references: [id])
+  
+  @@map("match_events")
+}
+
+model MatchAnalytics {
+  id                String   @id @default(uuid())
+  matchId           String
+  timestamp         DateTime
+  
+  // Team analytics
+  homeTeamXG        Float
+  awayTeamXG        Float
+  homeTeamPossession Float
+  awayTeamPossession Float
+  homeTeamPassAccuracy Float
+  awayTeamPassAccuracy Float
+  
+  // Advanced metrics
+  homeTeamPPDA      Float?
+  awayTeamPPDA      Float?
+  homeTeamHighPress Float?
+  awayTeamHighPress Float?
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  
+  // Relations
+  match             Match @relation(fields: [matchId], references: [id])
+  
+  @@map("match_analytics")
+}
+
+// Event Store for Domain Events
+model DomainEvent {
+  id                String   @id @default(uuid())
+  aggregateId       String
+  aggregateType     String
+  eventType         String
+  eventData         Json
+  eventVersion      Int
+  correlationId     String?
+  causationId       String?
+  timestamp         DateTime @default(now())
+  
+  @@index([aggregateId, eventVersion])
+  @@map("domain_events")
+}
+
+// Snapshots for Event Sourcing
+model AggregateSnapshot {
+  id                String   @id @default(uuid())
+  aggregateId       String   @unique
+  aggregateType     String
+  data              Json
+  version           Int
+  timestamp         DateTime @default(now())
+  
+  @@map("aggregate_snapshots")
+}
+
+// Real-time Analysis Models
+model LiveStream {
+  id                String   @id @default(uuid())
+  matchId           String?
+  streamUrl         String
+  status            StreamStatus @default(INACTIVE)
+  
+  // Stream metadata
+  width             Int?
+  height            Int?
+  frameRate         Float?
+  bitrate           Int?
+  
+  // Timing
+  startedAt         DateTime?
+  endedAt           DateTime?
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("live_streams")
+}
+
+// Enums
+enum VideoStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ValidationStatus {
+  PENDING
+  VALID
+  INVALID
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PlayerPosition {
+  GOALKEEPER
+  DEFENDER
+  MIDFIELDER
+  FORWARD
+}
+
+enum EventType {
+  GOAL
+  ASSIST
+  SHOT
+  PASS
+  TACKLE
+  INTERCEPTION
+  FOUL
+  CARD_YELLOW
+  CARD_RED
+  SUBSTITUTION
+  CORNER
+  THROW_IN
+  FREE_KICK
+  PENALTY
+  OFFSIDE
+}
+
+enum StreamStatus {
+  INACTIVE
+  STARTING
+  ACTIVE
+  STOPPING
+  ERROR
+}

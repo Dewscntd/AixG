@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "type": "possession",
+      "confidence": 0.8,
+      "position": {
+        "x": 49,
+        "y": 52
+      },
+      "timestamp": "normalized",
+      "metadata": {
+        "ballSpeed": 3.6715119501371642
+      }
+    }
+  ],
+  "metadata": {
+    "detectionQuality": "high",
+    "modelVersion": "test-version"
+  }
+}

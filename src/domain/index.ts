@@ -32,7 +32,7 @@ export interface DomainEvent {
   eventData: Record<string, any>;
   eventVersion: number;
   occurredAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, any> | undefined;
 }
 
 export interface Repository<T extends DomainEntity> {

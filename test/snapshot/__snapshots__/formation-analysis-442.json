@@ -1,0 +1,16 @@
+{
+  "homeTeam": {
+    "formation": "unknown",
+    "confidence": 0.9,
+    "players": []
+  },
+  "awayTeam": {
+    "formation": "unknown",
+    "confidence": 0.9,
+    "players": []
+  },
+  "metadata": {
+    "analysisQuality": "high",
+    "modelVersion": "test-version"
+  }
+}

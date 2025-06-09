@@ -3,6 +3,7 @@ import { Player } from './player-detection-stage';
 import { BallPosition } from './ball-tracking-stage';
 import { FootballEvent } from './event-detection-stage';
 import { TeamFormation } from './formation-analysis-stage';
+import { PlayerDetection, BallDetection, EventDetection } from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Metrics Calculation Stage
@@ -18,11 +19,16 @@ export class MetricsCalculationStage implements AnalysisStage {
       const { context } = input;
       
       // Extract data from previous stages
-      const players: Player[] = context.classifiedPlayers || context.players || [];
-      const ball: BallPosition | null = context.ball || null;
-      const events: FootballEvent[] = context.events || [];
-      const teamAFormation: TeamFormation | null = context.teamAFormation || null;
-      const teamBFormation: TeamFormation | null = context.teamBFormation || null;
+      const playerDetections = context.classifiedPlayers || context.players || [];
+      const players: Player[] = this.convertFromPlayerDetections(playerDetections);
+      const ballDetection = context.ball;
+      const ball: BallPosition | null = ballDetection ? this.convertBallDetectionToBallPosition(ballDetection) : null;
+      const eventDetections = context.events || [];
+      const events: FootballEvent[] = this.convertFromEventDetections(eventDetections);
+
+      // Formation data is simplified for now
+      const teamAFormation: TeamFormation | null = null;
+      const teamBFormation: TeamFormation | null = null;
 
       // Calculate various metrics
       const possessionMetrics = this.calculatePossessionMetrics(players, ball, events);
@@ -47,8 +53,10 @@ export class MetricsCalculationStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          metrics: allMetrics,
-          lastMetrics: allMetrics // For trend analysis
+          metrics: {
+            possession: allMetrics.possession.teamAPossessionPercentage,
+            passAccuracy: allMetrics.performance.passAccuracy
+          }
         }
       };
 
@@ -58,13 +66,71 @@ export class MetricsCalculationStage implements AnalysisStage {
       return {
         stageName: this.name,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {
-          metrics: this.getEmptyMetrics()
+          metrics: {
+            possession: 50,
+            passAccuracy: 0
+          }
         }
       };
     }
+  }
+
+  /**
+   * Convert PlayerDetection[] to Player[] for internal processing
+   */
+  private convertFromPlayerDetections(playerDetections: PlayerDetection[]): Player[] {
+    return playerDetections.map(detection => ({
+      id: detection.playerId,
+      boundingBox: detection.boundingBox,
+      confidence: detection.confidence,
+      position: detection.position,
+      team: detection.teamId || null,
+      jersey: detection.jerseyNumber?.toString() || null,
+      pose: null,
+      velocity: { x: 0, y: 0 },
+      timestamp: Date.now()
+    }));
+  }
+
+  /**
+   * Convert BallDetection to BallPosition for internal processing
+   */
+  private convertBallDetectionToBallPosition(ballDetection: BallDetection): BallPosition {
+    return {
+      position: ballDetection.position,
+      velocity: ballDetection.velocity || { x: 0, y: 0 },
+      confidence: ballDetection.confidence,
+      radius: 0.5, // Default radius
+      timestamp: Date.now(),
+      predicted: false
+    };
+  }
+
+  /**
+   * Convert EventDetection[] to FootballEvent[] for internal processing
+   */
+  private convertFromEventDetections(eventDetections: EventDetection[]): FootballEvent[] {
+    return eventDetections.map(detection => ({
+      type: detection.eventType,
+      confidence: detection.confidence,
+      timestamp: detection.timestamp,
+      position: detection.position,
+      player: {
+        id: 'unknown',
+        boundingBox: { x: 0, y: 0, width: 0, height: 0 },
+        confidence: 0.5,
+        position: detection.position,
+        team: 'unknown',
+        jersey: null,
+        pose: null,
+        velocity: { x: 0, y: 0 },
+        timestamp: detection.timestamp
+      },
+      metadata: detection.metadata || {}
+    }));
   }
 
   /**

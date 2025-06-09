@@ -73,5 +73,6 @@ export default async function globalSetup(): Promise<void> {
 
 // Global test configuration
 declare global {
+  // eslint-disable-next-line no-var
   var testStartTime: number;
 }

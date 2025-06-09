@@ -4,6 +4,6 @@ export interface DomainEvent {
   readonly aggregateId: string;
   readonly occurredOn: Date;
   readonly version: number;
-  readonly correlationId?: string;
-  readonly causationId?: string;
+  readonly correlationId?: string | undefined;
+  readonly causationId?: string | undefined;
 }

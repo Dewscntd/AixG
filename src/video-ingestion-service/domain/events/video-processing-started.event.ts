@@ -6,8 +6,8 @@ export interface VideoProcessingStartedEventProps {
   videoId: VideoId;
   processingId: string;
   estimatedDuration: number;
-  correlationId?: string;
-  causationId?: string;
+  correlationId?: string | undefined;
+  causationId?: string | undefined;
 }
 
 export class VideoProcessingStartedEvent implements DomainEvent {
@@ -16,8 +16,8 @@ export class VideoProcessingStartedEvent implements DomainEvent {
   readonly aggregateId: string;
   readonly occurredOn: Date;
   readonly version: number = 1;
-  readonly correlationId?: string;
-  readonly causationId?: string;
+  readonly correlationId?: string | undefined;
+  readonly causationId?: string | undefined;
 
   readonly videoId: VideoId;
   readonly processingId: string;

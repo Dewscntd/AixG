@@ -3,7 +3,7 @@ import { UploadMetadata } from '../value-objects/upload-metadata.value-object';
 import { VideoMetadata } from '../value-objects/video-metadata.value-object';
 import { StorageResult } from '../value-objects/storage-result.value-object';
 import { DomainEvent } from '../events/domain-event.interface';
-import { VideoUploadedEvent } from '../events/video-uploaded.event';
+import { VideoUploadedEvent, VideoUploadedEventProps } from '../events/video-uploaded.event';
 import { VideoValidatedEvent } from '../events/video-validated.event';
 import { VideoProcessingStartedEvent } from '../events/video-processing-started.event';
 
@@ -20,8 +20,8 @@ export enum VideoStatus {
 export interface VideoProps {
   id: VideoId;
   uploadMetadata: UploadMetadata;
-  storageResult?: StorageResult;
-  videoMetadata?: VideoMetadata;
+  storageResult?: StorageResult | undefined;
+  videoMetadata?: VideoMetadata | undefined;
   status: VideoStatus;
   uploadProgress: number;
   validationErrors: string[];
@@ -33,8 +33,8 @@ export interface VideoProps {
 export class Video {
   private readonly _id: VideoId;
   private _uploadMetadata: UploadMetadata;
-  private _storageResult?: StorageResult;
-  private _videoMetadata?: VideoMetadata;
+  private _storageResult?: StorageResult | undefined;
+  private _videoMetadata?: VideoMetadata | undefined;
   private _status: VideoStatus;
   private _uploadProgress: number;
   private _validationErrors: string[];
@@ -128,7 +128,7 @@ export class Video {
     this._uploadProgress = 100;
     this._updatedAt = new Date();
 
-    this.addDomainEvent(new VideoUploadedEvent({
+    const eventProps: Partial<VideoUploadedEventProps> = {
       videoId: this._id,
       uploadId: this._uploadMetadata.uploadId,
       filename: this._uploadMetadata.filename,
@@ -136,10 +136,18 @@ export class Video {
       mimeType: this._uploadMetadata.mimeType,
       storageKey: storageResult.key,
       storageBucket: storageResult.bucket,
-      uploadedBy: this._uploadMetadata.uploadedBy,
-      matchId: this._uploadMetadata.matchId,
-      teamId: this._uploadMetadata.teamId
-    }));
+      uploadedBy: this._uploadMetadata.uploadedBy
+    };
+
+    if (this._uploadMetadata.matchId !== undefined) {
+      eventProps.matchId = this._uploadMetadata.matchId;
+    }
+
+    if (this._uploadMetadata.teamId !== undefined) {
+      eventProps.teamId = this._uploadMetadata.teamId;
+    }
+
+    this.addDomainEvent(new VideoUploadedEvent(eventProps as VideoUploadedEventProps));
   }
 
   updateUploadProgress(progress: number): void {
@@ -147,8 +155,12 @@ export class Video {
       throw new Error(`Cannot update upload progress. Current status: ${this._status}`);
     }
 
-    if (progress < 0 || progress > 100) {
-      throw new Error('Upload progress must be between 0 and 100');
+    if (progress < 0) {
+      throw new Error('Upload progress cannot be negative');
+    }
+
+    if (progress > 100) {
+      throw new Error('Upload progress cannot exceed 100%');
     }
 
     this._uploadProgress = progress;
@@ -190,7 +202,7 @@ export class Video {
     }));
   }
 
-  startProcessing(processingId: string): void {
+  startProcessing(processingId?: string): void {
     if (this._status !== VideoStatus.VALIDATED) {
       throw new Error(`Cannot start processing. Current status: ${this._status}`);
     }
@@ -198,13 +210,16 @@ export class Video {
     this._status = VideoStatus.PROCESSING;
     this._updatedAt = new Date();
 
-    const estimatedDuration = this._videoMetadata 
+    const estimatedDuration = this._videoMetadata
       ? Math.ceil(this._videoMetadata.duration * 2) // Estimate 2x video duration for processing
       : 300; // Default 5 minutes
 
+    // Generate a default processing ID if not provided
+    const finalProcessingId = processingId || `proc_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+
     this.addDomainEvent(new VideoProcessingStartedEvent({
       videoId: this._id,
-      processingId,
+      processingId: finalProcessingId,
       estimatedDuration
     }));
   }
@@ -237,6 +252,51 @@ export class Video {
     return this._videoMetadata ? Math.ceil(this._videoMetadata.duration / 60) : 0;
   }
 
+  // Add validation warning
+  addValidationWarning(warning: string): void {
+    this._validationWarnings.push(warning);
+    this._updatedAt = new Date();
+  }
+
+  // Complete processing
+  completeProcessing(): void {
+    if (this._status !== VideoStatus.PROCESSING) {
+      throw new Error(`Cannot complete processing. Current status: ${this._status}`);
+    }
+    this.markAsProcessed();
+  }
+
+  // Snapshot methods for testing
+  toSnapshot(): VideoSnapshot {
+    return {
+      id: this._id.value,
+      uploadMetadata: this._uploadMetadata.toSnapshot(),
+      storageResult: this._storageResult?.toSnapshot(),
+      videoMetadata: this._videoMetadata?.toSnapshot(),
+      status: this._status,
+      uploadProgress: this._uploadProgress,
+      validationErrors: [...this._validationErrors],
+      validationWarnings: [...this._validationWarnings],
+      createdAt: this._createdAt,
+      updatedAt: this._updatedAt
+    };
+  }
+
+  static fromSnapshot(snapshot: VideoSnapshot): Video {
+    return new Video({
+      id: VideoId.fromString(snapshot.id),
+      uploadMetadata: UploadMetadata.fromSnapshot(snapshot.uploadMetadata),
+      storageResult: snapshot.storageResult ? StorageResult.fromSnapshot(snapshot.storageResult) : undefined,
+      videoMetadata: snapshot.videoMetadata ? VideoMetadata.fromSnapshot(snapshot.videoMetadata) : undefined,
+      status: snapshot.status,
+      uploadProgress: snapshot.uploadProgress,
+      validationErrors: [...snapshot.validationErrors],
+      validationWarnings: [...snapshot.validationWarnings],
+      createdAt: snapshot.createdAt,
+      updatedAt: snapshot.updatedAt
+    });
+  }
+
   // Event management
   clearDomainEvents(): void {
     this._domainEvents = [];
@@ -245,4 +305,18 @@ export class Video {
   private addDomainEvent(event: DomainEvent): void {
     this._domainEvents.push(event);
   }
+}
+
+// Snapshot interface for testing
+export interface VideoSnapshot {
+  id: string;
+  uploadMetadata: import('../value-objects/upload-metadata.value-object').UploadMetadataSnapshot;
+  storageResult?: import('../value-objects/storage-result.value-object').StorageResultSnapshot | undefined;
+  videoMetadata?: import('../value-objects/video-metadata.value-object').VideoMetadataSnapshot | undefined;
+  status: VideoStatus;
+  uploadProgress: number;
+  validationErrors: string[];
+  validationWarnings: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }

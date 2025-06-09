@@ -36,15 +36,15 @@ export interface ErrorContext {
 export interface ErrorExtensions {
   code: string;
   timestamp: string;
-  correlationId?: string;
-  operationName?: string;
-  userId?: string;
-  userMessage?: string;
+  correlationId?: string | undefined;
+  operationName?: string | undefined;
+  userId?: string | undefined;
+  userMessage?: string | undefined;
   originalError?: {
     name: string;
     message: string;
-    stack?: string;
-  };
+    stack?: string | undefined;
+  } | undefined;
   [key: string]: unknown;
 }
 
@@ -118,16 +118,17 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     const extensions: ErrorExtensions = {
       code: errorCode,
       timestamp: new Date().toISOString(),
-      correlationId: context.correlationId,
+      ...(context.correlationId && { correlationId: context.correlationId }),
     };
 
     // Add additional context in development
     if (!this.isProduction) {
-      extensions.originalError = {
+      const originalError = {
         name: exception.constructor.name,
         message: exception.message,
-        stack: exception.stack,
+        ...(exception.stack && { stack: exception.stack }),
       };
+      extensions.originalError = originalError;
       
       if (context.operationName) {
         extensions.operationName = context.operationName;

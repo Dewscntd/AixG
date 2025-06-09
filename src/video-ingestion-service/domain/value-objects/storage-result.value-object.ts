@@ -4,8 +4,8 @@ export interface StorageResultProps {
   bucket: string;
   url: string;
   size: number;
-  etag?: string;
-  metadata?: Record<string, string>;
+  etag?: string | undefined;
+  metadata?: Record<string, string> | undefined;
 }
 
 export class StorageResult {
@@ -14,7 +14,7 @@ export class StorageResult {
   private readonly _bucket: string;
   private readonly _url: string;
   private readonly _size: number;
-  private readonly _etag?: string;
+  private readonly _etag?: string | undefined;
   private readonly _metadata: Record<string, string>;
 
   constructor(props: StorageResultProps) {
@@ -78,4 +78,39 @@ export class StorageResult {
       throw new Error('File size must be greater than 0');
     }
   }
+
+  // Snapshot methods for testing
+  toSnapshot(): StorageResultSnapshot {
+    return {
+      uploadId: this._uploadId,
+      key: this._key,
+      bucket: this._bucket,
+      url: this._url,
+      size: this._size,
+      etag: this._etag,
+      metadata: { ...this._metadata }
+    };
+  }
+
+  static fromSnapshot(snapshot: StorageResultSnapshot): StorageResult {
+    return new StorageResult({
+      uploadId: snapshot.uploadId,
+      key: snapshot.key,
+      bucket: snapshot.bucket,
+      url: snapshot.url,
+      size: snapshot.size,
+      etag: snapshot.etag,
+      metadata: snapshot.metadata
+    });
+  }
+}
+
+export interface StorageResultSnapshot {
+  uploadId: string;
+  key: string;
+  bucket: string;
+  url: string;
+  size: number;
+  etag?: string | undefined;
+  metadata: Record<string, string>;
 }

@@ -23,6 +23,7 @@ jest.mock('redis');
 
 // Global test utilities
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
     interface Matchers<R> {
       toBeValidXG(): R;
@@ -114,13 +115,16 @@ expect.extend({
   },
 
   toHaveValidDomainEvent(received: any) {
+    const hasEventId = received && typeof received.eventId === 'string';
     const hasEventType = received && typeof received.eventType === 'string';
-    const hasTimestamp = received && received.timestamp instanceof Date;
-    const hasCorrelationId = received && typeof received.correlationId === 'string';
-    const pass = hasEventType && hasTimestamp && hasCorrelationId;
+    const hasAggregateId = received && typeof received.aggregateId === 'string';
+    const hasOccurredOn = received && received.occurredOn instanceof Date;
+    const hasVersion = received && typeof received.version === 'number';
+
+    const pass = hasEventId && hasEventType && hasAggregateId && hasOccurredOn && hasVersion;
 
     return {
-      message: () => `expected ${received} ${pass ? 'not ' : ''}to be a valid domain event`,
+      message: () => `expected ${received} ${pass ? 'not ' : ''}to be a valid domain event with eventId, eventType, aggregateId, occurredOn, and version`,
       pass
     };
   },
@@ -207,6 +211,9 @@ export const TestDataFactory = {
   createTeamId: () => faker.string.uuid(),
   createPlayerId: () => faker.string.uuid(),
   createStreamId: () => faker.string.uuid(),
+  createCorrelationId: () => faker.string.uuid(),
+  createEventId: () => faker.string.uuid(),
+  createVideoId: () => faker.string.uuid(),
 
   createPosition: () => ({
     x: faker.number.float({ min: 0, max: 100, fractionDigits: 2 }),

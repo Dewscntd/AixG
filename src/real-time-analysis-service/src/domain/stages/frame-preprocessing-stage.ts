@@ -48,10 +48,7 @@ export class FramePreprocessingStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          preprocessedFrame: processedFrame,
-          originalDimensions: { width: frame.width, height: frame.height },
-          targetDimensions: { width: this.targetWidth, height: this.targetHeight },
-          operations
+          preprocessedFrame: processedFrame
         }
       };
 
@@ -61,7 +58,7 @@ export class FramePreprocessingStage implements AnalysisStage {
       return {
         stageName: this.name,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {}
       };

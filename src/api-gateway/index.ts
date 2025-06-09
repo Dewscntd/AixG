@@ -57,12 +57,12 @@ async function bootstrap() {
     }));
 
     // Global exception filter
-    app.useGlobalFilters(new GraphQLExceptionFilter());
+    app.useGlobalFilters(new GraphQLExceptionFilter(configService));
 
     // Global interceptors
     app.useGlobalInterceptors(
-      new LoggingInterceptor(),
-      new PerformanceInterceptor()
+      new LoggingInterceptor(configService),
+      new PerformanceInterceptor(configService, app.get('MetricsService'))
     );
 
     // CORS configuration

@@ -92,12 +92,7 @@ const baseConfig = {
 
   // Transform configuration
   transform: {
-    '^.+\\.ts$': 'ts-jest'
-  },
-
-  // TypeScript configuration for ts-jest
-  globals: {
-    'ts-jest': {
+    '^.+\\.ts$': ['ts-jest', {
       tsconfig: {
         // Use the same strict settings as main tsconfig
         strict: true,
@@ -112,7 +107,7 @@ const baseConfig = {
         experimentalDecorators: true,
         emitDecoratorMetadata: true
       }
-    }
+    }]
   },
 
   // Test file patterns

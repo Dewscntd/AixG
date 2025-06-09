@@ -237,8 +237,8 @@ import { GraphQLContext } from './types/context';
             },
 
             // Introspection and playground
-            introspection: configService.get<boolean>('graphqlIntrospection'),
-            playground: configService.get<boolean>('graphqlPlayground'),
+            introspection: configService.get<boolean>('graphqlIntrospection', false),
+            playground: configService.get<boolean>('graphqlPlayground', false),
           },
         };
       },

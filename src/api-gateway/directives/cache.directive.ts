@@ -42,7 +42,11 @@ export class CacheDirective extends SchemaDirectiveVisitor {
     private readonly metricsService: MetricsService
   ) {
     super();
-    this.redis = new Redis(this.configService.get<string>('redisUrl'));
+    const redisUrl = this.configService.get<string>('redisUrl');
+    if (!redisUrl) {
+      throw new Error('Redis URL is not configured');
+    }
+    this.redis = new Redis(redisUrl);
     this.defaultTtl = this.configService.get<number>('cacheDefaultTtl', 300); // 5 minutes
   }
 

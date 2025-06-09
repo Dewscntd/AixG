@@ -28,7 +28,11 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
 
   constructor(private readonly configService: ConfigService) {
     super();
-    this.redis = new Redis(this.configService.get<string>('redisUrl'));
+    const redisUrl = this.configService.get<string>('redisUrl');
+    if (!redisUrl) {
+      throw new Error('Redis URL is not configured');
+    }
+    this.redis = new Redis(redisUrl);
   }
 
   visitFieldDefinition(field: GraphQLField<unknown, GraphQLContext>, _details: { objectType: GraphQLObjectType }) {

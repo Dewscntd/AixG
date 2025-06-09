@@ -6,8 +6,8 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { SchemaDirectiveVisitor } from '@graphql-tools/utils';
-import { GraphQLField, GraphQLObjectType, defaultFieldResolver } from 'graphql';
+import { mapSchema, getDirective, MapperKind } from '@graphql-tools/utils';
+import { GraphQLField, GraphQLObjectType, defaultFieldResolver, GraphQLSchema } from 'graphql';
 import { AuthService } from '../services/auth.service';
 import { GraphQLContext, User } from '../types/context';
 

@@ -132,7 +132,7 @@ declare global {
     eventData: Record<string, any>;
     eventVersion: number;
     occurredAt: Timestamp;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, any> | undefined;
   }
   
   // Health Check

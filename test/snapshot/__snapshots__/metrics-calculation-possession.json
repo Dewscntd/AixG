@@ -1,0 +1,8 @@
+{
+  "possession": 50,
+  "passAccuracy": 0,
+  "metadata": {
+    "calculationMethod": "advanced-ml",
+    "confidence": 0.9
+  }
+}

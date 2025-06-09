@@ -11,8 +11,8 @@ export interface VideoValidatedEventProps {
     errors: string[];
     warnings: string[];
   };
-  correlationId?: string;
-  causationId?: string;
+  correlationId?: string | undefined;
+  causationId?: string | undefined;
 }
 
 export class VideoValidatedEvent implements DomainEvent {
@@ -21,8 +21,8 @@ export class VideoValidatedEvent implements DomainEvent {
   readonly aggregateId: string;
   readonly occurredOn: Date;
   readonly version: number = 1;
-  readonly correlationId?: string;
-  readonly causationId?: string;
+  readonly correlationId?: string | undefined;
+  readonly causationId?: string | undefined;
 
   readonly videoId: VideoId;
   readonly metadata: VideoMetadata;

@@ -2,18 +2,18 @@ export interface UploadMetadataProps {
   filename: string;
   mimeType: string;
   size: number;
-  matchId?: string;
-  teamId?: string;
+  matchId?: string | undefined;
+  teamId?: string | undefined;
   uploadedBy: string;
-  tags?: string[];
+  tags?: string[] | undefined;
 }
 
 export class UploadMetadata {
   private readonly _filename: string;
   private readonly _mimeType: string;
   private readonly _size: number;
-  private readonly _matchId?: string;
-  private readonly _teamId?: string;
+  private readonly _matchId?: string | undefined;
+  private readonly _teamId?: string | undefined;
   private readonly _uploadedBy: string;
   private readonly _tags: string[];
   private readonly _uploadId: string;
@@ -103,4 +103,45 @@ export class UploadMetadata {
     const random = Math.random().toString(36).substring(2);
     return `upload_${timestamp}_${random}`;
   }
+
+  // Snapshot methods for testing
+  toSnapshot(): UploadMetadataSnapshot {
+    return {
+      filename: this._filename,
+      mimeType: this._mimeType,
+      size: this._size,
+      matchId: this._matchId,
+      teamId: this._teamId,
+      uploadedBy: this._uploadedBy,
+      tags: [...this._tags],
+      uploadId: this._uploadId
+    };
+  }
+
+  static fromSnapshot(snapshot: UploadMetadataSnapshot): UploadMetadata {
+    const metadata = new UploadMetadata({
+      filename: snapshot.filename,
+      mimeType: snapshot.mimeType,
+      size: snapshot.size,
+      matchId: snapshot.matchId,
+      teamId: snapshot.teamId,
+      uploadedBy: snapshot.uploadedBy,
+      tags: snapshot.tags
+    });
+    // Override the generated uploadId with the snapshot value
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (metadata as any)._uploadId = snapshot.uploadId;
+    return metadata;
+  }
+}
+
+export interface UploadMetadataSnapshot {
+  filename: string;
+  mimeType: string;
+  size: number;
+  matchId?: string | undefined;
+  teamId?: string | undefined;
+  uploadedBy: string;
+  tags: string[];
+  uploadId: string;
 }

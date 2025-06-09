@@ -1,6 +1,7 @@
 import { AnalysisStage, StageInput, StageResult, EdgeMLInference } from '../entities/live-analysis-pipeline';
 import { Player } from './player-detection-stage';
 import { BallPosition } from './ball-tracking-stage';
+import { PlayerDetection, BallDetection, EventDetection } from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Event Detection Stage
@@ -16,8 +17,10 @@ export class EventDetectionStage implements AnalysisStage {
     
     try {
       const { context } = input;
-      const players: Player[] = context.classifiedPlayers || context.players || [];
-      const ball: BallPosition | null = context.ball || null;
+      const playerDetections = context.classifiedPlayers || context.players || [];
+      const players: Player[] = this.convertFromPlayerDetections(playerDetections);
+      const ballDetection = context.ball;
+      const ball: BallPosition | null = ballDetection ? this.convertBallDetectionToBallPosition(ballDetection) : null;
 
       // Detect events based on player and ball positions
       const events = await this.detectEvents(players, ball, context);
@@ -32,9 +35,7 @@ export class EventDetectionStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          events,
-          eventStats,
-          lastEvents: events // For next frame context
+          events: this.convertToEventDetections(events)
         }
       };
 
@@ -44,14 +45,58 @@ export class EventDetectionStage implements AnalysisStage {
       return {
         stageName: this.name,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {
-          events: [],
-          eventStats: { totalEvents: 0, eventTypes: {} }
+          events: []
         }
       };
     }
+  }
+
+  /**
+   * Convert PlayerDetection[] to Player[] for internal processing
+   */
+  private convertFromPlayerDetections(playerDetections: PlayerDetection[]): Player[] {
+    return playerDetections.map(detection => ({
+      id: detection.playerId,
+      boundingBox: detection.boundingBox,
+      confidence: detection.confidence,
+      position: detection.position,
+      team: detection.teamId || null,
+      jersey: detection.jerseyNumber?.toString() || null,
+      pose: null,
+      velocity: { x: 0, y: 0 },
+      timestamp: Date.now()
+    }));
+  }
+
+  /**
+   * Convert BallDetection to BallPosition for internal processing
+   */
+  private convertBallDetectionToBallPosition(ballDetection: BallDetection): BallPosition {
+    return {
+      position: ballDetection.position,
+      velocity: ballDetection.velocity || { x: 0, y: 0 },
+      confidence: ballDetection.confidence,
+      radius: 0.5, // Default radius
+      timestamp: Date.now(),
+      predicted: false
+    };
+  }
+
+  /**
+   * Convert FootballEvent[] to EventDetection[] for output
+   */
+  private convertToEventDetections(events: FootballEvent[]): EventDetection[] {
+    return events.map(event => ({
+      eventType: event.type as 'pass' | 'shot' | 'tackle' | 'foul' | 'offside' | 'goal' | 'corner' | 'throw_in',
+      confidence: event.confidence,
+      processingTimeMs: 10, // Mock processing time
+      timestamp: event.timestamp,
+      position: event.position,
+      metadata: event.metadata
+    }));
   }
 
   /**

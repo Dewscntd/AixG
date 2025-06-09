@@ -4,10 +4,13 @@ export class VideoId {
   private readonly _value: string;
 
   constructor(value?: string) {
-    if (value && !uuidValidate(value)) {
+    if (value !== undefined && (value.trim() === '' || !uuidValidate(value))) {
       throw new Error('Invalid VideoId format');
     }
     this._value = value || uuidv4();
+
+    // Make the object immutable
+    Object.freeze(this);
   }
 
   get value(): string {

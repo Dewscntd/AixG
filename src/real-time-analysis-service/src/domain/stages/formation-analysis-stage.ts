@@ -1,5 +1,6 @@
 import { AnalysisStage, StageInput, StageResult, EdgeMLInference } from '../entities/live-analysis-pipeline';
 import { Player } from './player-detection-stage';
+import { PlayerDetection } from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Formation Analysis Stage
@@ -15,7 +16,8 @@ export class FormationAnalysisStage implements AnalysisStage {
     
     try {
       const { context } = input;
-      const players: Player[] = context.classifiedPlayers || context.players || [];
+      const playerDetections = context.classifiedPlayers || context.players || [];
+      const players: Player[] = this.convertFromPlayerDetections(playerDetections);
 
       // Analyze formations for each team
       const teamAPlayers = players.filter(p => p.team === 'teamA');
@@ -34,9 +36,10 @@ export class FormationAnalysisStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          teamAFormation,
-          teamBFormation,
-          formationStats
+          formation: {
+            homeTeam: teamAFormation?.pattern || 'unknown',
+            awayTeam: teamBFormation?.pattern || 'unknown'
+          }
         }
       };
 
@@ -46,15 +49,33 @@ export class FormationAnalysisStage implements AnalysisStage {
       return {
         stageName: this.name,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {
-          teamAFormation: null,
-          teamBFormation: null,
-          formationStats: {}
+          formation: {
+            homeTeam: 'unknown',
+            awayTeam: 'unknown'
+          }
         }
       };
     }
+  }
+
+  /**
+   * Convert PlayerDetection[] to Player[] for internal processing
+   */
+  private convertFromPlayerDetections(playerDetections: PlayerDetection[]): Player[] {
+    return playerDetections.map(detection => ({
+      id: detection.playerId,
+      boundingBox: detection.boundingBox,
+      confidence: detection.confidence,
+      position: detection.position,
+      team: detection.teamId || null,
+      jersey: detection.jerseyNumber?.toString() || null,
+      pose: null,
+      velocity: { x: 0, y: 0 },
+      timestamp: Date.now()
+    }));
   }
 
   /**
@@ -163,9 +184,13 @@ export class FormationAnalysisStage implements AnalysisStage {
 
     for (let i = 0; i < players.length; i++) {
       for (let j = i + 1; j < players.length; j++) {
-        const distance = this.calculateDistance(players[i].position, players[j].position);
-        totalDistance += distance;
-        pairCount++;
+        const player1 = players[i];
+        const player2 = players[j];
+        if (player1?.position && player2?.position) {
+          const distance = this.calculateDistance(player1.position, player2.position);
+          totalDistance += distance;
+          pairCount++;
+        }
       }
     }
 

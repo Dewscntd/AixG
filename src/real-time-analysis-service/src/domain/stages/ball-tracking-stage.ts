@@ -1,5 +1,6 @@
 import { AnalysisStage, StageInput, StageResult, EdgeMLInference } from '../entities/live-analysis-pipeline';
 import { Position, Velocity } from './player-detection-stage';
+import { BallDetection as MLBallDetection } from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Ball Tracking Stage
@@ -27,7 +28,8 @@ export class BallTrackingStage implements AnalysisStage {
       const ballDetection = this.processBallDetection(detectionResult);
       
       // Track ball across frames
-      const trackedBall = this.trackBall(ballDetection, context.previousBall);
+      const previousBall = context.ball ? this.convertBallDetectionToBallPosition(context.ball) : undefined;
+      const trackedBall = this.trackBall(ballDetection, previousBall);
 
       // Update trajectory
       if (trackedBall) {
@@ -44,10 +46,7 @@ export class BallTrackingStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          ball: trackedBall,
-          ballTrajectory: [...this.ballTrajectory],
-          ballStats,
-          previousBall: trackedBall // For next frame tracking
+          ball: trackedBall ? this.convertBallPositionToBallDetection(trackedBall) : null
         }
       };
 
@@ -57,14 +56,40 @@ export class BallTrackingStage implements AnalysisStage {
       return {
         stageName: this.name,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {
-          ball: null,
-          ballTrajectory: [...this.ballTrajectory]
+          ball: null
         }
       };
     }
+  }
+
+  /**
+   * Convert MLBallDetection to BallPosition for internal processing
+   */
+  private convertBallDetectionToBallPosition(ballDetection: MLBallDetection): BallPosition {
+    return {
+      position: ballDetection.position,
+      velocity: ballDetection.velocity || { x: 0, y: 0 },
+      confidence: ballDetection.confidence,
+      radius: 0.5, // Default radius
+      timestamp: Date.now(),
+      predicted: false
+    };
+  }
+
+  /**
+   * Convert BallPosition to MLBallDetection for output
+   */
+  private convertBallPositionToBallDetection(ballPosition: BallPosition): MLBallDetection {
+    return {
+      position: ballPosition.position,
+      velocity: ballPosition.velocity,
+      confidence: ballPosition.confidence,
+      visible: !ballPosition.predicted,
+      processingTimeMs: 10 // Mock processing time
+    };
   }
 
   /**
