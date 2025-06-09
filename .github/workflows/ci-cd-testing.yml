@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
       - name: Run ESLint
         run: npm run lint
 
@@ -330,6 +333,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
 
       - name: Build application
         run: npm run build

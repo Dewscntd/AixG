@@ -111,7 +111,16 @@ export class DefaultVideoValidationService implements VideoValidationService {
     }
   }
 
-  private async extractMetadataWithFFprobe(filePath: string): Promise<any> {
+  private async extractMetadataWithFFprobe(filePath: string): Promise<{
+    duration: number;
+    resolution: { width: number; height: number };
+    frameRate: number;
+    bitrate: number;
+    codec: string;
+    format: string;
+    fileSize: number;
+    checksum: string;
+  }> {
     const { exec } = require('child_process');
     const { promisify } = require('util');
     const execAsync = promisify(exec);
@@ -125,7 +134,7 @@ export class DefaultVideoValidationService implements VideoValidationService {
       const metadata = JSON.parse(stdout);
 
       // Find video stream
-      const videoStream = metadata.streams.find((stream: any) => stream.codec_type === 'video');
+      const videoStream = metadata.streams.find((stream: { codec_type: string }) => stream.codec_type === 'video');
       if (!videoStream) {
         throw new Error('No video stream found in file');
       }
@@ -159,8 +168,7 @@ export class DefaultVideoValidationService implements VideoValidationService {
 
     } catch (error) {
       // Fallback to basic file information if FFprobe fails
-      console.warn(`FFprobe failed for ${filePath}, using fallback: ${error.message}`);
-
+      // Note: FFprobe failed, using fallback metadata extraction
       const stats = await fs.stat(filePath);
       const fileBuffer = await fs.readFile(filePath);
       const checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');

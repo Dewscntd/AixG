@@ -237,6 +237,7 @@ export const ContractTestUtils = {
 
 // Setup contract testing environment
 beforeAll(() => {
+  // eslint-disable-next-line no-console
   console.log('🤝 Setting up contract testing environment...');
   
   // Ensure pact directories exist
@@ -254,6 +255,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
+  // eslint-disable-next-line no-console
   console.log('🤝 Contract testing completed');
 });
 
@@ -289,6 +291,7 @@ export const ContractHelpers = {
     try {
       await pact.removeInteractions();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.warn('Failed to cleanup Pact interactions:', error);
     }
   },
@@ -308,12 +311,15 @@ export const ContractHelpers = {
     
     try {
       await publisher.publishPacts();
+      // eslint-disable-next-line no-console
       console.log('✅ Pact contracts published successfully');
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('❌ Failed to publish Pact contracts:', error);
       throw error;
     }
   },
 };
 
+// eslint-disable-next-line no-console
 console.log('🤝 Contract test setup completed');

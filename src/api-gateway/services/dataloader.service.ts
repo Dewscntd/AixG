@@ -10,17 +10,18 @@ import { ConfigService } from '@nestjs/config';
 import DataLoader from 'dataloader';
 import Redis from 'ioredis';
 
-import { 
-  DataSources, 
-  Match, 
-  Video, 
-  Team, 
-  Player, 
-  MatchAnalytics, 
+import {
+  DataSources,
+  Match,
+  Video,
+  Team,
+  Player,
+  MatchAnalytics,
   MatchEvent,
   BatchLoadFn,
   CacheKeyGenerators
 } from '../types/datasources';
+import { User } from '../types/context';
 
 @Injectable()
 export class DataLoaderService {
@@ -186,9 +187,9 @@ export class DataLoaderService {
   }
 
   // User loaders
-  private createUserLoader(): DataLoader<string, any> {
-    return new DataLoader<string, any>(
-      this.createBatchLoader<string, any>(
+  private createUserLoader(): DataLoader<string, User> {
+    return new DataLoader<string, User>(
+      this.createBatchLoader<string, User>(
         'users',
         async (ids) => this.batchLoadUsers(ids)
       ),
@@ -199,8 +200,8 @@ export class DataLoaderService {
     );
   }
 
-  private createUsersByTeamLoader(): DataLoader<string, any[]> {
-    return new DataLoader<string, any[]>(
+  private createUsersByTeamLoader(): DataLoader<string, User[]> {
+    return new DataLoader<string, User[]>(
       async (teamIds) => this.batchLoadUsersByTeam(teamIds),
       {
         cacheKeyFn: (teamId) => `users_by_team:${teamId}`,
@@ -247,7 +248,7 @@ export class DataLoaderService {
           const freshResults = await batchLoadFn(uncachedKeys);
           
           // Cache fresh results and add to final results
-          const cachePromises: Promise<any>[] = [];
+          const cachePromises: Promise<string>[] = [];
           freshResults.forEach((result, index) => {
             const originalIndex = uncachedIndices[index];
             results[originalIndex] = result;
@@ -270,7 +271,7 @@ export class DataLoaderService {
         return results;
       } catch (error) {
         this.logger.error(`Batch loading failed for ${entityType}:`, error);
-        return keys.map(() => error);
+        return keys.map(() => error instanceof Error ? error : new Error(String(error)));
       }
     };
   }
@@ -342,12 +343,12 @@ export class DataLoaderService {
     return matchIds.map(() => []);
   }
 
-  private async batchLoadUsers(_ids: readonly string[]): Promise<any[]> {
+  private async batchLoadUsers(_ids: readonly string[]): Promise<User[]> {
     this.logger.warn('batchLoadUsers not yet implemented');
     return [];
   }
 
-  private async batchLoadUsersByTeam(teamIds: readonly string[]): Promise<any[][]> {
+  private async batchLoadUsersByTeam(teamIds: readonly string[]): Promise<User[][]> {
     this.logger.warn('batchLoadUsersByTeam not yet implemented');
     return teamIds.map(() => []);
   }
