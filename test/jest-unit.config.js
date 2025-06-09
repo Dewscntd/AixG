@@ -23,8 +23,8 @@ module.exports = {
   testTimeout: 10000,
   
   // Mock external dependencies
-  moduleNameMapping: {
-    ...baseConfig.moduleNameMapping,
+  moduleNameMapper: {
+    ...baseConfig.moduleNameMapper,
     '^aws-sdk$': '<rootDir>/test/mocks/aws-sdk.mock.ts',
     '^redis$': '<rootDir>/test/mocks/redis.mock.ts',
     '^pg$': '<rootDir>/test/mocks/pg.mock.ts'

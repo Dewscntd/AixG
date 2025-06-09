@@ -274,6 +274,7 @@ export interface StageOutput {
     possession: number;
     passAccuracy: number;
   };
+  stats?: any; // Generic stats property for stage-specific statistics
 }
 
 /**

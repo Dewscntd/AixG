@@ -219,10 +219,10 @@ metrics:
   - name: "real_time_update_latency"
     unit: "ms"
 
-# Post-test analysis
-after:
-  - plugin: "artillery-plugin-statsd"
-    config:
-      host: "localhost"
-      port: 8125
-      prefix: "footanalytics.loadtest"
+# Post-test analysis disabled for now
+# after:
+#   plugin: "artillery-plugin-statsd"
+#   config:
+#     host: "localhost"
+#     port: 8125
+#     prefix: "footanalytics.loadtest"

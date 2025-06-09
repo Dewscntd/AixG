@@ -43,7 +43,8 @@ export class TeamClassificationStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          classifiedPlayers: this.convertToPlayerDetections(classifiedPlayers)
+          classifiedPlayers: this.convertToPlayerDetections(classifiedPlayers),
+          stats: teamStats
         }
       };
 

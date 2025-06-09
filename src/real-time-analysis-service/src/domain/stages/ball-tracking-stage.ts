@@ -46,7 +46,8 @@ export class BallTrackingStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          ball: trackedBall ? this.convertBallPositionToBallDetection(trackedBall) : null
+          ball: trackedBall ? this.convertBallPositionToBallDetection(trackedBall) : null,
+          stats: ballStats
         }
       };
 

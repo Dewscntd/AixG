@@ -39,7 +39,8 @@ export class FormationAnalysisStage implements AnalysisStage {
           formation: {
             homeTeam: teamAFormation?.pattern || 'unknown',
             awayTeam: teamBFormation?.pattern || 'unknown'
-          }
+          },
+          stats: formationStats
         }
       };
 

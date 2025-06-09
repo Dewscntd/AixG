@@ -35,7 +35,8 @@ export class EventDetectionStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          events: this.convertToEventDetections(events)
+          events: this.convertToEventDetections(events),
+          stats: eventStats
         }
       };
 

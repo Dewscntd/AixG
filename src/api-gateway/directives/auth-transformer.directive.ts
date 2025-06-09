@@ -36,8 +36,7 @@ export class AuthDirectiveTransformer {
   constructor(private readonly authService: AuthService) {}
 
   createTransformer() {
-    return (schema: GraphQLSchema) => {
-      return mapSchema(schema, {
+    return (schema: GraphQLSchema) => mapSchema(schema, {
         [MapperKind.OBJECT_FIELD]: (fieldConfig, _fieldName, _typeName) => {
           const authDirective = getDirective(schema, fieldConfig, 'auth')?.[0];
           if (authDirective) {
@@ -123,7 +122,6 @@ export class AuthDirectiveTransformer {
           return fieldConfig;
         },
       });
-    };
   }
 
   /**

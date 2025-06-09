@@ -37,7 +37,8 @@ export class PlayerDetectionStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          players: this.convertToPlayerDetections(trackedPlayers)
+          players: this.convertToPlayerDetections(trackedPlayers),
+          stats: playerStats
         }
       };
 
