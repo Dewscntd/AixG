@@ -3,7 +3,10 @@
  * Tests domain behavior, state transitions, and business rules
  */
 
-import { Video, VideoStatus } from '@video-ingestion/domain/entities/video.entity';
+import {
+  Video,
+  VideoStatus,
+} from '@video-ingestion/domain/entities/video.entity';
 import { VideoId } from '@video-ingestion/domain/value-objects/video-id.value-object';
 import { UploadMetadata } from '@video-ingestion/domain/value-objects/upload-metadata.value-object';
 import { VideoMetadata } from '@video-ingestion/domain/value-objects/video-metadata.value-object';
@@ -24,7 +27,7 @@ describe('Video Entity', () => {
       uploadedBy: 'user-123',
       matchId: 'match-456',
       teamId: 'team-789',
-      tags: ['match', 'highlights']
+      tags: ['match', 'highlights'],
     });
 
     videoMetadata = new VideoMetadata({
@@ -35,7 +38,7 @@ describe('Video Entity', () => {
       codec: 'h264',
       format: 'mp4',
       fileSize: uploadMetadata.size,
-      checksum: 'abc123def456'
+      checksum: 'abc123def456',
     });
 
     storageResult = new StorageResult({
@@ -43,7 +46,7 @@ describe('Video Entity', () => {
       key: 'videos/test-match.mp4',
       bucket: 'footanalytics-videos',
       url: 'https://cdn.example.com/videos/test-match.mp4',
-      size: uploadMetadata.size
+      size: uploadMetadata.size,
     });
   });
 
@@ -72,7 +75,7 @@ describe('Video Entity', () => {
         validationErrors: [],
         validationWarnings: ['Low bitrate detected'],
         createdAt: new Date('2023-01-01'),
-        updatedAt: new Date('2023-01-02')
+        updatedAt: new Date('2023-01-02'),
       };
 
       const video = Video.fromSnapshot(snapshot);
@@ -104,9 +107,10 @@ describe('Video Entity', () => {
 
       it('should throw error when marking as uploaded from invalid state', () => {
         video.markAsUploaded(storageResult);
-        
-        expect(() => video.markAsUploaded(storageResult))
-          .toThrow('Cannot mark video as uploaded. Current status: UPLOADED');
+
+        expect(() => video.markAsUploaded(storageResult)).toThrow(
+          'Cannot mark video as uploaded. Current status: UPLOADED'
+        );
       });
 
       it('should update progress during upload', () => {
@@ -118,13 +122,15 @@ describe('Video Entity', () => {
       });
 
       it('should not allow progress to exceed 100', () => {
-        expect(() => video.updateUploadProgress(150))
-          .toThrow('Upload progress cannot exceed 100%');
+        expect(() => video.updateUploadProgress(150)).toThrow(
+          'Upload progress cannot exceed 100%'
+        );
       });
 
       it('should not allow negative progress', () => {
-        expect(() => video.updateUploadProgress(-10))
-          .toThrow('Upload progress cannot be negative');
+        expect(() => video.updateUploadProgress(-10)).toThrow(
+          'Upload progress cannot be negative'
+        );
       });
     });
 
@@ -228,9 +234,9 @@ describe('Video Entity', () => {
     it('should clear domain events when requested', () => {
       const video = Video.createForUpload(uploadMetadata);
       video.markAsUploaded(storageResult);
-      
+
       expect(video.domainEvents).toHaveLength(1);
-      
+
       video.clearDomainEvents();
       expect(video.domainEvents).toHaveLength(0);
     });
@@ -275,19 +281,19 @@ describe('Video Entity', () => {
           fc.record({
             filename: fc.string({ minLength: 1, maxLength: 100 }),
             size: fc.integer({ min: 1024, max: 10 * 1024 * 1024 * 1024 }),
-            uploadedBy: fc.uuid()
+            uploadedBy: fc.uuid(),
           }),
-          (props) => {
+          props => {
             const metadata = new UploadMetadata({
-              filename: `${props.filename  }.mp4`,
+              filename: `${props.filename}.mp4`,
               mimeType: 'video/mp4',
               size: props.size,
               uploadedBy: props.uploadedBy,
-              tags: []
+              tags: [],
             });
 
             const video = Video.createForUpload(metadata);
-            
+
             // Video should always start in valid state
             expect(video.status).toBe(VideoStatus.UPLOADING);
             expect(video.uploadProgress).toBe(0);
@@ -299,16 +305,13 @@ describe('Video Entity', () => {
 
     it('should always maintain progress between 0 and 100', () => {
       fc.assert(
-        fc.property(
-          fc.integer({ min: 0, max: 100 }),
-          (progress) => {
-            const video = Video.createForUpload(uploadMetadata);
-            video.updateUploadProgress(progress);
-            
-            expect(video.uploadProgress).toBeGreaterThanOrEqual(0);
-            expect(video.uploadProgress).toBeLessThanOrEqual(100);
-          }
-        )
+        fc.property(fc.integer({ min: 0, max: 100 }), progress => {
+          const video = Video.createForUpload(uploadMetadata);
+          video.updateUploadProgress(progress);
+
+          expect(video.uploadProgress).toBeGreaterThanOrEqual(0);
+          expect(video.uploadProgress).toBeLessThanOrEqual(100);
+        })
       );
     });
   });
@@ -324,7 +327,7 @@ describe('Video Entity', () => {
 
     it('should handle state transitions efficiently', () => {
       const video = Video.createForUpload(uploadMetadata);
-      
+
       expect(() => {
         for (let i = 0; i < 1000; i++) {
           video.updateUploadProgress(Math.floor(Math.random() * 101));

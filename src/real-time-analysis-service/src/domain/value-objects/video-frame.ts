@@ -21,7 +21,7 @@ export class VideoFrame {
     metadata: FrameMetadata = {}
   ) {
     this.validateInputs(timestamp, frameNumber, width, height, data);
-    
+
     this._timestamp = timestamp;
     this._frameNumber = frameNumber;
     this._width = width;
@@ -80,18 +80,37 @@ export class VideoFrame {
       newHeight,
       this._data, // In reality, this would be resized data
       this._format,
-      { ...this._metadata, resized: true, originalWidth: this._width, originalHeight: this._height }
+      {
+        ...this._metadata,
+        resized: true,
+        originalWidth: this._width,
+        originalHeight: this._height,
+      }
     );
   }
 
   // Getters
-  get timestamp(): number { return this._timestamp; }
-  get frameNumber(): number { return this._frameNumber; }
-  get width(): number { return this._width; }
-  get height(): number { return this._height; }
-  get data(): Buffer { return this._data; }
-  get format(): VideoFrameFormat { return this._format; }
-  get metadata(): FrameMetadata { return { ...this._metadata }; }
+  get timestamp(): number {
+    return this._timestamp;
+  }
+  get frameNumber(): number {
+    return this._frameNumber;
+  }
+  get width(): number {
+    return this._width;
+  }
+  get height(): number {
+    return this._height;
+  }
+  get data(): Buffer {
+    return this._data;
+  }
+  get format(): VideoFrameFormat {
+    return this._format;
+  }
+  get metadata(): FrameMetadata {
+    return { ...this._metadata };
+  }
 
   /**
    * Get frame size in bytes
@@ -111,11 +130,13 @@ export class VideoFrame {
    * Check if frame is valid
    */
   isValid(): boolean {
-    return this._width > 0 && 
-           this._height > 0 && 
-           this._data.length > 0 && 
-           this._timestamp >= 0 && 
-           this._frameNumber >= 0;
+    return (
+      this._width > 0 &&
+      this._height > 0 &&
+      this._data.length > 0 &&
+      this._timestamp >= 0 &&
+      this._frameNumber >= 0
+    );
   }
 
   /**
@@ -130,7 +151,7 @@ export class VideoFrame {
       format: this._format,
       sizeBytes: this.sizeBytes,
       aspectRatio: this.aspectRatio,
-      metadata: this._metadata
+      metadata: this._metadata,
     };
   }
 }
@@ -144,7 +165,7 @@ export enum VideoFrameFormat {
   YUV420P = 'yuv420p',
   NV12 = 'nv12',
   JPEG = 'jpeg',
-  PNG = 'png'
+  PNG = 'png',
 }
 
 /**

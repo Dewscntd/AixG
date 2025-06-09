@@ -42,7 +42,11 @@ export interface Repository<T extends DomainEntity> {
 }
 
 export interface EventStore {
-  saveEvents(aggregateId: string, events: DomainEvent[], expectedVersion: number): Promise<void>;
+  saveEvents(
+    aggregateId: string,
+    events: DomainEvent[],
+    expectedVersion: number
+  ): Promise<void>;
   getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]>;
   getAllEvents(fromPosition?: number): Promise<DomainEvent[]>;
 }
@@ -72,7 +76,10 @@ export abstract class BaseEntity implements DomainEntity {
 }
 
 // Common Aggregate Root Base Class
-export abstract class BaseAggregateRoot extends BaseEntity implements AggregateRoot {
+export abstract class BaseAggregateRoot
+  extends BaseEntity
+  implements AggregateRoot
+{
   private _uncommittedEvents: DomainEvent[] = [];
 
   getUncommittedEvents(): DomainEvent[] {
@@ -111,13 +118,20 @@ export class ValidationError extends DomainError {
 
 export class NotFoundError extends DomainError {
   constructor(entityType: string, id: string) {
-    super(`${entityType} with id ${id} not found`, 'NOT_FOUND', { entityType, id });
+    super(`${entityType} with id ${id} not found`, 'NOT_FOUND', {
+      entityType,
+      id,
+    });
     this.name = 'NotFoundError';
   }
 }
 
 export class ConcurrencyError extends DomainError {
-  constructor(aggregateId: string, expectedVersion: number, actualVersion: number) {
+  constructor(
+    aggregateId: string,
+    expectedVersion: number,
+    actualVersion: number
+  ) {
     super(
       `Concurrency conflict for aggregate ${aggregateId}. Expected version ${expectedVersion}, but was ${actualVersion}`,
       'CONCURRENCY_ERROR',

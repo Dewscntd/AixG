@@ -1,6 +1,6 @@
 /**
  * Authentication Plugin
- * 
+ *
  * Apollo Server plugin for handling authentication and authorization
  * Implements composition pattern for flexible authentication strategies
  */
@@ -10,7 +10,9 @@ import { Logger } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { GraphQLContext } from '../types/context';
 
-export class AuthenticationPlugin implements ApolloServerPlugin<GraphQLContext> {
+export class AuthenticationPlugin
+  implements ApolloServerPlugin<GraphQLContext>
+{
   private readonly logger = new Logger(AuthenticationPlugin.name);
 
   constructor(private readonly authService: AuthService) {}
@@ -20,7 +22,7 @@ export class AuthenticationPlugin implements ApolloServerPlugin<GraphQLContext> 
       // Validate authentication before parsing
       async didResolveOperation(requestContext) {
         const { request, context } = requestContext;
-        
+
         // Skip authentication for introspection queries
         if (this.isIntrospectionQuery(request.query)) {
           return;
@@ -33,29 +35,35 @@ export class AuthenticationPlugin implements ApolloServerPlugin<GraphQLContext> 
 
         // Check if operation requires authentication
         const requiresAuth = this.operationRequiresAuth(request.query);
-        
+
         if (requiresAuth && !context.user) {
           throw new Error('Authentication required');
         }
 
         // Log authentication events
         if (context.user) {
-          this.logger.debug(`Authenticated request from user: ${context.user.id}`, {
-            operationName: request.operationName,
-            userId: context.user.id,
-            roles: context.user.roles,
-          });
+          this.logger.debug(
+            `Authenticated request from user: ${context.user.id}`,
+            {
+              operationName: request.operationName,
+              userId: context.user.id,
+              roles: context.user.roles,
+            }
+          );
         }
       },
 
       // Validate authorization before execution
       async willSendResponse(requestContext) {
         const { context, response } = requestContext;
-        
+
         // Add authentication headers to response
         if (context.user) {
           response.http.headers.set('X-User-ID', context.user.id);
-          response.http.headers.set('X-User-Roles', JSON.stringify(context.user.roles));
+          response.http.headers.set(
+            'X-User-Roles',
+            JSON.stringify(context.user.roles)
+          );
         }
 
         // Add security headers
@@ -67,7 +75,7 @@ export class AuthenticationPlugin implements ApolloServerPlugin<GraphQLContext> 
       // Handle authentication errors
       async didEncounterErrors(requestContext) {
         const { errors, context } = requestContext;
-        
+
         for (const error of errors) {
           if (this.isAuthenticationError(error)) {
             this.logger.warn(`Authentication error: ${error.message}`, {
@@ -85,10 +93,12 @@ export class AuthenticationPlugin implements ApolloServerPlugin<GraphQLContext> 
    */
   private isIntrospectionQuery(query?: string): boolean {
     if (!query) return false;
-    
-    return query.includes('__schema') || 
-           query.includes('__type') || 
-           query.includes('IntrospectionQuery');
+
+    return (
+      query.includes('__schema') ||
+      query.includes('__type') ||
+      query.includes('IntrospectionQuery')
+    );
   }
 
   /**
@@ -96,9 +106,8 @@ export class AuthenticationPlugin implements ApolloServerPlugin<GraphQLContext> 
    */
   private isHealthCheckQuery(query?: string): boolean {
     if (!query) return false;
-    
-    return query.includes('healthCheck') || 
-           query.includes('health');
+
+    return query.includes('healthCheck') || query.includes('health');
   }
 
   /**
@@ -115,9 +124,7 @@ export class AuthenticationPlugin implements ApolloServerPlugin<GraphQLContext> 
     ];
 
     // Check if query contains any public operations
-    const hasPublicOperation = publicOperations.some(op => 
-      query.includes(op)
-    );
+    const hasPublicOperation = publicOperations.some(op => query.includes(op));
 
     // If it's a mutation, it always requires auth
     if (query.trim().startsWith('mutation')) {
@@ -138,7 +145,7 @@ export class AuthenticationPlugin implements ApolloServerPlugin<GraphQLContext> 
       'adminPanel',
     ];
 
-    const hasSensitiveField = sensitiveFields.some(field => 
+    const hasSensitiveField = sensitiveFields.some(field =>
       query.includes(field)
     );
 
@@ -159,8 +166,6 @@ export class AuthenticationPlugin implements ApolloServerPlugin<GraphQLContext> 
       'Access denied',
     ];
 
-    return authErrorMessages.some(msg => 
-      error.message?.includes(msg)
-    );
+    return authErrorMessages.some(msg => error.message?.includes(msg));
   }
 }

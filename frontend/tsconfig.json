@@ -55,11 +55,5 @@
     ".next/types/**/*.ts",
     "src/**/*"
   ],
-  "exclude": [
-    "node_modules",
-    ".next",
-    "out",
-    "dist",
-    "build"
-  ]
+  "exclude": ["node_modules", ".next", "out", "dist", "build"]
 }

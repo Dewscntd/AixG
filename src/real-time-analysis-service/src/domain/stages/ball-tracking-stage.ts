@@ -1,4 +1,9 @@
-import { AnalysisStage, StageInput, StageResult, EdgeMLInference } from '../entities/live-analysis-pipeline';
+import {
+  AnalysisStage,
+  StageInput,
+  StageResult,
+  EdgeMLInference,
+} from '../entities/live-analysis-pipeline';
 import { Position, Velocity } from './player-detection-stage';
 import { BallDetection as MLBallDetection } from '../../infrastructure/ml/edge-ml-inference';
 
@@ -16,19 +21,21 @@ export class BallTrackingStage implements AnalysisStage {
 
   async process(input: StageInput): Promise<StageResult> {
     const startTime = Date.now();
-    
+
     try {
       const { frame, context } = input;
       const preprocessedFrame = context.preprocessedFrame || frame;
 
       // Perform ball detection using ML inference
       const detectionResult = await this.mlInference.analyze(preprocessedFrame);
-      
+
       // Process ball detection
       const ballDetection = this.processBallDetection(detectionResult);
-      
+
       // Track ball across frames
-      const previousBall = context.ball ? this.convertBallDetectionToBallPosition(context.ball) : undefined;
+      const previousBall = context.ball
+        ? this.convertBallDetectionToBallPosition(context.ball)
+        : undefined;
       const trackedBall = this.trackBall(ballDetection, previousBall);
 
       // Update trajectory
@@ -46,22 +53,23 @@ export class BallTrackingStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          ball: trackedBall ? this.convertBallPositionToBallDetection(trackedBall) : null,
-          stats: ballStats
-        }
+          ball: trackedBall
+            ? this.convertBallPositionToBallDetection(trackedBall)
+            : null,
+          stats: ballStats,
+        },
       };
-
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      
+
       return {
         stageName: this.name,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {
-          ball: null
-        }
+          ball: null,
+        },
       };
     }
   }
@@ -69,27 +77,31 @@ export class BallTrackingStage implements AnalysisStage {
   /**
    * Convert MLBallDetection to BallPosition for internal processing
    */
-  private convertBallDetectionToBallPosition(ballDetection: MLBallDetection): BallPosition {
+  private convertBallDetectionToBallPosition(
+    ballDetection: MLBallDetection
+  ): BallPosition {
     return {
       position: ballDetection.position,
       velocity: ballDetection.velocity || { x: 0, y: 0 },
       confidence: ballDetection.confidence,
       radius: 0.5, // Default radius
       timestamp: Date.now(),
-      predicted: false
+      predicted: false,
     };
   }
 
   /**
    * Convert BallPosition to MLBallDetection for output
    */
-  private convertBallPositionToBallDetection(ballPosition: BallPosition): MLBallDetection {
+  private convertBallPositionToBallDetection(
+    ballPosition: BallPosition
+  ): MLBallDetection {
     return {
       position: ballPosition.position,
       velocity: ballPosition.velocity,
       confidence: ballPosition.confidence,
       visible: !ballPosition.predicted,
-      processingTimeMs: 10 // Mock processing time
+      processingTimeMs: 10, // Mock processing time
     };
   }
 
@@ -103,10 +115,11 @@ export class BallTrackingStage implements AnalysisStage {
 
     // Find ball detection (highest confidence ball-like object)
     const ballDetections = detectionResult.detections
-      .filter((detection: any) => 
-        detection.class === 'ball' || 
-        detection.class === 'sports ball' ||
-        detection.class === 'soccer ball'
+      .filter(
+        (detection: any) =>
+          detection.class === 'ball' ||
+          detection.class === 'sports ball' ||
+          detection.class === 'soccer ball'
       )
       .sort((a: any, b: any) => b.confidence - a.confidence);
 
@@ -115,21 +128,21 @@ export class BallTrackingStage implements AnalysisStage {
     }
 
     const detection = ballDetections[0];
-    
+
     return {
       boundingBox: {
         x: detection.bbox.x,
         y: detection.bbox.y,
         width: detection.bbox.width,
-        height: detection.bbox.height
+        height: detection.bbox.height,
       },
       confidence: detection.confidence,
       position: {
         x: detection.bbox.x + detection.bbox.width / 2,
-        y: detection.bbox.y + detection.bbox.height / 2
+        y: detection.bbox.y + detection.bbox.height / 2,
       },
       radius: Math.min(detection.bbox.width, detection.bbox.height) / 2,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -146,13 +159,15 @@ export class BallTrackingStage implements AnalysisStage {
     }
 
     let velocity: Velocity = { x: 0, y: 0 };
-    
+
     if (previousBall) {
       const timeDelta = currentDetection.timestamp - previousBall.timestamp;
       if (timeDelta > 0) {
         velocity = {
-          x: (currentDetection.position.x - previousBall.position.x) / timeDelta,
-          y: (currentDetection.position.y - previousBall.position.y) / timeDelta
+          x:
+            (currentDetection.position.x - previousBall.position.x) / timeDelta,
+          y:
+            (currentDetection.position.y - previousBall.position.y) / timeDelta,
         };
       }
     }
@@ -163,14 +178,16 @@ export class BallTrackingStage implements AnalysisStage {
       confidence: currentDetection.confidence,
       radius: currentDetection.radius,
       timestamp: currentDetection.timestamp,
-      predicted: false
+      predicted: false,
     };
   }
 
   /**
    * Predict ball position when not detected
    */
-  private predictBallPosition(previousBall?: BallPosition): BallPosition | null {
+  private predictBallPosition(
+    previousBall?: BallPosition
+  ): BallPosition | null {
     if (!previousBall || this.ballTrajectory.length < 2) {
       return null;
     }
@@ -179,7 +196,7 @@ export class BallTrackingStage implements AnalysisStage {
     const timeDelta = 33; // Assume 30fps (33ms between frames)
     const predictedPosition: Position = {
       x: previousBall.position.x + previousBall.velocity.x * timeDelta,
-      y: previousBall.position.y + previousBall.velocity.y * timeDelta
+      y: previousBall.position.y + previousBall.velocity.y * timeDelta,
     };
 
     return {
@@ -188,7 +205,7 @@ export class BallTrackingStage implements AnalysisStage {
       confidence: Math.max(0.1, previousBall.confidence * 0.8), // Reduce confidence
       radius: previousBall.radius,
       timestamp: Date.now(),
-      predicted: true
+      predicted: true,
     };
   }
 
@@ -197,7 +214,7 @@ export class BallTrackingStage implements AnalysisStage {
    */
   private updateTrajectory(ball: BallPosition): void {
     this.ballTrajectory.push(ball);
-    
+
     // Keep only recent positions
     if (this.ballTrajectory.length > this.maxTrajectoryLength) {
       this.ballTrajectory.shift();
@@ -208,8 +225,10 @@ export class BallTrackingStage implements AnalysisStage {
    * Calculate ball statistics
    */
   private calculateBallStats(ball: BallPosition | null): BallStats {
-    const speed = ball ? Math.sqrt(ball.velocity.x ** 2 + ball.velocity.y ** 2) : 0;
-    
+    const speed = ball
+      ? Math.sqrt(ball.velocity.x ** 2 + ball.velocity.y ** 2)
+      : 0;
+
     return {
       isVisible: ball !== null && !ball.predicted,
       isPredicted: ball?.predicted || false,
@@ -217,7 +236,7 @@ export class BallTrackingStage implements AnalysisStage {
       speed,
       trajectoryLength: this.ballTrajectory.length,
       averageSpeed: this.calculateAverageSpeed(),
-      direction: ball ? this.calculateDirection(ball.velocity) : null
+      direction: ball ? this.calculateDirection(ball.velocity) : null,
     };
   }
 
@@ -229,7 +248,7 @@ export class BallTrackingStage implements AnalysisStage {
       return 0;
     }
 
-    const speeds = this.ballTrajectory.map(pos => 
+    const speeds = this.ballTrajectory.map(pos =>
       Math.sqrt(pos.velocity.x ** 2 + pos.velocity.y ** 2)
     );
 

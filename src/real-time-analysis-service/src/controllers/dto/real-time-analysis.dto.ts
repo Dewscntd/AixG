@@ -12,8 +12,8 @@ export class StartStreamDto {
       cameraId: 'camera_001',
       matchId: 'match_123',
       quality: 'HD',
-      resolution: '1920x1080'
-    }
+      resolution: '1920x1080',
+    },
   })
   @IsOptional()
   @IsObject()
@@ -28,8 +28,8 @@ export class SignalPeerDto {
     description: 'WebRTC signal data (SDP offer/answer or ICE candidate)',
     example: {
       type: 'offer',
-      sdp: 'v=0\r\no=- 123456789 2 IN IP4 127.0.0.1\r\n...'
-    }
+      sdp: 'v=0\r\no=- 123456789 2 IN IP4 127.0.0.1\r\n...',
+    },
   })
   @IsNotEmpty()
   @IsObject()
@@ -42,13 +42,13 @@ export class SignalPeerDto {
 export class StreamCreatedResponseDto {
   @ApiProperty({
     description: 'Unique identifier for the created stream',
-    example: 'stream_12345678-1234-1234-1234-123456789012'
+    example: 'stream_12345678-1234-1234-1234-123456789012',
   })
   streamId!: string;
 
   @ApiProperty({
     description: 'WebRTC peer connection ID',
-    example: 'peer_12345678-1234-1234-1234-123456789012_1640995200000'
+    example: 'peer_12345678-1234-1234-1234-123456789012_1640995200000',
   })
   peerId!: string;
 }
@@ -59,38 +59,38 @@ export class StreamCreatedResponseDto {
 export class StreamMetricsResponseDto {
   @ApiProperty({
     description: 'Stream identifier',
-    example: 'stream_12345678-1234-1234-1234-123456789012'
+    example: 'stream_12345678-1234-1234-1234-123456789012',
   })
   streamId!: string;
 
   @ApiProperty({
     description: 'Current stream status',
     enum: ['created', 'active', 'stopped', 'error'],
-    example: 'active'
+    example: 'active',
   })
   status!: string;
 
   @ApiProperty({
     description: 'Total number of frames processed',
-    example: 1500
+    example: 1500,
   })
   frameCount!: number;
 
   @ApiProperty({
     description: 'Stream duration in milliseconds',
-    example: 50000
+    example: 50000,
   })
   duration!: number;
 
   @ApiProperty({
     description: 'Current frame rate (frames per second)',
-    example: 30.0
+    example: 30.0,
   })
   frameRate!: number;
 
   @ApiProperty({
     description: 'Frame buffer utilization percentage',
-    example: 75.5
+    example: 75.5,
   })
   bufferUtilization!: number;
 
@@ -99,14 +99,14 @@ export class StreamMetricsResponseDto {
     example: {
       isRunning: true,
       processedFrameCount: 1450,
-      averageProcessingRate: 29.8
-    }
+      averageProcessingRate: 29.8,
+    },
   })
   pipelineMetrics!: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Whether the stream is healthy',
-    example: true
+    example: true,
   })
   isHealthy!: boolean;
 }
@@ -119,14 +119,14 @@ export class ActiveStreamsResponseDto {
     description: 'List of active stream IDs',
     example: [
       'stream_12345678-1234-1234-1234-123456789012',
-      'stream_87654321-4321-4321-4321-210987654321'
-    ]
+      'stream_87654321-4321-4321-4321-210987654321',
+    ],
   })
   activeStreams!: string[];
 
   @ApiProperty({
     description: 'Number of active streams',
-    example: 2
+    example: 2,
   })
   count!: number;
 }
@@ -137,19 +137,19 @@ export class ActiveStreamsResponseDto {
 export class ServiceStatsResponseDto {
   @ApiProperty({
     description: 'Number of active streams',
-    example: 3
+    example: 3,
   })
   activeStreams!: number;
 
   @ApiProperty({
     description: 'Number of active analysis pipelines',
-    example: 3
+    example: 3,
   })
   activePipelines!: number;
 
   @ApiProperty({
     description: 'Number of WebRTC connections',
-    example: 5
+    example: 5,
   })
   webrtcConnections!: number;
 
@@ -160,8 +160,8 @@ export class ServiceStatsResponseDto {
       gpuEnabled: true,
       modelVersion: '1.0.0',
       loadedModels: ['player_detection', 'ball_detection'],
-      memoryUsage: 1024000000
-    }
+      memoryUsage: 1024000000,
+    },
   })
   mlInferenceStats!: Record<string, unknown>;
 }
@@ -172,24 +172,24 @@ export class ServiceStatsResponseDto {
 export class ApiResponseDto<T = unknown> {
   @ApiProperty({
     description: 'Whether the request was successful',
-    example: true
+    example: true,
   })
   success!: boolean;
 
   @ApiPropertyOptional({
-    description: 'Response data'
+    description: 'Response data',
   })
   data?: T;
 
   @ApiPropertyOptional({
     description: 'Response message',
-    example: 'Operation completed successfully'
+    example: 'Operation completed successfully',
   })
   message?: string;
 
   @ApiPropertyOptional({
     description: 'Error details (only present when success is false)',
-    example: 'Invalid stream ID provided'
+    example: 'Invalid stream ID provided',
   })
   error?: string;
 }

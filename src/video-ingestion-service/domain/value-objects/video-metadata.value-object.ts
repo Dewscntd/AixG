@@ -24,7 +24,7 @@ export class VideoMetadata {
 
   constructor(props: VideoMetadataProps) {
     this.validateProps(props);
-    
+
     this._duration = props.duration;
     this._resolution = { ...props.resolution };
     this._frameRate = props.frameRate;
@@ -80,7 +80,11 @@ export class VideoMetadata {
       throw new Error('Duration must be greater than 0');
     }
 
-    if (!props.resolution || props.resolution.width <= 0 || props.resolution.height <= 0) {
+    if (
+      !props.resolution ||
+      props.resolution.width <= 0 ||
+      props.resolution.height <= 0
+    ) {
       throw new Error('Resolution must have positive width and height');
     }
 
@@ -119,7 +123,7 @@ export class VideoMetadata {
       codec: this._codec,
       format: this._format,
       fileSize: this._fileSize,
-      checksum: this._checksum
+      checksum: this._checksum,
     };
   }
 
@@ -132,7 +136,7 @@ export class VideoMetadata {
       codec: snapshot.codec,
       format: snapshot.format,
       fileSize: snapshot.fileSize,
-      checksum: snapshot.checksum
+      checksum: snapshot.checksum,
     });
   }
 }

@@ -51,7 +51,7 @@ export abstract class DomainEvent {
       version: this.version,
       correlationId: this.correlationId,
       causationId: this.causationId,
-      payload: this.getPayload()
+      payload: this.getPayload(),
     };
   }
 

@@ -28,61 +28,91 @@ export class DefaultVideoValidationService implements VideoValidationService {
 
       // Duration validation
       if (metadata.duration < this.MIN_DURATION) {
-        errors.push(`Video duration (${metadata.duration}s) is below minimum required (${this.MIN_DURATION}s)`);
+        errors.push(
+          `Video duration (${metadata.duration}s) is below minimum required (${this.MIN_DURATION}s)`
+        );
       }
 
       if (metadata.duration > this.MAX_DURATION) {
-        errors.push(`Video duration (${metadata.duration}s) exceeds maximum allowed (${this.MAX_DURATION}s)`);
+        errors.push(
+          `Video duration (${metadata.duration}s) exceeds maximum allowed (${this.MAX_DURATION}s)`
+        );
       }
 
       // Resolution validation
-      if (metadata.resolution.width < this.MIN_RESOLUTION_WIDTH || 
-          metadata.resolution.height < this.MIN_RESOLUTION_HEIGHT) {
-        errors.push(`Video resolution (${metadata.resolution.width}x${metadata.resolution.height}) is below minimum required (${this.MIN_RESOLUTION_WIDTH}x${this.MIN_RESOLUTION_HEIGHT})`);
+      if (
+        metadata.resolution.width < this.MIN_RESOLUTION_WIDTH ||
+        metadata.resolution.height < this.MIN_RESOLUTION_HEIGHT
+      ) {
+        errors.push(
+          `Video resolution (${metadata.resolution.width}x${metadata.resolution.height}) is below minimum required (${this.MIN_RESOLUTION_WIDTH}x${this.MIN_RESOLUTION_HEIGHT})`
+        );
       }
 
       // Codec validation
       if (!this.SUPPORTED_CODECS.includes(metadata.codec.toLowerCase())) {
-        errors.push(`Unsupported video codec: ${metadata.codec}. Supported codecs: ${this.SUPPORTED_CODECS.join(', ')}`);
+        errors.push(
+          `Unsupported video codec: ${
+            metadata.codec
+          }. Supported codecs: ${this.SUPPORTED_CODECS.join(', ')}`
+        );
       }
 
       // Format validation
       if (!this.SUPPORTED_FORMATS.includes(metadata.format.toLowerCase())) {
-        errors.push(`Unsupported video format: ${metadata.format}. Supported formats: ${this.SUPPORTED_FORMATS.join(', ')}`);
+        errors.push(
+          `Unsupported video format: ${
+            metadata.format
+          }. Supported formats: ${this.SUPPORTED_FORMATS.join(', ')}`
+        );
       }
 
       // Frame rate validation
       if (metadata.frameRate < 15) {
-        warnings.push(`Low frame rate detected: ${metadata.frameRate} fps. Recommended minimum: 15 fps`);
+        warnings.push(
+          `Low frame rate detected: ${metadata.frameRate} fps. Recommended minimum: 15 fps`
+        );
       }
 
       if (metadata.frameRate > 60) {
-        warnings.push(`High frame rate detected: ${metadata.frameRate} fps. This may increase processing time`);
+        warnings.push(
+          `High frame rate detected: ${metadata.frameRate} fps. This may increase processing time`
+        );
       }
 
       // Bitrate validation
-      const expectedBitrate = this.calculateExpectedBitrate(metadata.resolution, metadata.frameRate);
+      const expectedBitrate = this.calculateExpectedBitrate(
+        metadata.resolution,
+        metadata.frameRate
+      );
       if (metadata.bitrate < expectedBitrate * 0.5) {
-        warnings.push(`Low bitrate detected: ${metadata.bitrate} bps. Expected minimum: ${expectedBitrate * 0.5} bps`);
+        warnings.push(
+          `Low bitrate detected: ${metadata.bitrate} bps. Expected minimum: ${
+            expectedBitrate * 0.5
+          } bps`
+        );
       }
 
       // Aspect ratio validation
       const aspectRatio = metadata.getAspectRatio();
       if (aspectRatio < 1.3 || aspectRatio > 2.4) {
-        warnings.push(`Unusual aspect ratio detected: ${aspectRatio.toFixed(2)}. Standard ratios are 4:3 (1.33) or 16:9 (1.78)`);
+        warnings.push(
+          `Unusual aspect ratio detected: ${aspectRatio.toFixed(
+            2
+          )}. Standard ratios are 4:3 (1.33) or 16:9 (1.78)`
+        );
       }
 
       return {
         isValid: errors.length === 0,
         errors,
-        warnings
+        warnings,
       };
-
     } catch (error) {
       return {
         isValid: false,
         errors: [`Failed to validate video: ${error.message}`],
-        warnings: []
+        warnings: [],
       };
     }
   }
@@ -91,11 +121,11 @@ export class DefaultVideoValidationService implements VideoValidationService {
     // This would typically use FFmpeg or similar tool
     // For now, returning a mock implementation
     // In real implementation, you would use ffprobe or similar
-    
+
     try {
       // Mock metadata extraction - replace with actual FFmpeg integration
       const mockMetadata = await this.extractMetadataWithFFprobe(filePath);
-      
+
       return new VideoMetadata({
         duration: mockMetadata.duration,
         resolution: mockMetadata.resolution,
@@ -104,7 +134,7 @@ export class DefaultVideoValidationService implements VideoValidationService {
         codec: mockMetadata.codec,
         format: mockMetadata.format,
         fileSize: mockMetadata.fileSize,
-        checksum: mockMetadata.checksum
+        checksum: mockMetadata.checksum,
       });
     } catch (error) {
       throw new Error(`Failed to extract video metadata: ${error.message}`);
@@ -134,20 +164,25 @@ export class DefaultVideoValidationService implements VideoValidationService {
       const metadata = JSON.parse(stdout);
 
       // Find video stream
-      const videoStream = metadata.streams.find((stream: { codec_type: string }) => stream.codec_type === 'video');
+      const videoStream = metadata.streams.find(
+        (stream: { codec_type: string }) => stream.codec_type === 'video'
+      );
       if (!videoStream) {
         throw new Error('No video stream found in file');
       }
 
       // Calculate file checksum
       const fileBuffer = await fs.readFile(filePath);
-      const checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      const checksum = crypto
+        .createHash('sha256')
+        .update(fileBuffer)
+        .digest('hex');
 
       // Extract relevant information
       const duration = parseFloat(metadata.format.duration);
       const resolution = {
         width: parseInt(videoStream.width),
-        height: parseInt(videoStream.height)
+        height: parseInt(videoStream.height),
       };
       const frameRate = this.parseFrameRate(videoStream.r_frame_rate);
       const bitrate = parseInt(metadata.format.bit_rate) || 0;
@@ -163,15 +198,17 @@ export class DefaultVideoValidationService implements VideoValidationService {
         codec,
         format,
         fileSize,
-        checksum
+        checksum,
       };
-
     } catch (error) {
       // Fallback to basic file information if FFprobe fails
       // Note: FFprobe failed, using fallback metadata extraction
       const stats = await fs.stat(filePath);
       const fileBuffer = await fs.readFile(filePath);
-      const checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      const checksum = crypto
+        .createHash('sha256')
+        .update(fileBuffer)
+        .digest('hex');
 
       return {
         duration: 0, // Unknown
@@ -181,7 +218,7 @@ export class DefaultVideoValidationService implements VideoValidationService {
         codec: 'unknown',
         format: 'unknown',
         fileSize: stats.size,
-        checksum
+        checksum,
       };
     }
   }
@@ -199,14 +236,17 @@ export class DefaultVideoValidationService implements VideoValidationService {
     return parseFloat(frameRateStr) || 0;
   }
 
-  private calculateExpectedBitrate(resolution: { width: number; height: number }, frameRate: number): number {
+  private calculateExpectedBitrate(
+    resolution: { width: number; height: number },
+    frameRate: number
+  ): number {
     // Simple bitrate calculation based on resolution and frame rate
     const pixels = resolution.width * resolution.height;
     const baseRate = pixels * frameRate * 0.1; // 0.1 bits per pixel per frame
-    
+
     // Adjust for common resolutions
     if (pixels >= 1920 * 1080) return Math.max(baseRate, 3000000); // 3 Mbps minimum for 1080p
-    if (pixels >= 1280 * 720) return Math.max(baseRate, 1500000);  // 1.5 Mbps minimum for 720p
+    if (pixels >= 1280 * 720) return Math.max(baseRate, 1500000); // 1.5 Mbps minimum for 720p
     return Math.max(baseRate, 500000); // 500 Kbps minimum for lower resolutions
   }
 }

@@ -15,7 +15,12 @@ export interface ValidationJob {
 
 export interface ValidationProgress {
   videoId: string;
-  stage: 'downloading' | 'validating' | 'extracting_metadata' | 'completed' | 'failed';
+  stage:
+    | 'downloading'
+    | 'validating'
+    | 'extracting_metadata'
+    | 'completed'
+    | 'failed';
   progress: number; // 0-100
   message: string;
   error?: string;
@@ -48,8 +53,8 @@ export class AsyncValidationService {
    * Add validation job to queue
    */
   async addValidationJob(
-    videoId: string, 
-    storageKey: string, 
+    videoId: string,
+    storageKey: string,
     priority: 'high' | 'medium' | 'low' = 'medium'
   ): Promise<void> {
     const job: ValidationJob = {
@@ -58,21 +63,23 @@ export class AsyncValidationService {
       priority,
       retryCount: 0,
       maxRetries: 3,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     // Add to queue with priority ordering
     this.insertJobByPriority(job);
-    
+
     // Initialize progress tracking
     this.progressMap.set(videoId, {
       videoId,
       stage: 'downloading',
       progress: 0,
-      message: 'Queued for validation'
+      message: 'Queued for validation',
     });
 
-    this.logger.log(`Added validation job for video ${videoId} with priority ${priority}`);
+    this.logger.log(
+      `Added validation job for video ${videoId} with priority ${priority}`
+    );
   }
 
   /**
@@ -93,7 +100,7 @@ export class AsyncValidationService {
     return {
       queueLength: this.validationQueue.length,
       activeJobs: this.activeJobs.size,
-      maxConcurrent: this.maxConcurrentJobs
+      maxConcurrent: this.maxConcurrentJobs,
     };
   }
 
@@ -102,7 +109,11 @@ export class AsyncValidationService {
    */
   private startQueueProcessor(): void {
     setInterval(async () => {
-      if (!this.isProcessing && this.validationQueue.length > 0 && this.activeJobs.size < this.maxConcurrentJobs) {
+      if (
+        !this.isProcessing &&
+        this.validationQueue.length > 0 &&
+        this.activeJobs.size < this.maxConcurrentJobs
+      ) {
         await this.processNextJob();
       }
     }, 1000); // Check every second
@@ -112,7 +123,10 @@ export class AsyncValidationService {
    * Process the next job in queue
    */
   private async processNextJob(): Promise<void> {
-    if (this.validationQueue.length === 0 || this.activeJobs.size >= this.maxConcurrentJobs) {
+    if (
+      this.validationQueue.length === 0 ||
+      this.activeJobs.size >= this.maxConcurrentJobs
+    ) {
       return;
     }
 
@@ -125,7 +139,10 @@ export class AsyncValidationService {
     try {
       await this.processValidationJob(job);
     } catch (error) {
-      this.logger.error(`Validation job failed for video ${job.videoId}:`, error);
+      this.logger.error(
+        `Validation job failed for video ${job.videoId}:`,
+        error
+      );
       await this.handleJobFailure(job, error);
     } finally {
       this.activeJobs.delete(job.videoId);
@@ -143,7 +160,9 @@ export class AsyncValidationService {
       this.updateProgress(videoId, 'downloading', 10, 'Downloading video file');
 
       // Get video entity
-      const video = await this.videoRepository.findById({ value: videoId } as any);
+      const video = await this.videoRepository.findById({
+        value: videoId,
+      } as any);
       if (!video) {
         throw new Error(`Video ${videoId} not found`);
       }
@@ -160,10 +179,17 @@ export class AsyncValidationService {
 
       try {
         // Validate video
-        const validationResult = await this.validationService.validateVideo(tempFilePath);
-        
+        const validationResult = await this.validationService.validateVideo(
+          tempFilePath
+        );
+
         // Update progress: extracting metadata
-        this.updateProgress(videoId, 'extracting_metadata', 70, 'Extracting video metadata');
+        this.updateProgress(
+          videoId,
+          'extracting_metadata',
+          70,
+          'Extracting video metadata'
+        );
 
         let metadata = null;
         if (validationResult.isValid) {
@@ -171,26 +197,36 @@ export class AsyncValidationService {
         }
 
         // Complete validation
-        video.completeValidation(metadata, validationResult.errors, validationResult.warnings);
+        video.completeValidation(
+          metadata,
+          validationResult.errors,
+          validationResult.warnings
+        );
         await this.videoRepository.update(video);
 
         // Publish domain events
         await this.publishDomainEvents(video);
 
         // Update progress: completed
-        this.updateProgress(videoId, 'completed', 100, 'Validation completed successfully');
+        this.updateProgress(
+          videoId,
+          'completed',
+          100,
+          'Validation completed successfully'
+        );
 
         this.logger.log(`Validation completed for video ${videoId}`);
-
       } finally {
         // Clean up temporary file
         await this.cleanupTempFile(tempFilePath);
       }
-
     } catch (error) {
       // Let the error bubble up to be handled by processNextJob
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Validation job failed for video ${videoId}: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Validation job failed for video ${videoId}: ${errorMessage}`
+      );
       throw error;
     }
   }
@@ -198,31 +234,59 @@ export class AsyncValidationService {
   /**
    * Handle job failure with retry logic
    */
-  private async handleJobFailure(job: ValidationJob, error: any): Promise<void> {
+  private async handleJobFailure(
+    job: ValidationJob,
+    error: any
+  ): Promise<void> {
     const { videoId } = job;
 
     if (job.retryCount < job.maxRetries) {
       // Retry the job
       job.retryCount++;
       this.insertJobByPriority(job);
-      
-      this.updateProgress(videoId, 'downloading', 0, `Retrying validation (attempt ${job.retryCount + 1})`);
-      this.logger.warn(`Retrying validation for video ${videoId} (attempt ${job.retryCount + 1})`);
+
+      this.updateProgress(
+        videoId,
+        'downloading',
+        0,
+        `Retrying validation (attempt ${job.retryCount + 1})`
+      );
+      this.logger.warn(
+        `Retrying validation for video ${videoId} (attempt ${
+          job.retryCount + 1
+        })`
+      );
     } else {
       // Mark as failed
       try {
-        const video = await this.videoRepository.findById({ value: videoId } as any);
+        const video = await this.videoRepository.findById({
+          value: videoId,
+        } as any);
         if (video) {
-          video.markAsFailed(`Validation failed after ${job.maxRetries} attempts: ${error.message}`);
+          video.markAsFailed(
+            `Validation failed after ${job.maxRetries} attempts: ${error.message}`
+          );
           await this.videoRepository.update(video);
           await this.publishDomainEvents(video);
         }
       } catch (updateError) {
-        this.logger.error(`Failed to update video ${videoId} as failed:`, updateError);
+        this.logger.error(
+          `Failed to update video ${videoId} as failed:`,
+          updateError
+        );
       }
 
-      this.updateProgress(videoId, 'failed', 0, `Validation failed: ${error.message}`, error.message);
-      this.logger.error(`Validation permanently failed for video ${videoId}:`, error);
+      this.updateProgress(
+        videoId,
+        'failed',
+        0,
+        `Validation failed: ${error.message}`,
+        error.message
+      );
+      this.logger.error(
+        `Validation permanently failed for video ${videoId}:`,
+        error
+      );
     }
   }
 
@@ -249,9 +313,9 @@ export class AsyncValidationService {
    * Update validation progress
    */
   private updateProgress(
-    videoId: string, 
-    stage: ValidationProgress['stage'], 
-    progress: number, 
+    videoId: string,
+    stage: ValidationProgress['stage'],
+    progress: number,
     message: string,
     error?: string
   ): void {
@@ -260,7 +324,7 @@ export class AsyncValidationService {
       stage,
       progress,
       message,
-      error
+      error,
     });
   }
 

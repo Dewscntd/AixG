@@ -1,6 +1,6 @@
 /**
  * GraphQL Context Types
- * 
+ *
  * Defines the context object passed to all GraphQL resolvers
  */
 

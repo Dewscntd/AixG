@@ -1,7 +1,16 @@
-import { AnalysisStage, StageInput, StageResult, EdgeMLInference } from '../entities/live-analysis-pipeline';
+import {
+  AnalysisStage,
+  StageInput,
+  StageResult,
+  EdgeMLInference,
+} from '../entities/live-analysis-pipeline';
 import { Player } from './player-detection-stage';
 import { BallPosition } from './ball-tracking-stage';
-import { PlayerDetection, BallDetection, EventDetection } from '../../infrastructure/ml/edge-ml-inference';
+import {
+  PlayerDetection,
+  BallDetection,
+  EventDetection,
+} from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Event Detection Stage
@@ -14,17 +23,21 @@ export class EventDetectionStage implements AnalysisStage {
 
   async process(input: StageInput): Promise<StageResult> {
     const startTime = Date.now();
-    
+
     try {
       const { context } = input;
-      const playerDetections = context.classifiedPlayers || context.players || [];
-      const players: Player[] = this.convertFromPlayerDetections(playerDetections);
+      const playerDetections =
+        context.classifiedPlayers || context.players || [];
+      const players: Player[] =
+        this.convertFromPlayerDetections(playerDetections);
       const ballDetection = context.ball;
-      const ball: BallPosition | null = ballDetection ? this.convertBallDetectionToBallPosition(ballDetection) : null;
+      const ball: BallPosition | null = ballDetection
+        ? this.convertBallDetectionToBallPosition(ballDetection)
+        : null;
 
       // Detect events based on player and ball positions
       const events = await this.detectEvents(players, ball, context);
-      
+
       // Calculate event statistics
       const eventStats = this.calculateEventStats(events);
 
@@ -36,21 +49,20 @@ export class EventDetectionStage implements AnalysisStage {
         processingTimeMs: processingTime,
         output: {
           events: this.convertToEventDetections(events),
-          stats: eventStats
-        }
+          stats: eventStats,
+        },
       };
-
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      
+
       return {
         stageName: this.name,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {
-          events: []
-        }
+          events: [],
+        },
       };
     }
   }
@@ -58,7 +70,9 @@ export class EventDetectionStage implements AnalysisStage {
   /**
    * Convert PlayerDetection[] to Player[] for internal processing
    */
-  private convertFromPlayerDetections(playerDetections: PlayerDetection[]): Player[] {
+  private convertFromPlayerDetections(
+    playerDetections: PlayerDetection[]
+  ): Player[] {
     return playerDetections.map(detection => ({
       id: detection.playerId,
       boundingBox: detection.boundingBox,
@@ -68,21 +82,23 @@ export class EventDetectionStage implements AnalysisStage {
       jersey: detection.jerseyNumber?.toString() || null,
       pose: null,
       velocity: { x: 0, y: 0 },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }));
   }
 
   /**
    * Convert BallDetection to BallPosition for internal processing
    */
-  private convertBallDetectionToBallPosition(ballDetection: BallDetection): BallPosition {
+  private convertBallDetectionToBallPosition(
+    ballDetection: BallDetection
+  ): BallPosition {
     return {
       position: ballDetection.position,
       velocity: ballDetection.velocity || { x: 0, y: 0 },
       confidence: ballDetection.confidence,
       radius: 0.5, // Default radius
       timestamp: Date.now(),
-      predicted: false
+      predicted: false,
     };
   }
 
@@ -91,12 +107,20 @@ export class EventDetectionStage implements AnalysisStage {
    */
   private convertToEventDetections(events: FootballEvent[]): EventDetection[] {
     return events.map(event => ({
-      eventType: event.type as 'pass' | 'shot' | 'tackle' | 'foul' | 'offside' | 'goal' | 'corner' | 'throw_in',
+      eventType: event.type as
+        | 'pass'
+        | 'shot'
+        | 'tackle'
+        | 'foul'
+        | 'offside'
+        | 'goal'
+        | 'corner'
+        | 'throw_in',
       confidence: event.confidence,
       processingTimeMs: 10, // Mock processing time
       timestamp: event.timestamp,
       position: event.position,
-      metadata: event.metadata
+      metadata: event.metadata,
     }));
   }
 
@@ -122,8 +146,8 @@ export class EventDetectionStage implements AnalysisStage {
           position: ball.position,
           confidence: 0.8,
           metadata: {
-            ballSpeed: Math.sqrt(ball.velocity.x ** 2 + ball.velocity.y ** 2)
-          }
+            ballSpeed: Math.sqrt(ball.velocity.x ** 2 + ball.velocity.y ** 2),
+          },
         });
       }
     }
@@ -150,7 +174,10 @@ export class EventDetectionStage implements AnalysisStage {
   /**
    * Find player closest to ball
    */
-  private findPlayerNearBall(players: Player[], ball: BallPosition): Player | null {
+  private findPlayerNearBall(
+    players: Player[],
+    ball: BallPosition
+  ): Player | null {
     let closestPlayer: Player | null = null;
     let minDistance = Infinity;
     const maxPossessionDistance = 50; // pixels
@@ -175,13 +202,17 @@ export class EventDetectionStage implements AnalysisStage {
     previousBall: BallPosition
   ): FootballEvent | null {
     // Simplified pass detection based on ball speed change
-    const currentSpeed = Math.sqrt(currentBall.velocity.x ** 2 + currentBall.velocity.y ** 2);
-    const previousSpeed = Math.sqrt(previousBall.velocity.x ** 2 + previousBall.velocity.y ** 2);
-    
+    const currentSpeed = Math.sqrt(
+      currentBall.velocity.x ** 2 + currentBall.velocity.y ** 2
+    );
+    const previousSpeed = Math.sqrt(
+      previousBall.velocity.x ** 2 + previousBall.velocity.y ** 2
+    );
+
     // Detect significant speed increase (potential pass)
     if (currentSpeed > previousSpeed * 1.5 && currentSpeed > 100) {
       const passingPlayer = this.findPlayerNearBall(players, previousBall);
-      
+
       if (passingPlayer) {
         return {
           type: 'pass',
@@ -191,8 +222,10 @@ export class EventDetectionStage implements AnalysisStage {
           confidence: 0.7,
           metadata: {
             ballSpeed: currentSpeed,
-            direction: Math.atan2(currentBall.velocity.y, currentBall.velocity.x) * (180 / Math.PI)
-          }
+            direction:
+              Math.atan2(currentBall.velocity.y, currentBall.velocity.x) *
+              (180 / Math.PI),
+          },
         };
       }
     }
@@ -203,9 +236,12 @@ export class EventDetectionStage implements AnalysisStage {
   /**
    * Detect shot events
    */
-  private detectShot(players: Player[], ball: BallPosition): FootballEvent | null {
+  private detectShot(
+    players: Player[],
+    ball: BallPosition
+  ): FootballEvent | null {
     const shootingPlayer = this.findPlayerNearBall(players, ball);
-    
+
     if (shootingPlayer) {
       return {
         type: 'shot',
@@ -215,8 +251,9 @@ export class EventDetectionStage implements AnalysisStage {
         confidence: 0.6,
         metadata: {
           ballSpeed: Math.sqrt(ball.velocity.x ** 2 + ball.velocity.y ** 2),
-          direction: Math.atan2(ball.velocity.y, ball.velocity.x) * (180 / Math.PI)
-        }
+          direction:
+            Math.atan2(ball.velocity.y, ball.velocity.x) * (180 / Math.PI),
+        },
       };
     }
 
@@ -235,7 +272,10 @@ export class EventDetectionStage implements AnalysisStage {
   /**
    * Calculate distance between two positions
    */
-  private calculateDistance(pos1: { x: number; y: number }, pos2: { x: number; y: number }): number {
+  private calculateDistance(
+    pos1: { x: number; y: number },
+    pos2: { x: number; y: number }
+  ): number {
     const dx = pos1.x - pos2.x;
     const dy = pos1.y - pos2.y;
     return Math.sqrt(dx * dx + dy * dy);
@@ -246,14 +286,14 @@ export class EventDetectionStage implements AnalysisStage {
    */
   private calculateEventStats(events: FootballEvent[]): EventStats {
     const eventTypes: Record<string, number> = {};
-    
+
     for (const event of events) {
       eventTypes[event.type] = (eventTypes[event.type] || 0) + 1;
     }
 
     return {
       totalEvents: events.length,
-      eventTypes
+      eventTypes,
     };
   }
 }

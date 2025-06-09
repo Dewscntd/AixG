@@ -14,7 +14,7 @@ export class RingBuffer<T> {
     if (capacity <= 0) {
       throw new Error('Ring buffer capacity must be positive');
     }
-    
+
     this._capacity = capacity;
     this._buffer = new Array(capacity);
   }
@@ -25,13 +25,13 @@ export class RingBuffer<T> {
    */
   push(item: T): void {
     this._buffer[this._head] = item;
-    
+
     if (this._isFull) {
       this._tail = (this._tail + 1) % this._capacity;
     } else {
       this._size++;
     }
-    
+
     this._head = (this._head + 1) % this._capacity;
     this._isFull = this._head === this._tail;
   }
@@ -61,7 +61,7 @@ export class RingBuffer<T> {
     if (this.isEmpty()) {
       return undefined;
     }
-    
+
     const newestIndex = this._head === 0 ? this._capacity - 1 : this._head - 1;
     return this._buffer[newestIndex];
   }
@@ -73,7 +73,7 @@ export class RingBuffer<T> {
     if (this.isEmpty()) {
       return undefined;
     }
-    
+
     return this._buffer[this._tail];
   }
 
@@ -84,7 +84,7 @@ export class RingBuffer<T> {
     if (index < 0 || index >= this._size) {
       return undefined;
     }
-    
+
     const actualIndex = (this._tail + index) % this._capacity;
     return this._buffer[actualIndex];
   }
@@ -96,10 +96,10 @@ export class RingBuffer<T> {
     if (count <= 0) {
       return [];
     }
-    
+
     const actualCount = Math.min(count, this._size);
     const result: T[] = [];
-    
+
     for (let i = 0; i < actualCount; i++) {
       const index = this._head - 1 - i;
       const actualIndex = index < 0 ? this._capacity + index : index;
@@ -108,7 +108,7 @@ export class RingBuffer<T> {
         result.push(item);
       }
     }
-    
+
     return result;
   }
 
@@ -117,14 +117,14 @@ export class RingBuffer<T> {
    */
   toArray(): T[] {
     const result: T[] = [];
-    
+
     for (let i = 0; i < this._size; i++) {
       const item = this.get(i);
       if (item !== undefined) {
         result.push(item);
       }
     }
-    
+
     return result;
   }
 

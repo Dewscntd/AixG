@@ -1,6 +1,6 @@
 /**
  * Global Providers Component
- * 
+ *
  * Implements the provider composition pattern with:
  * - TanStack Query for server state management
  * - Apollo Client for GraphQL operations
@@ -41,13 +41,17 @@ function createQueryClient() {
         // Retry configuration
         retry: (failureCount, error: any) => {
           // Don't retry on 4xx errors except 408, 429
-          if (error?.status >= 400 && error?.status < 500 && ![408, 429].includes(error.status)) {
+          if (
+            error?.status >= 400 &&
+            error?.status < 500 &&
+            ![408, 429].includes(error.status)
+          ) {
             return false;
           }
           // Retry up to 3 times with exponential backoff
           return failureCount < 3;
         },
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
         // Refetch on window focus only if data is stale
         refetchOnWindowFocus: 'always',
         // Refetch on reconnect
@@ -94,7 +98,7 @@ function AppErrorBoundary({ children }: { children: ReactNode }) {
     // Log error to monitoring service
     console.error('Application Error:', error);
     console.error('Component Stack:', errorInfo.componentStack);
-    
+
     // Send to error tracking service (e.g., Sentry)
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', 'exception', {
@@ -119,11 +123,7 @@ function AppErrorBoundary({ children }: { children: ReactNode }) {
 function AppApolloProvider({ children }: { children: ReactNode }) {
   const [client] = useState(() => apolloClient);
 
-  return (
-    <ApolloProvider client={client}>
-      {children}
-    </ApolloProvider>
-  );
+  return <ApolloProvider client={client}>{children}</ApolloProvider>;
 }
 
 // React Query provider wrapper
@@ -173,7 +173,7 @@ export function Providers({ children, locale }: ProvidersProps) {
             <AppApolloProvider>
               <PerformanceProvider>
                 {children}
-                
+
                 {/* Global toast notifications */}
                 <Toaster
                   position="top-center"
@@ -197,7 +197,8 @@ export function Providers({ children, locale }: ProvidersProps) {
                       fontSize: '0.875rem',
                       fontWeight: '500',
                       padding: '0.75rem 1rem',
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                      boxShadow:
+                        '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                     },
                     // Success toast
                     success: {
@@ -236,7 +237,7 @@ export function withProviders<P extends object>(
 ) {
   return function WrappedComponent(props: P & { locale?: string }) {
     const { locale = 'he', ...componentProps } = props;
-    
+
     return (
       <Providers locale={locale}>
         <Component {...(componentProps as P)} />

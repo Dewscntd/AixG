@@ -38,22 +38,22 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
-    
+
     /* Success colors */
     --success: 142.1 76.2% 36.3%;
     --success-foreground: 355.7 100% 97.3%;
-    
+
     /* Warning colors */
     --warning: 32.2 95% 44.1%;
     --warning-foreground: 355.7 100% 97.3%;
-    
+
     /* Chart colors */
     --chart-1: 221.2 83.2% 53.3%;
     --chart-2: 0 84.2% 60.2%;
     --chart-3: 142.1 76.2% 36.3%;
     --chart-4: 32.2 95% 44.1%;
     --chart-5: 262.1 83.3% 57.8%;
-    
+
     /* Football field colors */
     --field-grass: 120 60% 20%;
     --field-lines: 0 0% 100%;
@@ -82,15 +82,15 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 94.1%;
-    
+
     /* Success colors */
     --success: 142.1 70.6% 45.3%;
     --success-foreground: 144.9 80.4% 10%;
-    
+
     /* Warning colors */
     --warning: 32.2 95% 44.1%;
     --warning-foreground: 20.5 90.2% 4.3%;
-    
+
     /* Football field colors */
     --field-grass: 120 40% 15%;
     --field-lines: 0 0% 100%;
@@ -102,45 +102,47 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
   }
-  
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
   }
-  
+
   /* Focus styles for accessibility */
   *:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
-  
+
   /* Selection styles */
   ::selection {
     @apply bg-primary/20 text-primary-foreground;
   }
-  
+
   /* Scrollbar styles */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   ::-webkit-scrollbar-track {
     @apply bg-muted;
   }
-  
+
   ::-webkit-scrollbar-thumb {
     @apply bg-muted-foreground/30 rounded-md;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/50;
   }
-  
+
   /* Firefox scrollbar */
   * {
     scrollbar-width: thin;
@@ -151,45 +153,45 @@
 /* RTL Support */
 @layer base {
   /* RTL-specific styles */
-  [dir="rtl"] {
+  [dir='rtl'] {
     direction: rtl;
   }
-  
-  [dir="ltr"] {
+
+  [dir='ltr'] {
     direction: ltr;
   }
-  
+
   /* RTL text alignment */
-  [dir="rtl"] .text-left {
+  [dir='rtl'] .text-left {
     text-align: right;
   }
-  
-  [dir="rtl"] .text-right {
+
+  [dir='rtl'] .text-right {
     text-align: left;
   }
-  
+
   /* RTL margins and padding */
-  [dir="rtl"] .ml-auto {
+  [dir='rtl'] .ml-auto {
     margin-left: unset;
     margin-right: auto;
   }
-  
-  [dir="rtl"] .mr-auto {
+
+  [dir='rtl'] .mr-auto {
     margin-right: unset;
     margin-left: auto;
   }
-  
+
   /* RTL transforms for icons */
-  [dir="rtl"] .rtl-flip {
+  [dir='rtl'] .rtl-flip {
     transform: scaleX(-1);
   }
-  
+
   /* RTL float */
-  [dir="rtl"] .float-left {
+  [dir='rtl'] .float-left {
     float: right;
   }
-  
-  [dir="rtl"] .float-right {
+
+  [dir='rtl'] .float-right {
     float: left;
   }
 }
@@ -200,46 +202,46 @@
   .loading-spinner {
     @apply inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite];
   }
-  
+
   /* Glass morphism effect */
   .glass {
     @apply bg-background/80 backdrop-blur-md border border-border/50;
   }
-  
+
   /* Gradient text */
   .gradient-text {
     @apply bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent;
   }
-  
+
   /* Card hover effect */
   .card-hover {
     @apply transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1;
   }
-  
+
   /* Button variants */
   .btn-primary {
     @apply bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary;
   }
-  
+
   .btn-secondary {
     @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-secondary;
   }
-  
+
   .btn-destructive {
     @apply bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive;
   }
-  
+
   /* Form styles */
   .form-input {
     @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
   }
-  
+
   /* Toast styles */
   .toast-container {
     @apply fixed top-4 right-4 z-50 flex flex-col gap-2;
   }
-  
-  [dir="rtl"] .toast-container {
+
+  [dir='rtl'] .toast-container {
     @apply right-auto left-4;
   }
 }
@@ -250,48 +252,48 @@
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .text-pretty {
     text-wrap: pretty;
   }
-  
+
   /* Layout utilities */
   .container-fluid {
     @apply w-full max-w-none px-4 sm:px-6 lg:px-8;
   }
-  
+
   /* Animation utilities */
   .animate-fade-in {
     animation: fadeIn 0.5s ease-in-out;
   }
-  
+
   .animate-slide-up {
     animation: slideUp 0.3s ease-out;
   }
-  
+
   .animate-scale-in {
     animation: scaleIn 0.2s ease-out;
   }
-  
+
   /* Performance utilities */
   .gpu-accelerated {
     transform: translateZ(0);
     will-change: transform;
   }
-  
+
   .contain-layout {
     contain: layout;
   }
-  
+
   .contain-paint {
     contain: paint;
   }
-  
+
   /* Accessibility utilities */
   .sr-only-focusable:focus {
     @apply not-sr-only;
   }
-  
+
   .reduce-motion {
     @media (prefers-reduced-motion: reduce) {
       animation-duration: 0.01ms !important;
@@ -338,11 +340,11 @@
   .no-print {
     display: none !important;
   }
-  
+
   .print-only {
     display: block !important;
   }
-  
+
   * {
     color-adjust: exact;
   }
@@ -354,7 +356,7 @@
     --border: 0 0% 0%;
     --ring: 0 0% 0%;
   }
-  
+
   .dark {
     --border: 0 0% 100%;
     --ring: 0 0% 100%;

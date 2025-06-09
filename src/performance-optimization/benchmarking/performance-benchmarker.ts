@@ -76,15 +76,15 @@ export class PerformanceBenchmarker extends EventEmitter {
     benchmarkFunction: () => Promise<T> | T
   ): Promise<BenchmarkResult> {
     this.logger.log(`Starting benchmark: ${config.name}`);
-    
+
     const times: number[] = [];
     const memorySnapshots: number[] = [];
     let errors = 0;
-    
+
     // Capture initial system state
     const initialMemory = process.memoryUsage();
     const initialCpuUsage = process.cpuUsage();
-    
+
     // Warmup phase
     this.logger.debug(`Running ${config.warmupIterations} warmup iterations`);
     for (let i = 0; i < config.warmupIterations; i++) {
@@ -94,29 +94,32 @@ export class PerformanceBenchmarker extends EventEmitter {
         this.logger.warn(`Warmup iteration ${i + 1} failed: ${error.message}`);
       }
     }
-    
+
     // Force garbage collection if available
     if (global.gc) {
       global.gc();
     }
-    
+
     // Main benchmark phase
     this.logger.debug(`Running ${config.iterations} benchmark iterations`);
-    
+
     if (config.parallel && config.maxConcurrency) {
       // Parallel execution
-      const batches = this.createBatches(config.iterations, config.maxConcurrency);
-      
+      const batches = this.createBatches(
+        config.iterations,
+        config.maxConcurrency
+      );
+
       for (const batch of batches) {
         const batchPromises = batch.map(async () => {
           const startTime = performance.now();
           const startMemory = process.memoryUsage().heapUsed;
-          
+
           try {
             await this.runSingleIteration(benchmarkFunction);
             const endTime = performance.now();
             const endMemory = process.memoryUsage().heapUsed;
-            
+
             times.push(endTime - startTime);
             memorySnapshots.push(endMemory - startMemory);
           } catch (error) {
@@ -124,7 +127,7 @@ export class PerformanceBenchmarker extends EventEmitter {
             this.logger.warn(`Benchmark iteration failed: ${error.message}`);
           }
         });
-        
+
         await Promise.all(batchPromises);
       }
     } else {
@@ -132,35 +135,37 @@ export class PerformanceBenchmarker extends EventEmitter {
       for (let i = 0; i < config.iterations; i++) {
         const startTime = performance.now();
         const startMemory = process.memoryUsage().heapUsed;
-        
+
         try {
           await this.runSingleIteration(benchmarkFunction);
           const endTime = performance.now();
           const endMemory = process.memoryUsage().heapUsed;
-          
+
           times.push(endTime - startTime);
           memorySnapshots.push(endMemory - startMemory);
-          
+
           // Emit progress
           if (i % Math.max(1, Math.floor(config.iterations / 10)) === 0) {
             this.emit('progress', {
               benchmark: config.name,
               completed: i + 1,
               total: config.iterations,
-              percentage: ((i + 1) / config.iterations) * 100
+              percentage: ((i + 1) / config.iterations) * 100,
             });
           }
         } catch (error) {
           errors++;
-          this.logger.warn(`Benchmark iteration ${i + 1} failed: ${error.message}`);
+          this.logger.warn(
+            `Benchmark iteration ${i + 1} failed: ${error.message}`
+          );
         }
       }
     }
-    
+
     // Calculate final metrics
     const finalMemory = process.memoryUsage();
     const finalCpuUsage = process.cpuUsage(initialCpuUsage);
-    
+
     const result = this.calculateBenchmarkResult(
       config,
       times,
@@ -170,12 +175,16 @@ export class PerformanceBenchmarker extends EventEmitter {
       finalMemory,
       finalCpuUsage
     );
-    
+
     // Store result
     this.storeBenchmarkResult(config.name, result);
-    
-    this.logger.log(`Benchmark completed: ${config.name} - ${result.averageTime.toFixed(2)}ms avg`);
-    
+
+    this.logger.log(
+      `Benchmark completed: ${config.name} - ${result.averageTime.toFixed(
+        2
+      )}ms avg`
+    );
+
     return result;
   }
 
@@ -190,7 +199,7 @@ export class PerformanceBenchmarker extends EventEmitter {
       const timeoutId = setTimeout(() => {
         reject(new Error('Benchmark iteration timeout'));
       }, timeout);
-      
+
       try {
         const result = await benchmarkFunction();
         clearTimeout(timeoutId);
@@ -232,14 +241,14 @@ export class PerformanceBenchmarker extends EventEmitter {
     const sortedTimes = [...times].sort((a, b) => a - b);
     const totalTime = times.reduce((sum, time) => sum + time, 0);
     const averageTime = totalTime / times.length;
-    
+
     const p50Index = Math.floor(sortedTimes.length * 0.5);
     const p95Index = Math.floor(sortedTimes.length * 0.95);
     const p99Index = Math.floor(sortedTimes.length * 0.99);
-    
+
     const peakMemory = Math.max(...memorySnapshots);
     const throughput = (times.length / totalTime) * 1000; // ops/second
-    
+
     return {
       name: config.name,
       timestamp: Date.now(),
@@ -255,15 +264,15 @@ export class PerformanceBenchmarker extends EventEmitter {
       memoryUsage: {
         before: initialMemory,
         after: finalMemory,
-        peak: peakMemory
+        peak: peakMemory,
       },
       systemMetrics: {
         cpuUsage: (cpuUsage.user + cpuUsage.system) / 1000000, // Convert to seconds
         loadAverage: os.loadavg(),
-        freeMemory: os.freemem()
+        freeMemory: os.freemem(),
       },
       errors,
-      success: errors === 0
+      success: errors === 0,
     };
   }
 
@@ -274,15 +283,15 @@ export class PerformanceBenchmarker extends EventEmitter {
     if (!this.benchmarkHistory.has(name)) {
       this.benchmarkHistory.set(name, []);
     }
-    
+
     const history = this.benchmarkHistory.get(name)!;
     history.push(result);
-    
+
     // Keep only last 100 results
     if (history.length > 100) {
       history.shift();
     }
-    
+
     this.emit('benchmarkComplete', result);
   }
 
@@ -293,37 +302,54 @@ export class PerformanceBenchmarker extends EventEmitter {
     const baseline = result || this.getLatestResult(name);
     if (baseline) {
       this.baselines.set(name, baseline);
-      this.logger.log(`Baseline set for ${name}: ${baseline.averageTime.toFixed(2)}ms avg`);
+      this.logger.log(
+        `Baseline set for ${name}: ${baseline.averageTime.toFixed(2)}ms avg`
+      );
     }
   }
 
   /**
    * Compare current result with baseline
    */
-  compareWithBaseline(name: string, current?: BenchmarkResult): ComparisonReport | null {
+  compareWithBaseline(
+    name: string,
+    current?: BenchmarkResult
+  ): ComparisonReport | null {
     const baseline = this.baselines.get(name);
     const currentResult = current || this.getLatestResult(name);
-    
+
     if (!baseline || !currentResult) {
       return null;
     }
-    
+
     const improvement = {
-      averageTime: ((baseline.averageTime - currentResult.averageTime) / baseline.averageTime) * 100,
-      throughput: ((currentResult.throughput - baseline.throughput) / baseline.throughput) * 100,
-      memoryUsage: ((baseline.memoryUsage.peak - currentResult.memoryUsage.peak) / baseline.memoryUsage.peak) * 100,
-      p95Latency: ((baseline.p95 - currentResult.p95) / baseline.p95) * 100
+      averageTime:
+        ((baseline.averageTime - currentResult.averageTime) /
+          baseline.averageTime) *
+        100,
+      throughput:
+        ((currentResult.throughput - baseline.throughput) /
+          baseline.throughput) *
+        100,
+      memoryUsage:
+        ((baseline.memoryUsage.peak - currentResult.memoryUsage.peak) /
+          baseline.memoryUsage.peak) *
+        100,
+      p95Latency: ((baseline.p95 - currentResult.p95) / baseline.p95) * 100,
     };
-    
+
     const verdict = this.determineVerdict(improvement);
-    const recommendations = this.generateRecommendations(improvement, currentResult);
-    
+    const recommendations = this.generateRecommendations(
+      improvement,
+      currentResult
+    );
+
     return {
       baseline,
       current: currentResult,
       improvement,
       verdict,
-      recommendations
+      recommendations,
     };
   }
 
@@ -338,9 +364,15 @@ export class PerformanceBenchmarker extends EventEmitter {
   /**
    * Determine performance verdict
    */
-  private determineVerdict(improvement: ComparisonReport['improvement']): ComparisonReport['verdict'] {
-    const avgImprovement = (improvement.averageTime + improvement.throughput - improvement.p95Latency) / 3;
-    
+  private determineVerdict(
+    improvement: ComparisonReport['improvement']
+  ): ComparisonReport['verdict'] {
+    const avgImprovement =
+      (improvement.averageTime +
+        improvement.throughput -
+        improvement.p95Latency) /
+      3;
+
     if (avgImprovement > 5) {
       return 'improved';
     } else if (avgImprovement < -5) {
@@ -358,31 +390,43 @@ export class PerformanceBenchmarker extends EventEmitter {
     result: BenchmarkResult
   ): string[] {
     const recommendations: string[] = [];
-    
+
     if (improvement.averageTime < -10) {
-      recommendations.push('Average response time has degraded significantly - investigate recent changes');
+      recommendations.push(
+        'Average response time has degraded significantly - investigate recent changes'
+      );
     }
-    
+
     if (improvement.throughput < -15) {
-      recommendations.push('Throughput has decreased - consider scaling or optimization');
+      recommendations.push(
+        'Throughput has decreased - consider scaling or optimization'
+      );
     }
-    
+
     if (improvement.memoryUsage < -20) {
-      recommendations.push('Memory usage has increased - check for memory leaks');
+      recommendations.push(
+        'Memory usage has increased - check for memory leaks'
+      );
     }
-    
+
     if (improvement.p95Latency < -25) {
-      recommendations.push('P95 latency has increased - review slow operations');
+      recommendations.push(
+        'P95 latency has increased - review slow operations'
+      );
     }
-    
+
     if (result.errors > 0) {
-      recommendations.push(`${result.errors} errors occurred during benchmark - investigate error causes`);
+      recommendations.push(
+        `${result.errors} errors occurred during benchmark - investigate error causes`
+      );
     }
-    
+
     if (result.systemMetrics.cpuUsage > 80) {
-      recommendations.push('High CPU usage detected - consider CPU optimization');
+      recommendations.push(
+        'High CPU usage detected - consider CPU optimization'
+      );
     }
-    
+
     return recommendations;
   }
 
@@ -396,7 +440,9 @@ export class PerformanceBenchmarker extends EventEmitter {
     report += `**Generated**: ${new Date().toISOString()}\n`;
     report += `**System**: ${os.platform()} ${os.arch()}\n`;
     report += `**Node.js**: ${process.version}\n`;
-    report += `**Memory**: ${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB\n`;
+    report += `**Memory**: ${(os.totalmem() / 1024 / 1024 / 1024).toFixed(
+      2
+    )} GB\n`;
     report += `**CPU**: ${os.cpus()[0].model} (${os.cpus().length} cores)\n\n`;
 
     for (const name of names) {
@@ -414,8 +460,15 @@ export class PerformanceBenchmarker extends EventEmitter {
       report += `- **P95 Latency**: ${latest.p95.toFixed(2)}ms\n`;
       report += `- **P99 Latency**: ${latest.p99.toFixed(2)}ms\n`;
       report += `- **Throughput**: ${latest.throughput.toFixed(2)} ops/sec\n`;
-      report += `- **Success Rate**: ${((latest.iterations - latest.errors) / latest.iterations * 100).toFixed(2)}%\n`;
-      report += `- **Memory Peak**: ${(latest.memoryUsage.peak / 1024 / 1024).toFixed(2)} MB\n\n`;
+      report += `- **Success Rate**: ${(
+        ((latest.iterations - latest.errors) / latest.iterations) *
+        100
+      ).toFixed(2)}%\n`;
+      report += `- **Memory Peak**: ${(
+        latest.memoryUsage.peak /
+        1024 /
+        1024
+      ).toFixed(2)} MB\n\n`;
 
       // Baseline comparison
       if (baseline) {
@@ -423,10 +476,18 @@ export class PerformanceBenchmarker extends EventEmitter {
         if (comparison) {
           report += `### Baseline Comparison\n`;
           report += `- **Performance**: ${comparison.verdict.toUpperCase()}\n`;
-          report += `- **Average Time**: ${comparison.improvement.averageTime > 0 ? '+' : ''}${comparison.improvement.averageTime.toFixed(2)}%\n`;
-          report += `- **Throughput**: ${comparison.improvement.throughput > 0 ? '+' : ''}${comparison.improvement.throughput.toFixed(2)}%\n`;
-          report += `- **P95 Latency**: ${comparison.improvement.p95Latency > 0 ? '+' : ''}${comparison.improvement.p95Latency.toFixed(2)}%\n`;
-          report += `- **Memory Usage**: ${comparison.improvement.memoryUsage > 0 ? '+' : ''}${comparison.improvement.memoryUsage.toFixed(2)}%\n\n`;
+          report += `- **Average Time**: ${
+            comparison.improvement.averageTime > 0 ? '+' : ''
+          }${comparison.improvement.averageTime.toFixed(2)}%\n`;
+          report += `- **Throughput**: ${
+            comparison.improvement.throughput > 0 ? '+' : ''
+          }${comparison.improvement.throughput.toFixed(2)}%\n`;
+          report += `- **P95 Latency**: ${
+            comparison.improvement.p95Latency > 0 ? '+' : ''
+          }${comparison.improvement.p95Latency.toFixed(2)}%\n`;
+          report += `- **Memory Usage**: ${
+            comparison.improvement.memoryUsage > 0 ? '+' : ''
+          }${comparison.improvement.memoryUsage.toFixed(2)}%\n\n`;
 
           if (comparison.recommendations.length > 0) {
             report += `### Recommendations\n`;
@@ -463,33 +524,47 @@ export class PerformanceBenchmarker extends EventEmitter {
       return {
         averageTime: 'insufficient data',
         throughput: 'insufficient data',
-        stability: 'insufficient data'
+        stability: 'insufficient data',
       };
     }
 
     const recent = history.slice(-5);
     const previous = history.slice(-10, -5);
 
-    const recentAvgTime = recent.reduce((sum, r) => sum + r.averageTime, 0) / recent.length;
-    const previousAvgTime = previous.reduce((sum, r) => sum + r.averageTime, 0) / previous.length;
+    const recentAvgTime =
+      recent.reduce((sum, r) => sum + r.averageTime, 0) / recent.length;
+    const previousAvgTime =
+      previous.reduce((sum, r) => sum + r.averageTime, 0) / previous.length;
 
-    const recentThroughput = recent.reduce((sum, r) => sum + r.throughput, 0) / recent.length;
-    const previousThroughput = previous.reduce((sum, r) => sum + r.throughput, 0) / previous.length;
+    const recentThroughput =
+      recent.reduce((sum, r) => sum + r.throughput, 0) / recent.length;
+    const previousThroughput =
+      previous.reduce((sum, r) => sum + r.throughput, 0) / previous.length;
 
-    const timeChange = ((recentAvgTime - previousAvgTime) / previousAvgTime) * 100;
-    const throughputChange = ((recentThroughput - previousThroughput) / previousThroughput) * 100;
+    const timeChange =
+      ((recentAvgTime - previousAvgTime) / previousAvgTime) * 100;
+    const throughputChange =
+      ((recentThroughput - previousThroughput) / previousThroughput) * 100;
 
     // Calculate stability (coefficient of variation)
     const avgTimes = recent.map(r => r.averageTime);
     const mean = avgTimes.reduce((sum, t) => sum + t, 0) / avgTimes.length;
-    const variance = avgTimes.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) / avgTimes.length;
+    const variance =
+      avgTimes.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) /
+      avgTimes.length;
     const stdDev = Math.sqrt(variance);
     const cv = (stdDev / mean) * 100;
 
     return {
-      averageTime: timeChange > 5 ? 'degrading' : timeChange < -5 ? 'improving' : 'stable',
-      throughput: throughputChange > 5 ? 'improving' : throughputChange < -5 ? 'degrading' : 'stable',
-      stability: cv < 10 ? 'stable' : cv < 20 ? 'moderate' : 'unstable'
+      averageTime:
+        timeChange > 5 ? 'degrading' : timeChange < -5 ? 'improving' : 'stable',
+      throughput:
+        throughputChange > 5
+          ? 'improving'
+          : throughputChange < -5
+          ? 'degrading'
+          : 'stable',
+      stability: cv < 10 ? 'stable' : cv < 20 ? 'moderate' : 'unstable',
     };
   }
 
@@ -506,9 +581,9 @@ export class PerformanceBenchmarker extends EventEmitter {
         nodeVersion: process.version,
         totalMemory: os.totalmem(),
         cpuModel: os.cpus()[0].model,
-        cpuCount: os.cpus().length
+        cpuCount: os.cpus().length,
       },
-      benchmarks: {} as Record<string, any>
+      benchmarks: {} as Record<string, any>,
     };
 
     for (const name of names) {
@@ -522,10 +597,12 @@ export class PerformanceBenchmarker extends EventEmitter {
           latest: history[history.length - 1],
           summary: {
             totalRuns: history.length,
-            averageTime: history.reduce((sum, r) => sum + r.averageTime, 0) / history.length,
+            averageTime:
+              history.reduce((sum, r) => sum + r.averageTime, 0) /
+              history.length,
             bestTime: Math.min(...history.map(r => r.averageTime)),
-            worstTime: Math.max(...history.map(r => r.averageTime))
-          }
+            worstTime: Math.max(...history.map(r => r.averageTime)),
+          },
         };
       }
     }
@@ -542,7 +619,9 @@ export class PerformanceBenchmarker extends EventEmitter {
       const data = await fs.readFile(filePath, 'utf-8');
       const importData = JSON.parse(data);
 
-      for (const [name, benchmarkData] of Object.entries(importData.benchmarks as Record<string, any>)) {
+      for (const [name, benchmarkData] of Object.entries(
+        importData.benchmarks as Record<string, any>
+      )) {
         if (benchmarkData.history) {
           this.benchmarkHistory.set(name, benchmarkData.history);
         }
@@ -570,8 +649,10 @@ export class PerformanceBenchmarker extends EventEmitter {
     newestResult: Date | null;
   } {
     const names = Array.from(this.benchmarkHistory.keys());
-    const totalRuns = Array.from(this.benchmarkHistory.values())
-      .reduce((sum, history) => sum + history.length, 0);
+    const totalRuns = Array.from(this.benchmarkHistory.values()).reduce(
+      (sum, history) => sum + history.length,
+      0
+    );
 
     let oldestTimestamp = Infinity;
     let newestTimestamp = 0;
@@ -588,8 +669,9 @@ export class PerformanceBenchmarker extends EventEmitter {
       totalRuns,
       averageRunsPerBenchmark: names.length > 0 ? totalRuns / names.length : 0,
       benchmarkNames: names,
-      oldestResult: oldestTimestamp !== Infinity ? new Date(oldestTimestamp) : null,
-      newestResult: newestTimestamp > 0 ? new Date(newestTimestamp) : null
+      oldestResult:
+        oldestTimestamp !== Infinity ? new Date(oldestTimestamp) : null,
+      newestResult: newestTimestamp > 0 ? new Date(newestTimestamp) : null,
     };
   }
 }

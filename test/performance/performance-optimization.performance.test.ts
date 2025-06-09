@@ -29,25 +29,29 @@ describe('Performance Optimization Performance Tests', () => {
               l2Hits: 50,
               l2Misses: 10,
               hitRatio: 0.85,
-              averageResponseTime: 5
+              averageResponseTime: 5,
             }),
             warmCache: jest.fn(),
-            clearAll: jest.fn()
-          }
+            clearAll: jest.fn(),
+          },
         },
         {
           provide: QueryOptimizer,
           useValue: {
             analyzeQuery: jest.fn(),
             optimizeConfiguration: jest.fn(),
-            getSlowQueries: jest.fn().mockReturnValue([])
-          }
-        }
+            getSlowQueries: jest.fn().mockReturnValue([]),
+          },
+        },
       ],
     }).compile();
 
-    performanceOptimizationService = module.get<PerformanceOptimizationService>(PerformanceOptimizationService);
-    realTimeMonitor = module.get<RealTimePerformanceMonitor>(RealTimePerformanceMonitor);
+    performanceOptimizationService = module.get<PerformanceOptimizationService>(
+      PerformanceOptimizationService
+    );
+    realTimeMonitor = module.get<RealTimePerformanceMonitor>(
+      RealTimePerformanceMonitor
+    );
     gpuOptimizer = module.get<GPUOptimizerService>(GPUOptimizerService);
     cacheService = module.get<AdvancedCacheService>(AdvancedCacheService);
     queryOptimizer = module.get<QueryOptimizer>(QueryOptimizer);
@@ -61,7 +65,7 @@ describe('Performance Optimization Performance Tests', () => {
 
       // Act
       realTimeMonitor.startMonitoring(1000);
-      
+
       // Wait for first metrics collection
       await new Promise(resolve => {
         realTimeMonitor.once('metrics', () => {
@@ -86,8 +90,8 @@ describe('Performance Optimization Performance Tests', () => {
 
       // Act
       realTimeMonitor.startMonitoring(collectionInterval);
-      
-      realTimeMonitor.on('metrics', (metrics) => {
+
+      realTimeMonitor.on('metrics', metrics => {
         metricsCollected.push(metrics);
       });
 
@@ -95,18 +99,25 @@ describe('Performance Optimization Performance Tests', () => {
       realTimeMonitor.stopMonitoring();
 
       // Assert
-      expect(metricsCollected.length).toBeGreaterThanOrEqual(expectedMetrics * 0.8); // Allow 20% tolerance
-      expect(metricsCollected.length).toBeLessThanOrEqual(expectedMetrics * 1.2);
+      expect(metricsCollected.length).toBeGreaterThanOrEqual(
+        expectedMetrics * 0.8
+      ); // Allow 20% tolerance
+      expect(metricsCollected.length).toBeLessThanOrEqual(
+        expectedMetrics * 1.2
+      );
     });
 
     it('should record latency measurements efficiently', () => {
       // Arrange
       const numMeasurements = 10000;
-      const latencies = Array.from({ length: numMeasurements }, () => Math.random() * 1000);
+      const latencies = Array.from(
+        { length: numMeasurements },
+        () => Math.random() * 1000
+      );
 
       // Act
       const startTime = process.hrtime.bigint();
-      
+
       latencies.forEach(latency => {
         realTimeMonitor.recordLatency(latency);
       });
@@ -116,7 +127,7 @@ describe('Performance Optimization Performance Tests', () => {
 
       // Assert
       expect(duration).toBeLessThan(100); // Should complete in less than 100ms
-      
+
       const summary = realTimeMonitor.getPerformanceSummary();
       expect(summary.current).toBeDefined();
     });
@@ -188,7 +199,7 @@ describe('Performance Optimization Performance Tests', () => {
       // Assert
       const totalTime = endTime - startTime;
       const operationsPerSecond = (numOperations / totalTime) * 1000;
-      
+
       expect(operationsPerSecond).toBeGreaterThan(100); // At least 100 ops/sec
     });
 
@@ -251,7 +262,7 @@ describe('Performance Optimization Performance Tests', () => {
       const totalTime = endTime - startTime;
       expect(totalTime).toBeLessThan(60000); // Should complete in less than 60 seconds
       expect(results).toHaveLength(concurrentOptimizations);
-      
+
       results.forEach(result => {
         expect(result.optimizations).toBeDefined();
         expect(result.recommendations).toBeDefined();
@@ -267,11 +278,12 @@ describe('Performance Optimization Performance Tests', () => {
 
       // Act
       const startTime = Date.now();
-      
+
       const loadTest = async () => {
         while (isRunning) {
           try {
-            const response = await performanceOptimizationService.getPerformanceMetrics();
+            const response =
+              await performanceOptimizationService.getPerformanceMetrics();
             responses.push(response);
           } catch (error) {
             // Log error but continue
@@ -282,7 +294,7 @@ describe('Performance Optimization Performance Tests', () => {
       };
 
       const loadTestPromise = loadTest();
-      
+
       setTimeout(() => {
         isRunning = false;
       }, loadTestDuration);
@@ -294,12 +306,14 @@ describe('Performance Optimization Performance Tests', () => {
       const actualDuration = endTime - startTime;
       expect(actualDuration).toBeGreaterThanOrEqual(loadTestDuration * 0.9); // Allow 10% tolerance
       expect(responses.length).toBeGreaterThan(0);
-      
+
       // Check that response times are reasonable
-      const avgResponseTime = responses.reduce((sum, response) => 
-         sum + (response.timestamp ? 1 : 0) // Simple check that responses are valid
-      , 0) / responses.length;
-      
+      const avgResponseTime =
+        responses.reduce(
+          (sum, response) => sum + (response.timestamp ? 1 : 0), // Simple check that responses are valid
+          0
+        ) / responses.length;
+
       expect(avgResponseTime).toBeGreaterThan(0);
     });
   });
@@ -313,7 +327,7 @@ describe('Performance Optimization Performance Tests', () => {
       // Act
       for (let i = 0; i < iterations; i++) {
         await performanceOptimizationService.getPerformanceMetrics();
-        
+
         // Force garbage collection if available
         if (global.gc) {
           global.gc();
@@ -325,7 +339,7 @@ describe('Performance Optimization Performance Tests', () => {
       // Assert
       const memoryIncrease = finalMemory - initialMemory;
       const memoryIncreasePercent = (memoryIncrease / initialMemory) * 100;
-      
+
       // Memory increase should be less than 50%
       expect(memoryIncreasePercent).toBeLessThan(50);
     });

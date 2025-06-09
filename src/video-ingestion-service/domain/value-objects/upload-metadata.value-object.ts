@@ -20,7 +20,7 @@ export class UploadMetadata {
 
   constructor(props: UploadMetadataProps) {
     this.validateProps(props);
-    
+
     this._filename = props.filename;
     this._mimeType = props.mimeType;
     this._size = props.size;
@@ -76,7 +76,8 @@ export class UploadMetadata {
       throw new Error('File size must be greater than 0');
     }
 
-    if (props.size > 10 * 1024 * 1024 * 1024) { // 10GB limit
+    if (props.size > 10 * 1024 * 1024 * 1024) {
+      // 10GB limit
       throw new Error('File size exceeds maximum limit of 10GB');
     }
 
@@ -93,7 +94,7 @@ export class UploadMetadata {
       'video/wmv',
       'video/flv',
       'video/webm',
-      'video/mkv'
+      'video/mkv',
     ];
     return validMimeTypes.includes(mimeType.toLowerCase());
   }
@@ -114,7 +115,7 @@ export class UploadMetadata {
       teamId: this._teamId,
       uploadedBy: this._uploadedBy,
       tags: [...this._tags],
-      uploadId: this._uploadId
+      uploadId: this._uploadId,
     };
   }
 
@@ -126,7 +127,7 @@ export class UploadMetadata {
       matchId: snapshot.matchId,
       teamId: snapshot.teamId,
       uploadedBy: snapshot.uploadedBy,
-      tags: snapshot.tags
+      tags: snapshot.tags,
     });
     // Override the generated uploadId with the snapshot value
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

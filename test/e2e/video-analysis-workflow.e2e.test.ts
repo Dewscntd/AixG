@@ -25,7 +25,9 @@ describe('Video Analysis Workflow - E2E Tests', () => {
 
   beforeEach(async () => {
     // Clean state between tests
-    await IntegrationTestUtils.query('TRUNCATE TABLE matches, videos, match_analytics CASCADE');
+    await IntegrationTestUtils.query(
+      'TRUNCATE TABLE matches, videos, match_analytics CASCADE'
+    );
     await IntegrationTestUtils.getRedisClient().flushall();
   });
 
@@ -54,11 +56,14 @@ describe('Video Analysis Workflow - E2E Tests', () => {
         .post('/api/videos/upload')
         .attach('video', videoPath)
         .field('matchId', matchId)
-        .field('metadata', JSON.stringify({
-          duration: 5400, // 90 minutes
-          resolution: '1920x1080',
-          fps: 30,
-        }))
+        .field(
+          'metadata',
+          JSON.stringify({
+            duration: 5400, // 90 minutes
+            resolution: '1920x1080',
+            fps: 30,
+          })
+        )
         .expect(200);
 
       const videoId = uploadResponse.body.videoId;
@@ -163,7 +168,9 @@ describe('Video Analysis Workflow - E2E Tests', () => {
       // Verify possession calculations
       expect(analytics.homeTeam.possession).toBeValidPossession();
       expect(analytics.awayTeam.possession).toBeValidPossession();
-      expect(analytics.homeTeam.possession + analytics.awayTeam.possession).toBeCloseTo(100, 1);
+      expect(
+        analytics.homeTeam.possession + analytics.awayTeam.possession
+      ).toBeCloseTo(100, 1);
 
       // Verify formations
       expect(analytics.formations.homeTeam.formation).toBe('4-4-2');
@@ -199,7 +206,10 @@ describe('Video Analysis Workflow - E2E Tests', () => {
         .expect(201);
 
       // Upload corrupted video
-      const corruptedVideoPath = join(__dirname, '../fixtures/corrupted-video.mp4');
+      const corruptedVideoPath = join(
+        __dirname,
+        '../fixtures/corrupted-video.mp4'
+      );
       const uploadResponse = await request
         .post('/api/videos/upload')
         .attach('video', corruptedVideoPath)
@@ -220,9 +230,7 @@ describe('Video Analysis Workflow - E2E Tests', () => {
       expect(videoStatusResponse.body.error).toBeDefined();
 
       // Verify no analytics were created
-      await request
-        .get(`/api/analytics/matches/${matchId}`)
-        .expect(404);
+      await request.get(`/api/analytics/matches/${matchId}`).expect(404);
     });
 
     it('should support real-time analysis updates', async () => {
@@ -252,11 +260,16 @@ describe('Video Analysis Workflow - E2E Tests', () => {
             velocity: { x: 2, y: 0 },
             confidence: 0.95,
           },
-          events: i % 3 === 0 ? [{
-            type: 'pass',
-            confidence: 0.85,
-            playerId: TestDataFactory.createPlayerId(),
-          }] : [],
+          events:
+            i % 3 === 0
+              ? [
+                  {
+                    type: 'pass',
+                    confidence: 0.85,
+                    playerId: TestDataFactory.createPlayerId(),
+                  },
+                ]
+              : [],
         },
       }));
 
@@ -278,10 +291,7 @@ describe('Video Analysis Workflow - E2E Tests', () => {
       expect(liveAnalytics.lastUpdate).toBeDefined();
 
       // Stop stream
-      await request
-        .post('/api/streams/stop')
-        .send({ streamId })
-        .expect(200);
+      await request.post('/api/streams/stop').send({ streamId }).expect(200);
     });
   });
 
@@ -293,14 +303,12 @@ describe('Video Analysis Workflow - E2E Tests', () => {
         const awayTeamId = TestDataFactory.createTeamId();
 
         // Create match
-        await request
-          .post('/api/matches')
-          .send({
-            id: matchId,
-            homeTeamId,
-            awayTeamId,
-            startTime: new Date().toISOString(),
-          });
+        await request.post('/api/matches').send({
+          id: matchId,
+          homeTeamId,
+          awayTeamId,
+          startTime: new Date().toISOString(),
+        });
 
         // Upload video
         const videoPath = join(__dirname, '../fixtures/sample-match.mp4');
@@ -347,7 +355,11 @@ describe('Video Analysis Workflow - E2E Tests', () => {
           teamId: Math.random() > 0.5 ? homeTeamId : awayTeamId,
           ...TestDataFactory.createShotData(),
         })),
-        possessionEvents: generatePossessionEvents(homeTeamId, awayTeamId, 5000),
+        possessionEvents: generatePossessionEvents(
+          homeTeamId,
+          awayTeamId,
+          5000
+        ),
         players: generatePlayerData(homeTeamId, awayTeamId),
         metadata: {
           processingTime: 300.0,
@@ -398,13 +410,17 @@ async function stopTestApplication(_app: any) {
   return Promise.resolve();
 }
 
-async function waitForVideoProcessing(videoId: string, expectedStatus: string, timeout = 30000) {
+async function waitForVideoProcessing(
+  videoId: string,
+  expectedStatus: string,
+  timeout = 30000
+) {
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeout) {
     // Mock implementation - would check actual video processing status
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     // Simulate status progression
     if (expectedStatus === 'processing') {
       return;
@@ -412,11 +428,17 @@ async function waitForVideoProcessing(videoId: string, expectedStatus: string, t
       return;
     }
   }
-  
-  throw new Error(`Video processing did not reach ${expectedStatus} within timeout`);
+
+  throw new Error(
+    `Video processing did not reach ${expectedStatus} within timeout`
+  );
 }
 
-function generatePossessionEvents(homeTeamId: string, awayTeamId: string, count: number) {
+function generatePossessionEvents(
+  homeTeamId: string,
+  awayTeamId: string,
+  count: number
+) {
   return Array.from({ length: count }, (_, i) => ({
     timestamp: i * 1000,
     teamId: i % 3 === 0 ? homeTeamId : awayTeamId,
@@ -444,7 +466,9 @@ function generatePlayerData(homeTeamId: string, awayTeamId: string) {
 function generateFormationData(_teamId: string) {
   return Array.from({ length: 11 }, (_, i) => ({
     playerId: TestDataFactory.createPlayerId(),
-    position: ['goalkeeper', 'defender', 'midfielder', 'forward'][Math.floor(i / 3)],
+    position: ['goalkeeper', 'defender', 'midfielder', 'forward'][
+      Math.floor(i / 3)
+    ],
     coordinates: TestDataFactory.createPosition(),
   }));
 }

@@ -1,13 +1,18 @@
 /**
  * Cache Directive
- * 
+ *
  * GraphQL directive for field-level caching with Redis
  * Implements composition pattern for flexible caching strategies
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { SchemaDirectiveVisitor } from '@graphql-tools/utils';
-import { GraphQLField, GraphQLObjectType, defaultFieldResolver, GraphQLResolveInfo } from 'graphql';
+import {
+  GraphQLField,
+  GraphQLObjectType,
+  defaultFieldResolver,
+  GraphQLResolveInfo,
+} from 'graphql';
 import Redis from 'ioredis';
 import { ConfigService } from '@nestjs/config';
 import { GraphQLContext } from '../types/context';
@@ -50,17 +55,31 @@ export class CacheDirective extends SchemaDirectiveVisitor {
     this.defaultTtl = this.configService.get<number>('cacheDefaultTtl', 300); // 5 minutes
   }
 
-  visitFieldDefinition(field: GraphQLField<unknown, GraphQLContext>, _details: { objectType: GraphQLObjectType }) {
+  visitFieldDefinition(
+    field: GraphQLField<unknown, GraphQLContext>,
+    _details: { objectType: GraphQLObjectType }
+  ) {
     const { resolve = defaultFieldResolver } = field;
     const directiveArgs = this.args as CacheDirectiveArgs;
 
-    field.resolve = async function (source: unknown, args: unknown, context: GraphQLContext, info: GraphQLResolveInfo) {
+    field.resolve = async function (
+      source: unknown,
+      args: unknown,
+      context: GraphQLContext,
+      info: GraphQLResolveInfo
+    ) {
       const startTime = Date.now();
-      
+
       try {
         // Generate cache key
-        const cacheKey = this.generateCacheKey(source, args, context, info, directiveArgs);
-        
+        const cacheKey = this.generateCacheKey(
+          source,
+          args,
+          context,
+          info,
+          directiveArgs
+        );
+
         // Try to get from cache
         const cached = await this.getFromCache(cacheKey);
         if (cached !== null) {
@@ -127,22 +146,29 @@ export class CacheDirective extends SchemaDirectiveVisitor {
     directiveArgs: CacheDirectiveArgs
   ): string {
     const field = `${info.parentType.name}.${info.fieldName}`;
-    
+
     // Use custom key template if provided
     if (directiveArgs.key) {
-      return this.interpolateKeyTemplate(directiveArgs.key, source, args, context);
+      return this.interpolateKeyTemplate(
+        directiveArgs.key,
+        source,
+        args,
+        context
+      );
     }
 
     // Generate key based on scope
     switch (directiveArgs.scope) {
       case 'private':
-        return `cache:private:${context.user?.id}:${field}:${this.hashArgs(args)}`;
-      
+        return `cache:private:${context.user?.id}:${field}:${this.hashArgs(
+          args
+        )}`;
+
       case 'team': {
         const teamId = context.user?.teamId || this.extractTeamId(source, args);
         return `cache:team:${teamId}:${field}:${this.hashArgs(args)}`;
       }
-      
+
       case 'public':
       default:
         return `cache:public:${field}:${this.hashArgs(args)}`;
@@ -164,8 +190,12 @@ export class CacheDirective extends SchemaDirectiveVisitor {
     return template
       .replace(/\{userId\}/g, context.user?.id || 'anonymous')
       .replace(/\{teamId\}/g, context.user?.teamId || 'none')
-      .replace(/\{args\.(\w+)\}/g, (match, argName) => String(argsObj[argName] || 'null'))
-      .replace(/\{source\.(\w+)\}/g, (match, fieldName) => String(sourceObj?.[fieldName] || 'null'));
+      .replace(/\{args\.(\w+)\}/g, (match, argName) =>
+        String(argsObj[argName] || 'null')
+      )
+      .replace(/\{source\.(\w+)\}/g, (match, fieldName) =>
+        String(sourceObj?.[fieldName] || 'null')
+      );
   }
 
   /**
@@ -179,13 +209,13 @@ export class CacheDirective extends SchemaDirectiveVisitor {
     // Simple hash implementation - in production, use a proper hash function
     const argsString = JSON.stringify(args, Object.keys(args).sort());
     let hash = 0;
-    
+
     for (let i = 0; i < argsString.length; i++) {
       const char = argsString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
-    
+
     return Math.abs(hash).toString(36);
   }
 
@@ -205,11 +235,15 @@ export class CacheDirective extends SchemaDirectiveVisitor {
   /**
    * Stores value in cache
    */
-  private async setInCache(key: string, value: unknown, directiveArgs: CacheDirectiveArgs): Promise<void> {
+  private async setInCache(
+    key: string,
+    value: unknown,
+    directiveArgs: CacheDirectiveArgs
+  ): Promise<void> {
     try {
       const ttl = directiveArgs.ttl || this.defaultTtl;
       const serialized = JSON.stringify(value);
-      
+
       await this.redis.setex(key, ttl, serialized);
 
       // Store cache tags for invalidation
@@ -232,16 +266,20 @@ export class CacheDirective extends SchemaDirectiveVisitor {
   /**
    * Stores cache tags for invalidation purposes
    */
-  private async storeCacheTags(key: string, tags: string[], ttl: number): Promise<void> {
+  private async storeCacheTags(
+    key: string,
+    tags: string[],
+    ttl: number
+  ): Promise<void> {
     try {
       const pipeline = this.redis.pipeline();
-      
+
       for (const tag of tags) {
         const tagKey = `cache_tag:${tag}`;
         pipeline.sadd(tagKey, key);
         pipeline.expire(tagKey, ttl + 60); // Expire tags slightly later than cache
       }
-      
+
       await pipeline.exec();
     } catch (error) {
       this.logger.warn(`Failed to store cache tags for key: ${key}`, error);
@@ -256,16 +294,21 @@ export class CacheDirective extends SchemaDirectiveVisitor {
       for (const tag of tags) {
         const tagKey = `cache_tag:${tag}`;
         const keys = await this.redis.smembers(tagKey);
-        
+
         if (keys.length > 0) {
           await this.redis.del(...keys);
           await this.redis.del(tagKey);
-          
-          this.logger.debug(`Invalidated ${keys.length} cache entries for tag: ${tag}`);
+
+          this.logger.debug(
+            `Invalidated ${keys.length} cache entries for tag: ${tag}`
+          );
         }
       }
     } catch (error) {
-      this.logger.error(`Failed to invalidate cache by tags: ${tags.join(', ')}`, error);
+      this.logger.error(
+        `Failed to invalidate cache by tags: ${tags.join(', ')}`,
+        error
+      );
     }
   }
 
@@ -277,7 +320,9 @@ export class CacheDirective extends SchemaDirectiveVisitor {
     const sourceObj = source as Record<string, unknown>;
     const teamObj = sourceObj?.team as Record<string, unknown>;
 
-    return String(argsObj.teamId || sourceObj?.teamId || teamObj?.id || 'unknown');
+    return String(
+      argsObj.teamId || sourceObj?.teamId || teamObj?.id || 'unknown'
+    );
   }
 }
 
@@ -303,7 +348,10 @@ export const cacheDirectiveTypeDefs = `
 /**
  * Factory function to create cache directive transformer
  */
-export function createCacheDirective(configService: ConfigService, metricsService: MetricsService) {
+export function createCacheDirective(
+  configService: ConfigService,
+  metricsService: MetricsService
+) {
   return class extends CacheDirective {
     constructor() {
       super(configService, metricsService);

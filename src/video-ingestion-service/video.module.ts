@@ -7,7 +7,10 @@ import { StorageService } from './domain/ports/storage.service';
 import { EventPublisher } from './domain/ports/event.publisher';
 
 // Domain Services
-import { VideoValidationService, DefaultVideoValidationService } from './domain/services/video-validation.service';
+import {
+  VideoValidationService,
+  DefaultVideoValidationService,
+} from './domain/services/video-validation.service';
 
 // Application Use Cases
 import { UploadVideoUseCase } from './application/use-cases/upload-video.use-case';
@@ -30,9 +33,7 @@ import { VideoUploadController } from './controllers/upload.controller';
       envFilePath: ['.env.local', '.env'],
     }),
   ],
-  controllers: [
-    VideoUploadController,
-  ],
+  controllers: [VideoUploadController],
   providers: [
     // Use Cases
     UploadVideoUseCase,
@@ -50,7 +51,9 @@ import { VideoUploadController } from './controllers/upload.controller';
       provide: VideoRepository,
       useFactory: () => {
         const useInMemory = process.env.USE_IN_MEMORY_REPOSITORY === 'true';
-        return useInMemory ? new InMemoryVideoRepository() : new PostgreSQLVideoRepository();
+        return useInMemory
+          ? new InMemoryVideoRepository()
+          : new PostgreSQLVideoRepository();
       },
     },
     {

@@ -1,11 +1,18 @@
 /**
  * Gateway Resolver
- * 
+ *
  * Main resolver for the API Gateway providing health checks and gateway-specific operations
  * Implements composition pattern for flexible resolver composition
  */
 
-import { Resolver, Query, Mutation, Subscription, Args, Context } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Subscription,
+  Args,
+  Context,
+} from '@nestjs/graphql';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -105,7 +112,9 @@ export class GatewayResolver {
    * Gateway metrics for monitoring and analytics
    */
   @Query(() => GatewayMetrics)
-  async gatewayMetrics(@Context() context: GraphQLContext): Promise<GatewayMetrics> {
+  async gatewayMetrics(
+    @Context() context: GraphQLContext
+  ): Promise<GatewayMetrics> {
     this.logger.debug('Gateway metrics requested', {
       userId: context.user?.id,
       correlationId: context.correlationId,
@@ -114,10 +123,19 @@ export class GatewayResolver {
     const summary = await this.metricsService.getMetricsSummary();
 
     return {
-      totalRequests: Object.values(summary.operations).reduce((sum, count) => sum + count, 0),
-      successRate: this.calculateSuccessRate(summary.operations, summary.errors),
+      totalRequests: Object.values(summary.operations).reduce(
+        (sum, count) => sum + count,
+        0
+      ),
+      successRate: this.calculateSuccessRate(
+        summary.operations,
+        summary.errors
+      ),
       averageResponseTime: 0, // TODO: Calculate from metrics
-      errorRate: Object.values(summary.errors).reduce((sum, count) => sum + count, 0),
+      errorRate: Object.values(summary.errors).reduce(
+        (sum, count) => sum + count,
+        0
+      ),
       cacheHitRate: summary.cache.hitRate,
       activeConnections: summary.cache.totalOperations,
       timestamp: new Date(),
@@ -243,7 +261,9 @@ export class GatewayResolver {
       correlationId: context.correlationId,
     });
 
-    return this.subscriptionService.subscribeToUserNotifications(context.user?.id || 'anonymous');
+    return this.subscriptionService.subscribeToUserNotifications(
+      context.user?.id || 'anonymous'
+    );
   }
 
   // Private helper methods
@@ -274,7 +294,10 @@ export class GatewayResolver {
       const metricsHealth = await this.metricsService.healthCheck();
       services.push({
         name: 'metrics',
-        status: metricsHealth.redis && metricsHealth.collection ? 'healthy' : 'unhealthy',
+        status:
+          metricsHealth.redis && metricsHealth.collection
+            ? 'healthy'
+            : 'unhealthy',
         lastCheck: new Date(),
         details: metricsHealth,
       });
@@ -292,7 +315,10 @@ export class GatewayResolver {
       const subscriptionHealth = await this.subscriptionService.healthCheck();
       services.push({
         name: 'subscriptions',
-        status: subscriptionHealth.redis && subscriptionHealth.pubsub ? 'healthy' : 'unhealthy',
+        status:
+          subscriptionHealth.redis && subscriptionHealth.pubsub
+            ? 'healthy'
+            : 'unhealthy',
         lastCheck: new Date(),
         details: subscriptionHealth,
       });
@@ -336,9 +362,18 @@ export class GatewayResolver {
     return 'healthy';
   }
 
-  private calculateSuccessRate(operations: Record<string, number>, errors: Record<string, number>): number {
-    const totalOperations = Object.values(operations).reduce((sum, count) => sum + count, 0);
-    const totalErrors = Object.values(errors).reduce((sum, count) => sum + count, 0);
+  private calculateSuccessRate(
+    operations: Record<string, number>,
+    errors: Record<string, number>
+  ): number {
+    const totalOperations = Object.values(operations).reduce(
+      (sum, count) => sum + count,
+      0
+    );
+    const totalErrors = Object.values(errors).reduce(
+      (sum, count) => sum + count,
+      0
+    );
 
     if (totalOperations === 0) return 100;
 

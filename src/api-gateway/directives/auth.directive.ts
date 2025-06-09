@@ -36,93 +36,119 @@ export class AuthDirective {
   constructor(private readonly authService: AuthService) {}
 
   createTransformer() {
-    return (schema: GraphQLSchema) => mapSchema(schema, {
-      [MapperKind.OBJECT_FIELD]: (fieldConfig, _fieldName, _typeName) => {
-        const authDirective = getDirective(schema, fieldConfig, 'auth')?.[0];
-        if (authDirective) {
-          const { resolve = defaultFieldResolver } = fieldConfig;
-          const directiveArgs = authDirective as AuthDirectiveArgs;
+    return (schema: GraphQLSchema) =>
+      mapSchema(schema, {
+        [MapperKind.OBJECT_FIELD]: (fieldConfig, _fieldName, _typeName) => {
+          const authDirective = getDirective(schema, fieldConfig, 'auth')?.[0];
+          if (authDirective) {
+            const { resolve = defaultFieldResolver } = fieldConfig;
+            const directiveArgs = authDirective as AuthDirectiveArgs;
 
-          fieldConfig.resolve = async (source: GraphQLResolverSource, args: GraphQLResolverArgs, context: GraphQLContext, info) => {
-            try {
-              // Check if user is authenticated
-              if (!context.user) {
-                throw new Error('Authentication required');
-              }
-
-              // Check basic authentication level
-              if (directiveArgs.requires) {
-                const hasRequiredLevel = this.checkAuthenticationLevel(
-                  context.user,
-                  directiveArgs.requires
-                );
-
-                if (!hasRequiredLevel) {
-                  throw new Error(`Insufficient authentication level. Required: ${directiveArgs.requires}`);
+            fieldConfig.resolve = async (
+              source: GraphQLResolverSource,
+              args: GraphQLResolverArgs,
+              context: GraphQLContext,
+              info
+            ) => {
+              try {
+                // Check if user is authenticated
+                if (!context.user) {
+                  throw new Error('Authentication required');
                 }
-              }
 
-              // Check specific roles
-              if (directiveArgs.roles && directiveArgs.roles.length > 0) {
-                const hasRequiredRoles = this.authService.hasRoles(context.user, directiveArgs.roles);
+                // Check basic authentication level
+                if (directiveArgs.requires) {
+                  const hasRequiredLevel = this.checkAuthenticationLevel(
+                    context.user,
+                    directiveArgs.requires
+                  );
 
-                if (!hasRequiredRoles) {
-                  throw new Error(`Insufficient roles. Required: ${directiveArgs.roles.join(', ')}`);
+                  if (!hasRequiredLevel) {
+                    throw new Error(
+                      `Insufficient authentication level. Required: ${directiveArgs.requires}`
+                    );
+                  }
                 }
-              }
 
-              // Check specific permissions
-              if (directiveArgs.permissions && directiveArgs.permissions.length > 0) {
-                const hasRequiredPermissions = this.authService.hasPermissions(
-                  context.user,
-                  directiveArgs.permissions
-                );
+                // Check specific roles
+                if (directiveArgs.roles && directiveArgs.roles.length > 0) {
+                  const hasRequiredRoles = this.authService.hasRoles(
+                    context.user,
+                    directiveArgs.roles
+                  );
 
-                if (!hasRequiredPermissions) {
-                  throw new Error(`Insufficient permissions. Required: ${directiveArgs.permissions.join(', ')}`);
+                  if (!hasRequiredRoles) {
+                    throw new Error(
+                      `Insufficient roles. Required: ${directiveArgs.roles.join(
+                        ', '
+                      )}`
+                    );
+                  }
                 }
-              }
 
-              // Check team access if required
-              if (directiveArgs.teamAccess) {
-                const teamId = this.extractTeamId(args, source);
+                // Check specific permissions
+                if (
+                  directiveArgs.permissions &&
+                  directiveArgs.permissions.length > 0
+                ) {
+                  const hasRequiredPermissions =
+                    this.authService.hasPermissions(
+                      context.user,
+                      directiveArgs.permissions
+                    );
 
-                if (teamId && !this.authService.canAccessTeam(context.user, teamId)) {
-                  throw new Error('Access denied to team resources');
+                  if (!hasRequiredPermissions) {
+                    throw new Error(
+                      `Insufficient permissions. Required: ${directiveArgs.permissions.join(
+                        ', '
+                      )}`
+                    );
+                  }
                 }
+
+                // Check team access if required
+                if (directiveArgs.teamAccess) {
+                  const teamId = this.extractTeamId(args, source);
+
+                  if (
+                    teamId &&
+                    !this.authService.canAccessTeam(context.user, teamId)
+                  ) {
+                    throw new Error('Access denied to team resources');
+                  }
+                }
+
+                // Log authorization success
+                this.logger.debug('Authorization successful', {
+                  userId: context.user.id,
+                  field: info.fieldName,
+                  parentType: info.parentType.name,
+                  requires: directiveArgs.requires,
+                  roles: directiveArgs.roles,
+                  permissions: directiveArgs.permissions,
+                });
+
+                // Call the original resolver
+                return resolve.call(this, source, args, context, info);
+              } catch (error) {
+                // Log authorization failure
+                this.logger.warn('Authorization failed', {
+                  userId: context.user?.id,
+                  field: info.fieldName,
+                  parentType: info.parentType.name,
+                  error: error instanceof Error ? error.message : String(error),
+                  requires: directiveArgs.requires,
+                  roles: directiveArgs.roles,
+                  permissions: directiveArgs.permissions,
+                });
+
+                throw error;
               }
-
-              // Log authorization success
-              this.logger.debug('Authorization successful', {
-                userId: context.user.id,
-                field: info.fieldName,
-                parentType: info.parentType.name,
-                requires: directiveArgs.requires,
-                roles: directiveArgs.roles,
-                permissions: directiveArgs.permissions,
-              });
-
-              // Call the original resolver
-              return resolve.call(this, source, args, context, info);
-            } catch (error) {
-              // Log authorization failure
-              this.logger.warn('Authorization failed', {
-                userId: context.user?.id,
-                field: info.fieldName,
-                parentType: info.parentType.name,
-                error: error instanceof Error ? error.message : String(error),
-                requires: directiveArgs.requires,
-                roles: directiveArgs.roles,
-                permissions: directiveArgs.permissions,
-              });
-
-              throw error;
-            }
-          };
-        }
-        return fieldConfig;
-      },
-    });
+            };
+          }
+          return fieldConfig;
+        },
+      });
   }
 
   /**
@@ -130,9 +156,9 @@ export class AuthDirective {
    */
   private checkAuthenticationLevel(user: User, required: string): boolean {
     const levels: Record<string, number> = {
-      'USER': 1,
-      'ADMIN': 2,
-      'SUPER_ADMIN': 3,
+      USER: 1,
+      ADMIN: 2,
+      SUPER_ADMIN: 3,
     };
 
     const userLevel = this.getUserAuthLevel(user);
@@ -146,14 +172,18 @@ export class AuthDirective {
    */
   private getUserAuthLevel(user: User): number {
     if (user.roles.includes('super_admin')) return 3;
-    if (user.roles.includes('admin') || user.roles.includes('team_admin')) return 2;
+    if (user.roles.includes('admin') || user.roles.includes('team_admin'))
+      return 2;
     return 1; // Regular user
   }
 
   /**
    * Extracts team ID from resolver arguments or source
    */
-  private extractTeamId(args: GraphQLResolverArgs, source: GraphQLResolverSource): string | undefined {
+  private extractTeamId(
+    args: GraphQLResolverArgs,
+    source: GraphQLResolverSource
+  ): string | undefined {
     // Check common argument names
     if (typeof args.teamId === 'string') return args.teamId;
 

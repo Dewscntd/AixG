@@ -70,7 +70,7 @@ export class QueryOptimizer extends EventEmitter {
     activeConnections: 0,
     idleConnections: 0,
     waitingClients: 0,
-    averageWaitTime: 0
+    averageWaitTime: 0,
   };
   private monitoringInterval?: NodeJS.Timeout;
   private isMonitoring = false;
@@ -87,37 +87,39 @@ export class QueryOptimizer extends EventEmitter {
   /**
    * Analyze query performance and provide optimization suggestions
    */
-  async analyzeQuery(query: string, params: any[] = []): Promise<{
+  async analyzeQuery(
+    query: string,
+    params: any[] = []
+  ): Promise<{
     metrics: QueryMetrics;
     plan: QueryPlan[];
     suggestions: OptimizationSuggestion[];
   }> {
     const client = await this.pool.connect();
-    
+
     try {
       // Get query execution plan
       const plan = await this.getQueryPlan(client, query, params);
-      
+
       // Execute query with timing
       const metrics = await this.executeWithMetrics(client, query, params);
-      
+
       // Store metrics for analysis
       this.storeQueryMetrics(query, metrics);
-      
+
       // Generate optimization suggestions
       const suggestions = this.generateOptimizationSuggestions(plan, metrics);
-      
+
       // Log slow queries
       if (metrics.executionTime > this.slowQueryThreshold) {
         this.logger.warn(`Slow query detected: ${metrics.executionTime}ms`, {
           query: query.substring(0, 100),
           executionTime: metrics.executionTime,
-          rowsReturned: metrics.rowsReturned
+          rowsReturned: metrics.rowsReturned,
         });
       }
-      
+
       return { metrics, plan, suggestions };
-      
     } finally {
       client.release();
     }
@@ -127,13 +129,13 @@ export class QueryOptimizer extends EventEmitter {
    * Get detailed query execution plan
    */
   private async getQueryPlan(
-    client: PoolClient, 
-    query: string, 
+    client: PoolClient,
+    query: string,
     params: any[]
   ): Promise<QueryPlan[]> {
     const explainQuery = `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}`;
     const result = await client.query(explainQuery, params);
-    
+
     return this.parseExecutionPlan(result.rows[0]['QUERY PLAN'][0]);
   }
 
@@ -148,14 +150,14 @@ export class QueryOptimizer extends EventEmitter {
     // Enable timing and buffer statistics
     await client.query('SET track_io_timing = on');
     await client.query('SET log_statement_stats = on');
-    
+
     const startTime = Date.now();
-    
+
     // Execute query
     const result = await client.query(query, params);
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     // Get buffer statistics
     const bufferStats = await client.query(`
       SELECT 
@@ -168,19 +170,23 @@ export class QueryOptimizer extends EventEmitter {
       FROM pg_statio_user_tables 
       WHERE schemaname = 'public'
     `);
-    
+
     // Calculate metrics
     const totalBufferReads = bufferStats.rows.reduce(
-      (sum, row) => sum + (row.heap_blks_read || 0) + (row.idx_blks_read || 0), 0
+      (sum, row) => sum + (row.heap_blks_read || 0) + (row.idx_blks_read || 0),
+      0
     );
     const totalBufferHits = bufferStats.rows.reduce(
-      (sum, row) => sum + (row.heap_blks_hit || 0) + (row.idx_blks_hit || 0), 0
+      (sum, row) => sum + (row.heap_blks_hit || 0) + (row.idx_blks_hit || 0),
+      0
     );
     const totalTempReads = bufferStats.rows.reduce(
-      (sum, row) => sum + (row.temp_blks_read || 0), 0
+      (sum, row) => sum + (row.temp_blks_read || 0),
+      0
     );
     const totalTempWrites = bufferStats.rows.reduce(
-      (sum, row) => sum + (row.temp_blks_written || 0), 0
+      (sum, row) => sum + (row.temp_blks_written || 0),
+      0
     );
 
     return {
@@ -193,7 +199,7 @@ export class QueryOptimizer extends EventEmitter {
       tempFileWrites: totalTempWrites,
       rowsReturned: result.rowCount || 0,
       indexScans: 0, // Would need to parse from plan
-      seqScans: 0 // Would need to parse from plan
+      seqScans: 0, // Would need to parse from plan
     };
   }
 
@@ -202,7 +208,7 @@ export class QueryOptimizer extends EventEmitter {
    */
   private parseExecutionPlan(planNode: any): QueryPlan[] {
     const plans: QueryPlan[] = [];
-    
+
     const extractPlan = (node: any): void => {
       plans.push({
         planRows: node['Plan Rows'] || 0,
@@ -212,14 +218,14 @@ export class QueryOptimizer extends EventEmitter {
         relationName: node['Relation Name'],
         indexName: node['Index Name'],
         totalCost: node['Total Cost'] || 0,
-        startupCost: node['Startup Cost'] || 0
+        startupCost: node['Startup Cost'] || 0,
       });
-      
+
       if (node.Plans) {
         node.Plans.forEach(extractPlan);
       }
     };
-    
+
     extractPlan(planNode.Plan);
     return plans;
   }
@@ -232,19 +238,21 @@ export class QueryOptimizer extends EventEmitter {
     metrics: QueryMetrics
   ): OptimizationSuggestion[] {
     const suggestions: OptimizationSuggestion[] = [];
-    
+
     // Check for sequential scans on large tables
-    const seqScans = plan.filter(p => p.nodeType === 'Seq Scan' && p.actualRows > 1000);
+    const seqScans = plan.filter(
+      p => p.nodeType === 'Seq Scan' && p.actualRows > 1000
+    );
     if (seqScans.length > 0) {
       suggestions.push({
         type: 'index',
         priority: 'high',
         description: 'Sequential scan detected on large table',
         estimatedImprovement: '50-90% faster execution',
-        implementation: `CREATE INDEX ON ${seqScans[0].relationName} (column_name);`
+        implementation: `CREATE INDEX ON ${seqScans[0].relationName} (column_name);`,
       });
     }
-    
+
     // Check for high buffer reads
     if (metrics.bufferReads > metrics.bufferHits * 0.1) {
       suggestions.push({
@@ -252,10 +260,10 @@ export class QueryOptimizer extends EventEmitter {
         priority: 'medium',
         description: 'Low buffer cache hit ratio',
         estimatedImprovement: '20-40% faster execution',
-        implementation: 'Increase shared_buffers configuration'
+        implementation: 'Increase shared_buffers configuration',
       });
     }
-    
+
     // Check for temp file usage
     if (metrics.tempFileReads > 0 || metrics.tempFileWrites > 0) {
       suggestions.push({
@@ -263,22 +271,25 @@ export class QueryOptimizer extends EventEmitter {
         priority: 'high',
         description: 'Query using temporary files (work_mem too small)',
         estimatedImprovement: '30-70% faster execution',
-        implementation: 'Increase work_mem for this session or globally'
+        implementation: 'Increase work_mem for this session or globally',
       });
     }
-    
+
     // Check for inefficient joins
-    const nestedLoops = plan.filter(p => p.nodeType === 'Nested Loop' && p.actualRows > 10000);
+    const nestedLoops = plan.filter(
+      p => p.nodeType === 'Nested Loop' && p.actualRows > 10000
+    );
     if (nestedLoops.length > 0) {
       suggestions.push({
         type: 'query_rewrite',
         priority: 'high',
         description: 'Inefficient nested loop join on large dataset',
         estimatedImprovement: '60-80% faster execution',
-        implementation: 'Add appropriate indexes or rewrite query to use hash/merge join'
+        implementation:
+          'Add appropriate indexes or rewrite query to use hash/merge join',
       });
     }
-    
+
     // Check for large result sets that could benefit from pagination
     if (metrics.rowsReturned > 10000) {
       suggestions.push({
@@ -286,10 +297,10 @@ export class QueryOptimizer extends EventEmitter {
         priority: 'medium',
         description: 'Large result set returned',
         estimatedImprovement: '40-60% faster response time',
-        implementation: 'Implement pagination with LIMIT and OFFSET'
+        implementation: 'Implement pagination with LIMIT and OFFSET',
       });
     }
-    
+
     return suggestions;
   }
 
@@ -298,26 +309,25 @@ export class QueryOptimizer extends EventEmitter {
    */
   private storeQueryMetrics(query: string, metrics: QueryMetrics): void {
     const queryHash = this.hashQuery(query);
-    
+
     if (!this.queryMetrics.has(queryHash)) {
       this.queryMetrics.set(queryHash, []);
     }
-    
+
     const queryMetricsList = this.queryMetrics.get(queryHash)!;
     queryMetricsList.push(metrics);
-    
+
     // Keep only last 100 executions
     if (queryMetricsList.length > 100) {
       queryMetricsList.shift();
     }
-    
+
     // Store in Redis for persistence
-    this.redis.lpush(
-      `query_metrics:${queryHash}`,
-      JSON.stringify(metrics)
-    ).then(() => {
-      this.redis.ltrim(`query_metrics:${queryHash}`, 0, 99);
-    });
+    this.redis
+      .lpush(`query_metrics:${queryHash}`, JSON.stringify(metrics))
+      .then(() => {
+        this.redis.ltrim(`query_metrics:${queryHash}`, 0, 99);
+      });
   }
 
   /**
@@ -331,44 +341,51 @@ export class QueryOptimizer extends EventEmitter {
   }> {
     const queryHash = this.hashQuery(query);
     const metrics = this.queryMetrics.get(queryHash) || [];
-    
+
     if (metrics.length === 0) {
       return {
         averageExecutionTime: 0,
         p95ExecutionTime: 0,
         totalExecutions: 0,
-        trend: 'stable'
+        trend: 'stable',
       };
     }
-    
-    const executionTimes = metrics.map(m => m.executionTime).sort((a, b) => a - b);
-    const averageExecutionTime = executionTimes.reduce((sum, time) => sum + time, 0) / executionTimes.length;
+
+    const executionTimes = metrics
+      .map(m => m.executionTime)
+      .sort((a, b) => a - b);
+    const averageExecutionTime =
+      executionTimes.reduce((sum, time) => sum + time, 0) /
+      executionTimes.length;
     const p95Index = Math.floor(executionTimes.length * 0.95);
-    const p95ExecutionTime = executionTimes[p95Index] || executionTimes[executionTimes.length - 1];
-    
+    const p95ExecutionTime =
+      executionTimes[p95Index] || executionTimes[executionTimes.length - 1];
+
     // Determine trend (compare last 10 vs previous 10)
     let trend: 'improving' | 'degrading' | 'stable' = 'stable';
     if (metrics.length >= 20) {
       const recent = metrics.slice(-10).map(m => m.executionTime);
       const previous = metrics.slice(-20, -10).map(m => m.executionTime);
-      
-      const recentAvg = recent.reduce((sum, time) => sum + time, 0) / recent.length;
-      const previousAvg = previous.reduce((sum, time) => sum + time, 0) / previous.length;
-      
+
+      const recentAvg =
+        recent.reduce((sum, time) => sum + time, 0) / recent.length;
+      const previousAvg =
+        previous.reduce((sum, time) => sum + time, 0) / previous.length;
+
       const changePercent = ((recentAvg - previousAvg) / previousAvg) * 100;
-      
+
       if (changePercent > 10) {
         trend = 'degrading';
       } else if (changePercent < -10) {
         trend = 'improving';
       }
     }
-    
+
     return {
       averageExecutionTime,
       p95ExecutionTime,
       totalExecutions: metrics.length,
-      trend
+      trend,
     };
   }
 
@@ -377,7 +394,7 @@ export class QueryOptimizer extends EventEmitter {
    */
   async optimizeConfiguration(): Promise<Record<string, string>> {
     const client = await this.pool.connect();
-    
+
     try {
       // Analyze current configuration
       await client.query(`
@@ -391,7 +408,7 @@ export class QueryOptimizer extends EventEmitter {
         )
         ORDER BY category, name
       `);
-      
+
       // Get database statistics
       const stats = await client.query(`
         SELECT 
@@ -401,30 +418,30 @@ export class QueryOptimizer extends EventEmitter {
           sum(idx_blks_hit) as total_idx_hit
         FROM pg_statio_user_tables
       `);
-      
+
       const recommendations: Record<string, string> = {};
-      
+
       // Calculate buffer hit ratio
-      const totalReads = stats.rows[0].total_heap_read + stats.rows[0].total_idx_read;
-      const totalHits = stats.rows[0].total_heap_hit + stats.rows[0].total_idx_hit;
+      const totalReads =
+        stats.rows[0].total_heap_read + stats.rows[0].total_idx_read;
+      const totalHits =
+        stats.rows[0].total_heap_hit + stats.rows[0].total_idx_hit;
       const hitRatio = totalHits / (totalHits + totalReads);
-      
+
       if (hitRatio < 0.95) {
         recommendations['shared_buffers'] = '256MB'; // Increase buffer cache
       }
-      
+
       // Analyze slow queries for work_mem recommendations
       const avgTempUsage = Array.from(this.queryMetrics.values())
         .flat()
-        .filter(m => m.tempFileReads > 0)
-        .length;
-      
+        .filter(m => m.tempFileReads > 0).length;
+
       if (avgTempUsage > 0) {
         recommendations['work_mem'] = '16MB'; // Increase work memory
       }
-      
+
       return recommendations;
-      
     } finally {
       client.release();
     }
@@ -440,15 +457,15 @@ export class QueryOptimizer extends EventEmitter {
       .replace(/\s+/g, ' ') // Normalize whitespace
       .trim()
       .toLowerCase();
-    
+
     // Simple hash function
     let hash = 0;
     for (let i = 0; i < normalized.length; i++) {
       const char = normalized.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
-    
+
     return hash.toString();
   }
 
@@ -465,40 +482,51 @@ export class QueryOptimizer extends EventEmitter {
       slowQueryCount: number;
     };
   }> {
-    const slowQueries: Array<{ query: string; avgTime: number; executions: number }> = [];
+    const slowQueries: Array<{
+      query: string;
+      avgTime: number;
+      executions: number;
+    }> = [];
     const indexSuggestions: OptimizationSuggestion[] = [];
     let totalQueries = 0;
     let totalExecutionTime = 0;
     let slowQueryCount = 0;
-    
+
     // Analyze all tracked queries
     for (const [, metrics] of this.queryMetrics) {
-      const avgTime = metrics.reduce((sum, m) => sum + m.executionTime, 0) / metrics.length;
+      const avgTime =
+        metrics.reduce((sum, m) => sum + m.executionTime, 0) / metrics.length;
       totalQueries += metrics.length;
-      totalExecutionTime += metrics.reduce((sum, m) => sum + m.executionTime, 0);
-      
+      totalExecutionTime += metrics.reduce(
+        (sum, m) => sum + m.executionTime,
+        0
+      );
+
       if (avgTime > this.slowQueryThreshold) {
         slowQueryCount += metrics.length;
         slowQueries.push({
-          query: `${metrics[0].query.substring(0, 100)  }...`,
+          query: `${metrics[0].query.substring(0, 100)}...`,
           avgTime,
-          executions: metrics.length
+          executions: metrics.length,
         });
       }
     }
-    
+
     // Get configuration recommendations
     const configRecommendations = await this.optimizeConfiguration();
-    
+
     return {
-      slowQueries: slowQueries.sort((a, b) => b.avgTime - a.avgTime).slice(0, 10),
+      slowQueries: slowQueries
+        .sort((a, b) => b.avgTime - a.avgTime)
+        .slice(0, 10),
       indexSuggestions,
       configRecommendations,
       overallStats: {
         totalQueries,
-        averageExecutionTime: totalQueries > 0 ? totalExecutionTime / totalQueries : 0,
-        slowQueryCount
-      }
+        averageExecutionTime:
+          totalQueries > 0 ? totalExecutionTime / totalQueries : 0,
+        slowQueryCount,
+      },
     };
   }
 
@@ -581,22 +609,28 @@ export class QueryOptimizer extends EventEmitter {
 
       // Update connection metrics
       const stats = poolStats.rows[0];
-      this.connectionMetrics.totalConnections = parseInt(stats.total_connections) || 0;
-      this.connectionMetrics.activeConnections = parseInt(stats.active_connections) || 0;
-      this.connectionMetrics.idleConnections = parseInt(stats.idle_connections) || 0;
+      this.connectionMetrics.totalConnections =
+        parseInt(stats.total_connections) || 0;
+      this.connectionMetrics.activeConnections =
+        parseInt(stats.active_connections) || 0;
+      this.connectionMetrics.idleConnections =
+        parseInt(stats.idle_connections) || 0;
 
       // Check for long-running queries
       for (const query of runningQueries.rows) {
-        if (query.duration > 30) { // 30 seconds threshold
+        if (query.duration > 30) {
+          // 30 seconds threshold
           this.createAlert({
             type: 'slow_query',
             severity: query.duration > 60 ? 'critical' : 'warning',
-            message: `Long-running query detected (${query.duration.toFixed(2)}s)`,
+            message: `Long-running query detected (${query.duration.toFixed(
+              2
+            )}s)`,
             metadata: {
               pid: query.pid,
               query: query.query.substring(0, 200),
-              duration: query.duration
-            }
+              duration: query.duration,
+            },
           });
         }
       }
@@ -611,8 +645,8 @@ export class QueryOptimizer extends EventEmitter {
           metadata: {
             waitingLocks: waitingLocks.waiting_locks,
             lockType: waitingLocks.locktype,
-            mode: waitingLocks.mode
-          }
+            mode: waitingLocks.mode,
+          },
         });
       }
 
@@ -620,9 +654,8 @@ export class QueryOptimizer extends EventEmitter {
       this.emit('metrics', {
         connections: this.connectionMetrics,
         locks: lockStats.rows,
-        runningQueries: runningQueries.rows.length
+        runningQueries: runningQueries.rows.length,
       });
-
     } finally {
       client.release();
     }
@@ -633,17 +666,21 @@ export class QueryOptimizer extends EventEmitter {
    */
   private async checkForAnomalies(): Promise<void> {
     // Check connection pool utilization
-    const poolUtilization = this.connectionMetrics.activeConnections / this.connectionMetrics.totalConnections;
+    const poolUtilization =
+      this.connectionMetrics.activeConnections /
+      this.connectionMetrics.totalConnections;
     if (poolUtilization > 0.9) {
       this.createAlert({
         type: 'high_connections',
         severity: 'critical',
-        message: `High connection pool utilization (${(poolUtilization * 100).toFixed(1)}%)`,
+        message: `High connection pool utilization (${(
+          poolUtilization * 100
+        ).toFixed(1)}%)`,
         metadata: {
           activeConnections: this.connectionMetrics.activeConnections,
           totalConnections: this.connectionMetrics.totalConnections,
-          utilization: poolUtilization
-        }
+          utilization: poolUtilization,
+        },
       });
     }
 
@@ -653,12 +690,16 @@ export class QueryOptimizer extends EventEmitter {
         const recent = metrics.slice(-5);
         const previous = metrics.slice(-10, -5);
 
-        const recentAvg = recent.reduce((sum, m) => sum + m.executionTime, 0) / recent.length;
-        const previousAvg = previous.reduce((sum, m) => sum + m.executionTime, 0) / previous.length;
+        const recentAvg =
+          recent.reduce((sum, m) => sum + m.executionTime, 0) / recent.length;
+        const previousAvg =
+          previous.reduce((sum, m) => sum + m.executionTime, 0) /
+          previous.length;
 
         const degradation = ((recentAvg - previousAvg) / previousAvg) * 100;
 
-        if (degradation > 50) { // 50% performance degradation
+        if (degradation > 50) {
+          // 50% performance degradation
           this.createAlert({
             type: 'slow_query',
             severity: 'warning',
@@ -667,8 +708,8 @@ export class QueryOptimizer extends EventEmitter {
               queryHash,
               recentAvg,
               previousAvg,
-              degradation
-            }
+              degradation,
+            },
           });
         }
       }
@@ -678,11 +719,15 @@ export class QueryOptimizer extends EventEmitter {
   /**
    * Create and emit alert
    */
-  private createAlert(alertData: Omit<RealTimeAlert, 'id' | 'timestamp'>): void {
+  private createAlert(
+    alertData: Omit<RealTimeAlert, 'id' | 'timestamp'>
+  ): void {
     const alert: RealTimeAlert = {
-      id: `${alertData.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `${alertData.type}_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`,
       timestamp: Date.now(),
-      ...alertData
+      ...alertData,
     };
 
     this.realTimeAlerts.set(alert.id, alert);
@@ -737,7 +782,8 @@ export class QueryOptimizer extends EventEmitter {
     try {
       // Auto-create indexes for frequently slow queries
       for (const [queryHash, metrics] of this.queryMetrics) {
-        const avgTime = metrics.reduce((sum, m) => sum + m.executionTime, 0) / metrics.length;
+        const avgTime =
+          metrics.reduce((sum, m) => sum + m.executionTime, 0) / metrics.length;
 
         if (avgTime > this.slowQueryThreshold && metrics.length > 10) {
           const lastMetric = metrics[metrics.length - 1];
@@ -749,7 +795,9 @@ export class QueryOptimizer extends EventEmitter {
               const suggestion = `-- Auto-generated index suggestion for query hash ${queryHash}`;
               applied.push(suggestion);
             } catch (error) {
-              errors.push(`Failed to create index for query ${queryHash}: ${error.message}`);
+              errors.push(
+                `Failed to create index for query ${queryHash}: ${error.message}`
+              );
             }
           }
         }
@@ -762,10 +810,11 @@ export class QueryOptimizer extends EventEmitter {
           // Note: In production, these would be applied carefully with proper validation
           skipped.push(`Configuration change suggested: ${setting} = ${value}`);
         } catch (error) {
-          errors.push(`Failed to apply configuration ${setting}: ${error.message}`);
+          errors.push(
+            `Failed to apply configuration ${setting}: ${error.message}`
+          );
         }
       }
-
     } catch (error) {
       errors.push(`Auto-optimization error: ${error.message}`);
     }

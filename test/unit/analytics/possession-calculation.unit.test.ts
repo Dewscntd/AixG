@@ -5,7 +5,7 @@
 
 import {
   calculateBothTeamsPossession,
-  PossessionSequence
+  PossessionSequence,
 } from '../../../src/analytics-engine-service/domain/services/possession-calculation.service';
 
 describe('PossessionCalculationService - Unit Tests', () => {
@@ -25,9 +25,9 @@ describe('PossessionCalculationService - Unit Tests', () => {
               position: { x: 50, y: 50 },
               successful: true,
               duration: 5,
-            }
+            },
           ],
-          endReason: 'lost_ball'
+          endReason: 'lost_ball',
         },
         {
           teamId: 'team-b',
@@ -42,13 +42,17 @@ describe('PossessionCalculationService - Unit Tests', () => {
               position: { x: 60, y: 40 },
               successful: true,
               duration: 10,
-            }
+            },
           ],
-          endReason: 'lost_ball'
+          endReason: 'lost_ball',
         },
       ];
 
-      const result = calculateBothTeamsPossession(sequences, 'team-a', 'team-b');
+      const result = calculateBothTeamsPossession(
+        sequences,
+        'team-a',
+        'team-b'
+      );
 
       expect(result.home.value).toBeCloseTo(33.33, 1); // 5 out of 15 seconds
       expect(result.away.value).toBeCloseTo(66.67, 1); // 10 out of 15 seconds
@@ -77,13 +81,17 @@ describe('PossessionCalculationService - Unit Tests', () => {
               position: { x: 50, y: 50 },
               successful: true,
               duration: 10,
-            }
+            },
           ],
-          endReason: 'lost_ball'
+          endReason: 'lost_ball',
         },
       ];
 
-      const result = calculateBothTeamsPossession(sequences, 'team-a', 'team-b');
+      const result = calculateBothTeamsPossession(
+        sequences,
+        'team-a',
+        'team-b'
+      );
 
       expect(result.home.value).toBe(100);
       expect(result.away.value).toBe(0);
@@ -96,20 +104,28 @@ describe('PossessionCalculationService - Unit Tests', () => {
           startTime: 1000,
           endTime: 6000,
           events: [],
-          endReason: 'lost_ball'
+          endReason: 'lost_ball',
         },
         {
           teamId: 'team-b',
           startTime: 6000,
           endTime: 11000,
           events: [],
-          endReason: 'lost_ball'
+          endReason: 'lost_ball',
         },
       ];
 
       // Test that multiple calls with same input produce same output
-      const result1 = calculateBothTeamsPossession(sequences, 'team-a', 'team-b');
-      const result2 = calculateBothTeamsPossession(sequences, 'team-a', 'team-b');
+      const result1 = calculateBothTeamsPossession(
+        sequences,
+        'team-a',
+        'team-b'
+      );
+      const result2 = calculateBothTeamsPossession(
+        sequences,
+        'team-a',
+        'team-b'
+      );
 
       expect(result1.home.value).toBe(result2.home.value);
       expect(result1.away.value).toBe(result2.away.value);
@@ -122,18 +138,22 @@ describe('PossessionCalculationService - Unit Tests', () => {
           startTime: 1000,
           endTime: 6000,
           events: [],
-          endReason: 'lost_ball'
+          endReason: 'lost_ball',
         },
         {
           teamId: 'team-b',
           startTime: 6000,
           endTime: 11000,
           events: [],
-          endReason: 'lost_ball'
+          endReason: 'lost_ball',
         },
       ];
 
-      const result = calculateBothTeamsPossession(sequences, 'team-a', 'team-b');
+      const result = calculateBothTeamsPossession(
+        sequences,
+        'team-a',
+        'team-b'
+      );
 
       // Should handle empty events gracefully
       expect(result.home.value).toBeGreaterThan(0);
@@ -156,9 +176,9 @@ describe('PossessionCalculationService - Unit Tests', () => {
             eventType: 'pass',
             position: { x: 30, y: 50 },
             successful: true,
-          }
+          },
         ],
-        endReason: 'lost_ball'
+        endReason: 'lost_ball',
       };
 
       expect(sequence.teamId).toBe('team-a');
@@ -181,7 +201,9 @@ describe('PossessionCalculationService - Unit Tests', () => {
         },
       ];
 
-      expect(() => calculateBothTeamsPossession(sequences, 'team-a', 'team-b')).not.toThrow();
+      expect(() =>
+        calculateBothTeamsPossession(sequences, 'team-a', 'team-b')
+      ).not.toThrow();
     });
 
     it('should handle negative timestamps', () => {
@@ -199,13 +221,17 @@ describe('PossessionCalculationService - Unit Tests', () => {
               position: { x: 50, y: 50 },
               successful: true,
               duration: 5,
-            }
+            },
           ],
-          endReason: 'lost_ball'
+          endReason: 'lost_ball',
         },
       ];
 
-      const result = calculateBothTeamsPossession(sequences, 'team-a', 'team-b');
+      const result = calculateBothTeamsPossession(
+        sequences,
+        'team-a',
+        'team-b'
+      );
       expect(result.home.value).toBeValidPossession();
       expect(result.away.value).toBeValidPossession();
     });
@@ -225,13 +251,17 @@ describe('PossessionCalculationService - Unit Tests', () => {
               position: { x: 50, y: 50 },
               successful: true,
               duration: 999999,
-            }
+            },
           ],
-          endReason: 'lost_ball'
+          endReason: 'lost_ball',
         },
       ];
 
-      const result = calculateBothTeamsPossession(sequences, 'team-a', 'team-b');
+      const result = calculateBothTeamsPossession(
+        sequences,
+        'team-a',
+        'team-b'
+      );
       expect(result.home.value).toBeValidPossession();
       expect(result.away.value).toBeValidPossession();
     });
@@ -239,26 +269,33 @@ describe('PossessionCalculationService - Unit Tests', () => {
 
   describe('Performance Tests', () => {
     it('should handle large number of sequences efficiently', () => {
-      const sequences: PossessionSequence[] = Array.from({ length: 1000 }, (_, i) => ({
-        teamId: i % 2 === 0 ? 'team-a' : 'team-b',
-        startTime: i * 1000,
-        endTime: (i + 1) * 1000,
-        events: [
-          {
-            timestamp: i * 1000,
-            teamId: i % 2 === 0 ? 'team-a' : 'team-b',
-            playerId: `player-${i % 22}`,
-            eventType: 'pass',
-            position: { x: Math.random() * 100, y: Math.random() * 100 },
-            successful: Math.random() > 0.2,
-            duration: Math.random() * 10,
-          }
-        ],
-        endReason: 'lost_ball'
-      }));
+      const sequences: PossessionSequence[] = Array.from(
+        { length: 1000 },
+        (_, i) => ({
+          teamId: i % 2 === 0 ? 'team-a' : 'team-b',
+          startTime: i * 1000,
+          endTime: (i + 1) * 1000,
+          events: [
+            {
+              timestamp: i * 1000,
+              teamId: i % 2 === 0 ? 'team-a' : 'team-b',
+              playerId: `player-${i % 22}`,
+              eventType: 'pass',
+              position: { x: Math.random() * 100, y: Math.random() * 100 },
+              successful: Math.random() > 0.2,
+              duration: Math.random() * 10,
+            },
+          ],
+          endReason: 'lost_ball',
+        })
+      );
 
       const startTime = Date.now();
-      const result = calculateBothTeamsPossession(sequences, 'team-a', 'team-b');
+      const result = calculateBothTeamsPossession(
+        sequences,
+        'team-a',
+        'team-b'
+      );
       const endTime = Date.now();
 
       expect(endTime - startTime).toBeLessThan(1000); // Should complete in under 1 second
@@ -267,5 +304,3 @@ describe('PossessionCalculationService - Unit Tests', () => {
     });
   });
 });
-
-

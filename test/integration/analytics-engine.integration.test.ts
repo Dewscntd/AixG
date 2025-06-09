@@ -27,7 +27,7 @@ describe('Analytics Engine Service - Integration Tests', () => {
         homePossession: 65.2,
         awayPossession: 34.8,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       // Validate structure
@@ -37,7 +37,9 @@ describe('Analytics Engine Service - Integration Tests', () => {
       expect(matchAnalytics.matchDuration).toBe(90);
       expect(matchAnalytics.homeTeamXG).toBeGreaterThan(0);
       expect(matchAnalytics.awayTeamXG).toBeGreaterThan(0);
-      expect(matchAnalytics.homePossession + matchAnalytics.awayPossession).toBeCloseTo(100, 1);
+      expect(
+        matchAnalytics.homePossession + matchAnalytics.awayPossession
+      ).toBeCloseTo(100, 1);
     });
 
     it('should validate event structure', () => {
@@ -48,8 +50,8 @@ describe('Analytics Engine Service - Integration Tests', () => {
         data: {
           homeTeamId: 'team-home',
           awayTeamId: 'team-away',
-          initialXG: { home: 0, away: 0 }
-        }
+          initialXG: { home: 0, away: 0 },
+        },
       };
 
       // Validate event structure
@@ -109,7 +111,7 @@ describe('Analytics Engine Service - Integration Tests', () => {
         processingTime: 3500, // milliseconds
         throughput: 28.6, // shots per second
         memoryUsage: 45.2, // MB
-        cpuUsage: 65.8 // percentage
+        cpuUsage: 65.8, // percentage
       };
 
       // Validate performance expectations
@@ -141,7 +143,7 @@ describe('Analytics Engine Service - Integration Tests', () => {
           position: { x: 75.0, y: 45.0 },
           successful: false,
           duration: 3,
-        }
+        },
       ];
 
       // Validate structure
@@ -161,13 +163,19 @@ describe('Analytics Engine Service - Integration Tests', () => {
         awayPossession: 34.8,
         totalEvents: 150,
         homeEvents: 98,
-        awayEvents: 52
+        awayEvents: 52,
       };
 
       // Validate calculations
-      expect(possessionResults.homePossession + possessionResults.awayPossession).toBeCloseTo(100, 1);
-      expect(possessionResults.homeEvents + possessionResults.awayEvents).toBe(possessionResults.totalEvents);
-      expect(possessionResults.homePossession).toBeGreaterThan(possessionResults.awayPossession);
+      expect(
+        possessionResults.homePossession + possessionResults.awayPossession
+      ).toBeCloseTo(100, 1);
+      expect(possessionResults.homeEvents + possessionResults.awayEvents).toBe(
+        possessionResults.totalEvents
+      );
+      expect(possessionResults.homePossession).toBeGreaterThan(
+        possessionResults.awayPossession
+      );
       expect(possessionResults.homePossession).toBeGreaterThan(0);
       expect(possessionResults.awayPossession).toBeGreaterThan(0);
     });
@@ -180,20 +188,20 @@ describe('Analytics Engine Service - Integration Tests', () => {
           eventType: 'MatchAnalyticsCreated',
           matchId: 'match-123',
           timestamp: new Date(),
-          data: { homeTeamId: 'team-home', awayTeamId: 'team-away' }
+          data: { homeTeamId: 'team-home', awayTeamId: 'team-away' },
         },
         {
           eventType: 'XGUpdated',
           matchId: 'match-123',
           timestamp: new Date(),
-          data: { teamId: 'team-home', newXG: 1.5 }
+          data: { teamId: 'team-home', newXG: 1.5 },
         },
         {
           eventType: 'XGUpdated',
           matchId: 'match-123',
           timestamp: new Date(),
-          data: { teamId: 'team-away', newXG: 0.8 }
-        }
+          data: { teamId: 'team-away', newXG: 0.8 },
+        },
       ];
 
       // Validate event structure
@@ -214,8 +222,8 @@ describe('Analytics Engine Service - Integration Tests', () => {
           homeTeamXG: 2.3,
           awayTeamXG: 1.7,
           homePossession: 58.5,
-          awayPossession: 41.5
-        }
+          awayPossession: 41.5,
+        },
       };
 
       // Validate snapshot
@@ -223,7 +231,9 @@ describe('Analytics Engine Service - Integration Tests', () => {
       expect(snapshot.version).toBe(50);
       expect(snapshot.data.homeTeamXG).toBeGreaterThan(0);
       expect(snapshot.data.awayTeamXG).toBeGreaterThan(0);
-      expect(snapshot.data.homePossession + snapshot.data.awayPossession).toBeCloseTo(100, 1);
+      expect(
+        snapshot.data.homePossession + snapshot.data.awayPossession
+      ).toBeCloseTo(100, 1);
     });
   });
 
@@ -237,8 +247,8 @@ describe('Analytics Engine Service - Integration Tests', () => {
         details: {
           service: 'analytics-engine',
           operation: 'createMatchAnalytics',
-          matchId: 'match-123'
-        }
+          matchId: 'match-123',
+        },
       };
 
       // Validate error structure

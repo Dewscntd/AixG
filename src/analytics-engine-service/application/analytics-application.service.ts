@@ -10,13 +10,13 @@ import {
   UpdateXGCommandHandler,
   UpdatePossessionCommandHandler,
   ProcessMLPipelineOutputCommandHandler,
-  CreateSnapshotCommandHandler
+  CreateSnapshotCommandHandler,
 } from './commands/analytics-command-handlers';
 import {
   GetMatchAnalyticsQueryHandler,
   GetTeamAnalyticsQueryHandler,
   GetTimeSeriesAnalyticsQueryHandler,
-  AnalyticsResult
+  AnalyticsResult,
 } from './queries/analytics-query-handlers';
 import {
   CreateMatchAnalyticsCommand,
@@ -26,13 +26,13 @@ import {
   CreateSnapshotCommand,
   AnalyticsCommand,
   ProcessMLPipelineOutputData,
-  ShotDataCommand
+  ShotDataCommand,
 } from './commands/analytics-commands';
 import {
   GetMatchAnalyticsQuery,
   GetTeamAnalyticsQuery,
   GetTimeSeriesAnalyticsQuery,
-  AnalyticsQuery
+  AnalyticsQuery,
 } from './queries/analytics-queries';
 import { ProjectionManager } from '../infrastructure/projections/projection-manager';
 import { matchAnalyticsProjection } from '../infrastructure/projections/match-analytics-projection';
@@ -84,8 +84,10 @@ export interface TimeSeriesAnalyticsResponse {
 
 export class AnalyticsApplicationService {
   private readonly logger = new Logger(AnalyticsApplicationService.name);
-  private commandHandlers: Map<string, CommandHandler<AnalyticsCommand>> = new Map();
-  private queryHandlers: Map<string, QueryHandler<AnalyticsQuery, unknown>> = new Map();
+  private commandHandlers: Map<string, CommandHandler<AnalyticsCommand>> =
+    new Map();
+  private queryHandlers: Map<string, QueryHandler<AnalyticsQuery, unknown>> =
+    new Map();
   private projectionManager!: ProjectionManager;
 
   constructor(
@@ -101,7 +103,7 @@ export class AnalyticsApplicationService {
   async executeCommand(command: AnalyticsCommand): Promise<void> {
     const commandType = command.constructor.name;
     const handler = this.commandHandlers.get(commandType);
-    
+
     if (!handler) {
       throw new Error(`No handler found for command type: ${commandType}`);
     }
@@ -109,8 +111,11 @@ export class AnalyticsApplicationService {
     try {
       await handler.handle(command);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Error executing command ${commandType}: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Error executing command ${commandType}: ${errorMessage}`
+      );
       throw error;
     }
   }
@@ -125,9 +130,10 @@ export class AnalyticsApplicationService {
     }
 
     try {
-      return await handler.handle(query) as AnalyticsResult<T>;
+      return (await handler.handle(query)) as AnalyticsResult<T>;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error executing query ${queryType}: ${errorMessage}`);
       throw error;
     }
@@ -146,7 +152,7 @@ export class AnalyticsApplicationService {
       awayTeamId,
       matchDuration
     );
-    
+
     await this.executeCommand(command);
   }
 
@@ -248,7 +254,7 @@ export class AnalyticsApplicationService {
     const health = {
       eventStore: false,
       readDatabase: false,
-      projections: false
+      projections: false,
     };
 
     try {
@@ -256,7 +262,8 @@ export class AnalyticsApplicationService {
       await this.eventStore.streamExists('health-check');
       health.eventStore = true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Event store health check failed: ${errorMessage}`);
     }
 
@@ -267,7 +274,8 @@ export class AnalyticsApplicationService {
       client.release();
       health.readDatabase = true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Read database health check failed: ${errorMessage}`);
     }
 
@@ -275,7 +283,8 @@ export class AnalyticsApplicationService {
       // Check projections (simplified)
       health.projections = true; // Would check projection status in real implementation
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Projections health check failed: ${errorMessage}`);
     }
 
@@ -321,14 +330,17 @@ export class AnalyticsApplicationService {
   }
 
   private initializeProjections(): void {
-    this.projectionManager = new ProjectionManager(this.eventStore, this.readDb);
+    this.projectionManager = new ProjectionManager(
+      this.eventStore,
+      this.readDb
+    );
     this.projectionManager.registerProjection(matchAnalyticsProjection);
   }
 
   async close(): Promise<void> {
     await this.stopProjections();
     await this.readDb.end();
-    
+
     if (this.eventStore && typeof this.eventStore.close === 'function') {
       await this.eventStore.close();
     }

@@ -10,13 +10,16 @@ import {
   HttpException,
   Logger,
   ValidationPipe,
-  UsePipes
+  UsePipes,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadVideoUseCase } from '../application/use-cases/upload-video.use-case';
 import { ResumeUploadUseCase } from '../application/use-cases/resume-upload.use-case';
 import { GetUploadProgressUseCase } from '../application/use-cases/get-upload-progress.use-case';
-import { UploadVideoDto, ResumeUploadDto } from '../application/dto/upload-video.dto';
+import {
+  UploadVideoDto,
+  ResumeUploadDto,
+} from '../application/dto/upload-video.dto';
 
 @Controller('api/videos')
 export class VideoUploadController {
@@ -29,28 +32,33 @@ export class VideoUploadController {
   ) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('video', {
-    limits: {
-      fileSize: 10 * 1024 * 1024 * 1024, // 10GB
-    },
-    fileFilter: (req, file, callback) => {
-      const allowedMimeTypes = [
-        'video/mp4',
-        'video/avi',
-        'video/quicktime',
-        'video/x-msvideo',
-        'video/webm',
-        'video/x-ms-wmv',
-        'video/x-flv'
-      ];
+  @UseInterceptors(
+    FileInterceptor('video', {
+      limits: {
+        fileSize: 10 * 1024 * 1024 * 1024, // 10GB
+      },
+      fileFilter: (req, file, callback) => {
+        const allowedMimeTypes = [
+          'video/mp4',
+          'video/avi',
+          'video/quicktime',
+          'video/x-msvideo',
+          'video/webm',
+          'video/x-ms-wmv',
+          'video/x-flv',
+        ];
 
-      if (allowedMimeTypes.includes(file.mimetype)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Invalid file type. Only video files are allowed.'), false);
-      }
-    }
-  }))
+        if (allowedMimeTypes.includes(file.mimetype)) {
+          callback(null, true);
+        } else {
+          callback(
+            new Error('Invalid file type. Only video files are allowed.'),
+            false
+          );
+        }
+      },
+    })
+  )
   @UsePipes(new ValidationPipe({ transform: true }))
   async uploadVideo(
     @UploadedFile() file: Express.Multer.File,
@@ -58,7 +66,10 @@ export class VideoUploadController {
   ) {
     try {
       if (!file) {
-        throw new HttpException('No video file provided', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'No video file provided',
+          HttpStatus.BAD_REQUEST
+        );
       }
 
       this.logger.log(`Starting video upload: ${file.originalname}`);
@@ -68,7 +79,7 @@ export class VideoUploadController {
         start(controller) {
           controller.enqueue(file.buffer);
           controller.close();
-        }
+        },
       });
 
       const result = await this.uploadVideoUseCase.execute({
@@ -79,7 +90,7 @@ export class VideoUploadController {
         uploadedBy: uploadDto.uploadedBy,
         matchId: uploadDto.matchId,
         teamId: uploadDto.teamId,
-        tags: uploadDto.tags
+        tags: uploadDto.tags,
       });
 
       this.logger.log(`Video upload completed: ${result.videoId}`);
@@ -87,9 +98,8 @@ export class VideoUploadController {
       return {
         success: true,
         data: result,
-        message: 'Video uploaded successfully'
+        message: 'Video uploaded successfully',
       };
-
     } catch (error) {
       this.logger.error(`Video upload failed: ${error.message}`, error.stack);
 
@@ -115,13 +125,13 @@ export class VideoUploadController {
       const stream = new ReadableStream({
         start(controller) {
           controller.close();
-        }
+        },
       });
 
       const result = await this.resumeUploadUseCase.execute({
         uploadId: resumeDto.uploadId,
         stream,
-        offset: resumeDto.offset
+        offset: resumeDto.offset,
       });
 
       this.logger.log(`Upload resume completed: ${result.videoId}`);
@@ -129,9 +139,8 @@ export class VideoUploadController {
       return {
         success: true,
         data: result,
-        message: result.isComplete ? 'Upload completed' : 'Upload resumed'
+        message: result.isComplete ? 'Upload completed' : 'Upload resumed',
       };
-
     } catch (error) {
       this.logger.error(`Resume upload failed: ${error.message}`, error.stack);
 
@@ -152,11 +161,13 @@ export class VideoUploadController {
       return {
         success: true,
         data: result,
-        message: 'Upload progress retrieved successfully'
+        message: 'Upload progress retrieved successfully',
       };
-
     } catch (error) {
-      this.logger.error(`Get upload progress failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Get upload progress failed: ${error.message}`,
+        error.stack
+      );
 
       throw new HttpException(
         `Failed to get upload progress: ${error.message}`,
@@ -170,7 +181,7 @@ export class VideoUploadController {
     return {
       status: 'healthy',
       service: 'video-ingestion-service',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 }

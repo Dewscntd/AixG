@@ -73,11 +73,11 @@ export class CDNOptimizer {
   constructor(private readonly config: CDNConfig) {
     // Initialize AWS services
     this.cloudfront = new AWS.CloudFront({
-      region: 'us-east-1' // CloudFront is global but API is in us-east-1
+      region: 'us-east-1', // CloudFront is global but API is in us-east-1
     });
-    
+
     this.s3 = new AWS.S3({
-      region: process.env.AWS_REGION || 'us-east-1'
+      region: process.env.AWS_REGION || 'us-east-1',
     });
   }
 
@@ -90,17 +90,19 @@ export class CDNOptimizer {
     thumbnails: string[];
     totalSize: number;
   }> {
-    this.logger.log(`Starting video optimization for: ${optimization.inputPath}`);
+    this.logger.log(
+      `Starting video optimization for: ${optimization.inputPath}`
+    );
 
     try {
-      const outputDir = `${path.dirname(optimization.inputPath)  }/optimized`;
+      const outputDir = `${path.dirname(optimization.inputPath)}/optimized`;
       await fs.promises.mkdir(outputDir, { recursive: true });
 
       const results = {
         manifestUrl: '',
         formats: [] as Array<{ format: string; url: string; size: number }>,
         thumbnails: [] as string[],
-        totalSize: 0
+        totalSize: 0,
       };
 
       // Generate adaptive bitrate streams
@@ -118,12 +120,12 @@ export class CDNOptimizer {
           outputDir,
           format
         );
-        
+
         const stats = await fs.promises.stat(outputPath);
         results.formats.push({
           format: format.format,
           url: outputPath,
-          size: stats.size
+          size: stats.size,
         });
         results.totalSize += stats.size;
       }
@@ -138,9 +140,10 @@ export class CDNOptimizer {
       // Upload to S3 and invalidate CDN cache
       await this.uploadToS3AndInvalidate(outputDir);
 
-      this.logger.log(`Video optimization completed. Total size: ${results.totalSize} bytes`);
+      this.logger.log(
+        `Video optimization completed. Total size: ${results.totalSize} bytes`
+      );
       return results;
-
     } catch (error) {
       this.logger.error(`Video optimization failed: ${error.message}`);
       throw error;
@@ -157,15 +160,16 @@ export class CDNOptimizer {
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       const manifestPath = path.join(outputDir, 'playlist.m3u8');
-      
-      let command = ffmpeg(inputPath)
-        .outputOptions([
-          '-f hls',
-          '-hls_time 6',
-          '-hls_playlist_type vod',
-          '-hls_segment_filename', path.join(outputDir, 'segment_%03d.ts'),
-          '-master_pl_name', 'master.m3u8'
-        ]);
+
+      let command = ffmpeg(inputPath).outputOptions([
+        '-f hls',
+        '-hls_time 6',
+        '-hls_playlist_type vod',
+        '-hls_segment_filename',
+        path.join(outputDir, 'segment_%03d.ts'),
+        '-master_pl_name',
+        'master.m3u8',
+      ]);
 
       // Add multiple bitrate streams
       bitrateConfigs.forEach((config, index) => {
@@ -177,7 +181,7 @@ export class CDNOptimizer {
             `-r ${config.fps}`,
             '-c:v libx264',
             '-preset fast',
-            '-crf 23'
+            '-crf 23',
           ]);
       });
 
@@ -186,7 +190,7 @@ export class CDNOptimizer {
           this.logger.log('HLS generation completed');
           resolve(manifestPath);
         })
-        .on('error', (error) => {
+        .on('error', error => {
           this.logger.error(`HLS generation failed: ${error.message}`);
           reject(error);
         })
@@ -203,8 +207,11 @@ export class CDNOptimizer {
     format: VideoFormat
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-      const outputPath = path.join(outputDir, `video_${format.quality}.${format.format}`);
-      
+      const outputPath = path.join(
+        outputDir,
+        `video_${format.quality}.${format.format}`
+      );
+
       let command = ffmpeg(inputPath)
         .output(outputPath)
         .videoCodec(format.codec);
@@ -237,7 +244,7 @@ export class CDNOptimizer {
           this.logger.log(`Transcoding completed: ${outputPath}`);
           resolve(outputPath);
         })
-        .on('error', (error) => {
+        .on('error', error => {
           this.logger.error(`Transcoding failed: ${error.message}`);
           reject(error);
         })
@@ -255,7 +262,7 @@ export class CDNOptimizer {
   ): Promise<string[]> {
     return new Promise((resolve, reject) => {
       const thumbnails: string[] = [];
-      
+
       ffmpeg(inputPath)
         .on('end', () => {
           this.logger.log(`Generated ${thumbnails.length} thumbnails`);
@@ -266,7 +273,7 @@ export class CDNOptimizer {
           count: config.count,
           folder: outputDir,
           filename: `thumb_%03d.${config.format}`,
-          size: `${config.width}x${config.height}`
+          size: `${config.width}x${config.height}`,
         });
     });
   }
@@ -276,23 +283,23 @@ export class CDNOptimizer {
    */
   private async uploadToS3AndInvalidate(outputDir: string): Promise<void> {
     const files = await fs.promises.readdir(outputDir);
-    const uploadPromises = files.map(async (file) => {
+    const uploadPromises = files.map(async file => {
       const filePath = path.join(outputDir, file);
       const fileContent = await readFile(filePath);
-      
+
       const uploadParams = {
         Bucket: process.env.S3_BUCKET || 'footanalytics-videos',
         Key: `optimized/${file}`,
         Body: fileContent,
         ContentType: this.getContentType(file),
-        CacheControl: this.getCacheControl(file)
+        CacheControl: this.getCacheControl(file),
       };
-      
+
       return this.s3.upload(uploadParams).promise();
     });
-    
+
     await Promise.all(uploadPromises);
-    
+
     // Invalidate CDN cache
     await this.invalidateCDNCache(['/optimized/*']);
   }
@@ -307,15 +314,19 @@ export class CDNOptimizer {
         InvalidationBatch: {
           Paths: {
             Quantity: paths.length,
-            Items: paths
+            Items: paths,
           },
-          CallerReference: Date.now().toString()
-        }
+          CallerReference: Date.now().toString(),
+        },
       };
-      
+
       try {
-        const result = await this.cloudfront.createInvalidation(params).promise();
-        this.logger.log(`CloudFront invalidation created: ${result.Invalidation?.Id}`);
+        const result = await this.cloudfront
+          .createInvalidation(params)
+          .promise();
+        this.logger.log(
+          `CloudFront invalidation created: ${result.Invalidation?.Id}`
+        );
       } catch (error) {
         this.logger.error(`CDN invalidation failed: ${error.message}`);
         throw error;
@@ -331,31 +342,55 @@ export class CDNOptimizer {
       try {
         // Get CloudWatch metrics for CloudFront
         const cloudwatch = new AWS.CloudWatch({ region: 'us-east-1' });
-        
+
         const metricsPromises = [
-          this.getCloudWatchMetric(cloudwatch, 'AWS/CloudFront', 'Requests', startDate, endDate),
-          this.getCloudWatchMetric(cloudwatch, 'AWS/CloudFront', 'BytesDownloaded', startDate, endDate),
-          this.getCloudWatchMetric(cloudwatch, 'AWS/CloudFront', 'CacheHitRate', startDate, endDate),
-          this.getCloudWatchMetric(cloudwatch, 'AWS/CloudFront', '4xxErrorRate', startDate, endDate)
+          this.getCloudWatchMetric(
+            cloudwatch,
+            'AWS/CloudFront',
+            'Requests',
+            startDate,
+            endDate
+          ),
+          this.getCloudWatchMetric(
+            cloudwatch,
+            'AWS/CloudFront',
+            'BytesDownloaded',
+            startDate,
+            endDate
+          ),
+          this.getCloudWatchMetric(
+            cloudwatch,
+            'AWS/CloudFront',
+            'CacheHitRate',
+            startDate,
+            endDate
+          ),
+          this.getCloudWatchMetric(
+            cloudwatch,
+            'AWS/CloudFront',
+            '4xxErrorRate',
+            startDate,
+            endDate
+          ),
         ];
-        
-        const [requests, bandwidth, cacheHitRate, errorRate] = await Promise.all(metricsPromises);
-        
+
+        const [requests, bandwidth, cacheHitRate, errorRate] =
+          await Promise.all(metricsPromises);
+
         return {
           cacheHitRatio: cacheHitRate || 0,
           bandwidth: bandwidth || 0,
           requests: requests || 0,
           latency: 0, // Would need additional monitoring
           errorRate: errorRate || 0,
-          topUrls: [] // Would need additional analytics
+          topUrls: [], // Would need additional analytics
         };
-        
       } catch (error) {
         this.logger.error(`Failed to get CDN metrics: ${error.message}`);
         throw error;
       }
     }
-    
+
     // Return empty metrics for other providers
     return {
       cacheHitRatio: 0,
@@ -363,7 +398,7 @@ export class CDNOptimizer {
       requests: 0,
       latency: 0,
       errorRate: 0,
-      topUrls: []
+      topUrls: [],
     };
   }
 
@@ -383,23 +418,26 @@ export class CDNOptimizer {
       Dimensions: [
         {
           Name: 'DistributionId',
-          Value: this.config.distributionId
-        }
+          Value: this.config.distributionId,
+        },
       ],
       StartTime: startDate,
       EndTime: endDate,
       Period: 3600, // 1 hour
-      Statistics: ['Average']
+      Statistics: ['Average'],
     };
-    
+
     const result = await cloudwatch.getMetricStatistics(params).promise();
     const datapoints = result.Datapoints || [];
-    
+
     if (datapoints.length === 0) {
       return 0;
     }
-    
-    return datapoints.reduce((sum, point) => sum + (point.Average || 0), 0) / datapoints.length;
+
+    return (
+      datapoints.reduce((sum, point) => sum + (point.Average || 0), 0) /
+      datapoints.length
+    );
   }
 
   /**
@@ -410,39 +448,42 @@ export class CDNOptimizer {
     estimatedImprovement: string;
   }> {
     const recommendations: string[] = [];
-    
+
     // Analyze current metrics
     const endDate = new Date();
     const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000); // Last 24 hours
     const metrics = await this.getCDNMetrics(startDate, endDate);
-    
+
     // Check cache hit ratio
     if (metrics.cacheHitRatio < 0.85) {
       recommendations.push('Increase cache TTL for static assets');
       recommendations.push('Enable compression for text-based content');
     }
-    
+
     // Check error rate
     if (metrics.errorRate > 0.01) {
       recommendations.push('Review origin server health');
       recommendations.push('Implement better error handling');
     }
-    
+
     // General optimizations
     if (!this.config.compressionEnabled) {
       recommendations.push('Enable Gzip/Brotli compression');
     }
-    
+
     if (!this.config.http2Enabled) {
       recommendations.push('Enable HTTP/2 support');
     }
-    
-    recommendations.push('Implement edge-side includes (ESI) for dynamic content');
+
+    recommendations.push(
+      'Implement edge-side includes (ESI) for dynamic content'
+    );
     recommendations.push('Use WebP format for images where supported');
-    
+
     return {
       recommendations,
-      estimatedImprovement: '20-40% faster load times, 30-50% bandwidth reduction'
+      estimatedImprovement:
+        '20-40% faster load times, 30-50% bandwidth reduction',
     };
   }
 
@@ -459,9 +500,9 @@ export class CDNOptimizer {
       '.jpg': 'image/jpeg',
       '.jpeg': 'image/jpeg',
       '.png': 'image/png',
-      '.webp': 'image/webp'
+      '.webp': 'image/webp',
     };
-    
+
     return contentTypes[ext] || 'application/octet-stream';
   }
 
@@ -470,13 +511,13 @@ export class CDNOptimizer {
    */
   private getCacheControl(filename: string): string {
     const ext = path.extname(filename).toLowerCase();
-    
+
     if (['.mp4', '.webm', '.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
       return 'public, max-age=31536000'; // 1 year for media files
     } else if (['.m3u8', '.ts'].includes(ext)) {
       return 'public, max-age=300'; // 5 minutes for streaming segments
     }
-    
+
     return 'public, max-age=3600'; // 1 hour default
   }
 
@@ -494,18 +535,18 @@ export class CDNOptimizer {
   }> {
     const endDate = new Date();
     const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000); // Last 7 days
-    
+
     const currentMetrics = await this.getCDNMetrics(startDate, endDate);
     const optimization = await this.optimizeCDNConfiguration();
-    
+
     return {
       currentMetrics,
       optimizationSuggestions: optimization.recommendations,
       estimatedSavings: {
         bandwidth: '30-50% reduction',
         latency: '20-40% improvement',
-        costs: '25-35% reduction'
-      }
+        costs: '25-35% reduction',
+      },
     };
   }
 }

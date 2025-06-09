@@ -1,5 +1,10 @@
 import { DomainEvent } from './domain-event';
-import { PlayerDetection, BallDetection, TeamClassification, EventDetection } from '../../infrastructure/ml/edge-ml-inference';
+import {
+  PlayerDetection,
+  BallDetection,
+  TeamClassification,
+  EventDetection,
+} from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Analysis result interface for type safety
@@ -49,7 +54,7 @@ export class FrameAnalyzedEvent extends DomainEvent {
       causationId: this.causationId,
       frameNumber: this.frameNumber,
       timestamp: this.timestamp,
-      analysisResult: this.analysisResult
+      analysisResult: this.analysisResult,
     };
   }
 
@@ -57,7 +62,7 @@ export class FrameAnalyzedEvent extends DomainEvent {
     return {
       frameNumber: this.frameNumber,
       timestamp: this.timestamp,
-      analysisResult: this.analysisResult
+      analysisResult: this.analysisResult,
     };
   }
 
@@ -73,7 +78,9 @@ export class FrameAnalyzedEvent extends DomainEvent {
 
     // Override generated values with persisted ones
     (event as unknown as { eventId: string }).eventId = data.eventId as string;
-    (event as unknown as { occurredOn: Date }).occurredOn = new Date(data.occurredOn as string);
+    (event as unknown as { occurredOn: Date }).occurredOn = new Date(
+      data.occurredOn as string
+    );
 
     return event;
   }

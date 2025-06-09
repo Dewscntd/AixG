@@ -59,7 +59,7 @@ export class RealTimeAnalysisGateway
     client.emit('connected', {
       clientId: client.id,
       timestamp: new Date().toISOString(),
-      message: 'Connected to Real-time Analysis service'
+      message: 'Connected to Real-time Analysis service',
     });
   }
 
@@ -82,16 +82,16 @@ export class RealTimeAnalysisGateway
   ) {
     try {
       const { streamId } = data;
-      
+
       // Validate stream exists
       const streamStatus = this.realTimeAnalysisService.getStreamStatus(
         StreamId.fromString(streamId)
       );
-      
+
       if (!streamStatus) {
         client.emit('error', {
           message: `Stream ${streamId} not found`,
-          code: 'STREAM_NOT_FOUND'
+          code: 'STREAM_NOT_FOUND',
         });
         return;
       }
@@ -103,18 +103,19 @@ export class RealTimeAnalysisGateway
       }
 
       this.logger.log(`Client ${client.id} subscribed to stream ${streamId}`);
-      
+
       client.emit('subscribed', {
         streamId,
         status: streamStatus,
-        message: 'Successfully subscribed to stream updates'
+        message: 'Successfully subscribed to stream updates',
       });
-
     } catch (error) {
-      this.logger.error(`Failed to subscribe client ${client.id} to stream: ${error.message}`);
+      this.logger.error(
+        `Failed to subscribe client ${client.id} to stream: ${error.message}`
+      );
       client.emit('error', {
         message: 'Failed to subscribe to stream',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -129,25 +130,28 @@ export class RealTimeAnalysisGateway
   ) {
     try {
       const { streamId } = data;
-      
+
       // Remove subscription
       const subscriptions = this.clientSubscriptions.get(client.id);
       if (subscriptions) {
         subscriptions.delete(streamId);
       }
 
-      this.logger.log(`Client ${client.id} unsubscribed from stream ${streamId}`);
-      
+      this.logger.log(
+        `Client ${client.id} unsubscribed from stream ${streamId}`
+      );
+
       client.emit('unsubscribed', {
         streamId,
-        message: 'Successfully unsubscribed from stream updates'
+        message: 'Successfully unsubscribed from stream updates',
       });
-
     } catch (error) {
-      this.logger.error(`Failed to unsubscribe client ${client.id} from stream: ${error.message}`);
+      this.logger.error(
+        `Failed to unsubscribe client ${client.id} from stream: ${error.message}`
+      );
       client.emit('error', {
         message: 'Failed to unsubscribe from stream',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -169,7 +173,7 @@ export class RealTimeAnalysisGateway
       if (!metrics) {
         client.emit('error', {
           message: `Stream ${streamId} not found`,
-          code: 'STREAM_NOT_FOUND'
+          code: 'STREAM_NOT_FOUND',
         });
         return;
       }
@@ -177,14 +181,15 @@ export class RealTimeAnalysisGateway
       client.emit('stream_metrics', {
         streamId,
         metrics,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
     } catch (error) {
-      this.logger.error(`Failed to get stream metrics for client ${client.id}: ${error.message}`);
+      this.logger.error(
+        `Failed to get stream metrics for client ${client.id}: ${error.message}`
+      );
       client.emit('error', {
         message: 'Failed to get stream metrics',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -199,20 +204,21 @@ export class RealTimeAnalysisGateway
   ) {
     try {
       const { peerId, signalData } = data;
-      
+
       // Forward signal to real-time analysis service
       this.realTimeAnalysisService.signalPeer(peerId, signalData);
-      
+
       client.emit('webrtc_signal_sent', {
         peerId,
-        message: 'Signal sent successfully'
+        message: 'Signal sent successfully',
       });
-
     } catch (error) {
-      this.logger.error(`WebRTC signaling failed for client ${client.id}: ${error.message}`);
+      this.logger.error(
+        `WebRTC signaling failed for client ${client.id}: ${error.message}`
+      );
       client.emit('error', {
         message: 'WebRTC signaling failed',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -243,13 +249,13 @@ export class RealTimeAnalysisGateway
   @OnEvent('frame.extracted')
   handleFrameExtracted(payload: any) {
     const { streamId } = payload;
-    
+
     // Send to subscribed clients only
     this.broadcastToSubscribers(streamId, 'frame_extracted', {
       streamId,
       frameNumber: payload.frame.frameNumber,
       timestamp: payload.frame.timestamp,
-      metadata: payload.frame.metadata
+      metadata: payload.frame.metadata,
     });
   }
 
@@ -260,7 +266,7 @@ export class RealTimeAnalysisGateway
   handleDomainEvent(payload: any) {
     const eventType = payload.eventType;
     const streamId = payload.aggregateId;
-    
+
     // Broadcast domain events to subscribed clients
     this.broadcastToSubscribers(streamId, `domain_${eventType}`, payload);
   }
@@ -289,7 +295,7 @@ export class RealTimeAnalysisGateway
   @OnEvent('frame.processing.error')
   handleFrameProcessingError(payload: any) {
     const { streamId } = payload;
-    
+
     this.broadcastToSubscribers(streamId, 'frame_processing_error', payload);
   }
 
@@ -321,12 +327,12 @@ export class RealTimeAnalysisGateway
     const stats = {
       totalClients: this.connectedClients.size,
       totalSubscriptions: 0,
-      streamSubscriptions: new Map<string, number>()
+      streamSubscriptions: new Map<string, number>(),
     };
 
     for (const subscriptions of this.clientSubscriptions.values()) {
       stats.totalSubscriptions += subscriptions.size;
-      
+
       for (const streamId of subscriptions) {
         const count = stats.streamSubscriptions.get(streamId) || 0;
         stats.streamSubscriptions.set(streamId, count + 1);
@@ -335,7 +341,7 @@ export class RealTimeAnalysisGateway
 
     return {
       ...stats,
-      streamSubscriptions: Object.fromEntries(stats.streamSubscriptions)
+      streamSubscriptions: Object.fromEntries(stats.streamSubscriptions),
     };
   }
 }

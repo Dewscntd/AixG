@@ -10,7 +10,7 @@ import { RealTimeAnalysisModule } from './real-time-analysis.module';
  */
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  
+
   try {
     // Create NestJS application
     const app = await NestFactory.create(RealTimeAnalysisModule, {
@@ -57,7 +57,9 @@ async function bootstrap() {
         },
       });
 
-      logger.log(`Swagger documentation available at: http://localhost:${port}/${swaggerConfig.path}`);
+      logger.log(
+        `Swagger documentation available at: http://localhost:${port}/${swaggerConfig.path}`
+      );
     }
 
     // Global prefix for API routes
@@ -66,18 +68,25 @@ async function bootstrap() {
     // Start the application
     await app.listen(port);
 
-    logger.log(`🚀 Real-time Analysis Service is running on: http://localhost:${port}`);
-    logger.log(`📊 WebSocket endpoint: ws://localhost:${port}/real-time-analysis`);
+    logger.log(
+      `🚀 Real-time Analysis Service is running on: http://localhost:${port}`
+    );
+    logger.log(
+      `📊 WebSocket endpoint: ws://localhost:${port}/real-time-analysis`
+    );
     logger.log(`🌍 Environment: ${nodeEnv}`);
-    
+
     // Log configuration summary
     const mlConfig = configService.get('ml');
     const streamConfig = configService.get('stream');
-    
-    logger.log(`🤖 ML Inference: GPU ${mlConfig.gpuEnabled ? 'enabled' : 'disabled'}`);
-    logger.log(`📹 Max concurrent streams: ${streamConfig.maxStreams}`);
-    logger.log(`🔄 Stream buffer size: ${streamConfig.defaultBufferSize} frames`);
 
+    logger.log(
+      `🤖 ML Inference: GPU ${mlConfig.gpuEnabled ? 'enabled' : 'disabled'}`
+    );
+    logger.log(`📹 Max concurrent streams: ${streamConfig.maxStreams}`);
+    logger.log(
+      `🔄 Stream buffer size: ${streamConfig.defaultBufferSize} frames`
+    );
   } catch (error) {
     logger.error('Failed to start Real-time Analysis Service:', error);
     process.exit(1);
@@ -88,7 +97,7 @@ async function bootstrap() {
 const globalLogger = new Logger('ProcessHandler');
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   globalLogger.error('Uncaught Exception:', error);
   process.exit(1);
 });

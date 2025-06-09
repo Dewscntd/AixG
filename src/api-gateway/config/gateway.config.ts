@@ -1,6 +1,6 @@
 /**
  * Gateway Configuration
- * 
+ *
  * Centralized configuration for the API Gateway with environment-based settings
  */
 
@@ -12,8 +12,12 @@ export const gatewayConfiguration = registerAs('gateway', () => ({
   nodeEnv: process.env.NODE_ENV || 'development',
 
   // GraphQL Configuration
-  graphqlPlayground: process.env.GRAPHQL_PLAYGROUND === 'true' || process.env.NODE_ENV !== 'production',
-  graphqlIntrospection: process.env.GRAPHQL_INTROSPECTION === 'true' || process.env.NODE_ENV !== 'production',
+  graphqlPlayground:
+    process.env.GRAPHQL_PLAYGROUND === 'true' ||
+    process.env.NODE_ENV !== 'production',
+  graphqlIntrospection:
+    process.env.GRAPHQL_INTROSPECTION === 'true' ||
+    process.env.NODE_ENV !== 'production',
 
   // CORS Configuration
   corsOrigin: process.env.CORS_ORIGIN || '*',
@@ -32,32 +36,46 @@ export const gatewayConfiguration = registerAs('gateway', () => ({
   // Cache Configuration
   cacheDefaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL || '300', 10), // 5 minutes
   cacheMaxTtl: parseInt(process.env.CACHE_MAX_TTL || '3600', 10), // 1 hour
-  
+
   // Subgraph Service URLs
-  analyticsServiceUrl: process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3000/graphql',
-  videoIngestionServiceUrl: process.env.VIDEO_INGESTION_SERVICE_URL || 'http://localhost:3001/graphql',
-  mlPipelineServiceUrl: process.env.ML_PIPELINE_SERVICE_URL || 'http://localhost:8000/graphql',
-  teamManagementServiceUrl: process.env.TEAM_MANAGEMENT_SERVICE_URL || 'http://localhost:3002/graphql',
-  
+  analyticsServiceUrl:
+    process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3000/graphql',
+  videoIngestionServiceUrl:
+    process.env.VIDEO_INGESTION_SERVICE_URL || 'http://localhost:3001/graphql',
+  mlPipelineServiceUrl:
+    process.env.ML_PIPELINE_SERVICE_URL || 'http://localhost:8000/graphql',
+  teamManagementServiceUrl:
+    process.env.TEAM_MANAGEMENT_SERVICE_URL || 'http://localhost:3002/graphql',
+
   // Monitoring Configuration
-  metricsEnabled: process.env.METRICS_ENABLED === 'true' || process.env.NODE_ENV === 'production',
-  tracingEnabled: process.env.TRACING_ENABLED === 'true' || process.env.NODE_ENV === 'production',
-  
+  metricsEnabled:
+    process.env.METRICS_ENABLED === 'true' ||
+    process.env.NODE_ENV === 'production',
+  tracingEnabled:
+    process.env.TRACING_ENABLED === 'true' ||
+    process.env.NODE_ENV === 'production',
+
   // Apollo Studio Configuration (Production)
   apolloKey: process.env.APOLLO_KEY,
   apolloGraphRef: process.env.APOLLO_GRAPH_REF,
-  
+
   // Security Configuration
-  helmetEnabled: process.env.HELMET_ENABLED === 'true' || process.env.NODE_ENV === 'production',
-  compressionEnabled: process.env.COMPRESSION_ENABLED === 'true' || process.env.NODE_ENV === 'production',
-  
+  helmetEnabled:
+    process.env.HELMET_ENABLED === 'true' ||
+    process.env.NODE_ENV === 'production',
+  compressionEnabled:
+    process.env.COMPRESSION_ENABLED === 'true' ||
+    process.env.NODE_ENV === 'production',
+
   // Query Complexity Configuration
   maxQueryComplexity: parseInt(process.env.MAX_QUERY_COMPLEXITY || '1000', 10),
   maxQueryDepth: parseInt(process.env.MAX_QUERY_DEPTH || '15', 10),
 
   // File Upload Configuration
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '104857600', 10), // 100MB
-  allowedFileTypes: (process.env.ALLOWED_FILE_TYPES || 'video/mp4,video/avi,video/mov').split(','),
+  allowedFileTypes: (
+    process.env.ALLOWED_FILE_TYPES || 'video/mp4,video/avi,video/mov'
+  ).split(','),
 
   // WebSocket Configuration
   websocketPath: process.env.WEBSOCKET_PATH || '/graphql',
@@ -65,12 +83,15 @@ export const gatewayConfiguration = registerAs('gateway', () => ({
 
   // Health Check Configuration
   healthCheckPath: process.env.HEALTH_CHECK_PATH || '/health',
-  healthCheckInterval: parseInt(process.env.HEALTH_CHECK_INTERVAL || '30000', 10), // 30 seconds
-  
+  healthCheckInterval: parseInt(
+    process.env.HEALTH_CHECK_INTERVAL || '30000',
+    10
+  ), // 30 seconds
+
   // Logging Configuration
   logLevel: process.env.LOG_LEVEL || 'info',
   logFormat: process.env.LOG_FORMAT || 'json',
-  
+
   // Feature Flags
   features: {
     subscriptions: process.env.FEATURE_SUBSCRIPTIONS === 'true' || true,

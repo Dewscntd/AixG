@@ -1,4 +1,9 @@
-import { AnalysisStage, StageInput, StageResult, EdgeMLInference } from '../entities/live-analysis-pipeline';
+import {
+  AnalysisStage,
+  StageInput,
+  StageResult,
+  EdgeMLInference,
+} from '../entities/live-analysis-pipeline';
 import { Player } from './player-detection-stage';
 import { PlayerDetection } from '../../infrastructure/ml/edge-ml-inference';
 
@@ -13,11 +18,13 @@ export class FormationAnalysisStage implements AnalysisStage {
 
   async process(input: StageInput): Promise<StageResult> {
     const startTime = Date.now();
-    
+
     try {
       const { context } = input;
-      const playerDetections = context.classifiedPlayers || context.players || [];
-      const players: Player[] = this.convertFromPlayerDetections(playerDetections);
+      const playerDetections =
+        context.classifiedPlayers || context.players || [];
+      const players: Player[] =
+        this.convertFromPlayerDetections(playerDetections);
 
       // Analyze formations for each team
       const teamAPlayers = players.filter(p => p.team === 'teamA');
@@ -27,7 +34,10 @@ export class FormationAnalysisStage implements AnalysisStage {
       const teamBFormation = this.analyzeTeamFormation(teamBPlayers, 'teamB');
 
       // Calculate formation statistics
-      const formationStats = this.calculateFormationStats(teamAFormation, teamBFormation);
+      const formationStats = this.calculateFormationStats(
+        teamAFormation,
+        teamBFormation
+      );
 
       const processingTime = Date.now() - startTime;
 
@@ -38,15 +48,14 @@ export class FormationAnalysisStage implements AnalysisStage {
         output: {
           formation: {
             homeTeam: teamAFormation?.pattern || 'unknown',
-            awayTeam: teamBFormation?.pattern || 'unknown'
+            awayTeam: teamBFormation?.pattern || 'unknown',
           },
-          stats: formationStats
-        }
+          stats: formationStats,
+        },
       };
-
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      
+
       return {
         stageName: this.name,
         success: false,
@@ -55,9 +64,9 @@ export class FormationAnalysisStage implements AnalysisStage {
         output: {
           formation: {
             homeTeam: 'unknown',
-            awayTeam: 'unknown'
-          }
-        }
+            awayTeam: 'unknown',
+          },
+        },
       };
     }
   }
@@ -65,7 +74,9 @@ export class FormationAnalysisStage implements AnalysisStage {
   /**
    * Convert PlayerDetection[] to Player[] for internal processing
    */
-  private convertFromPlayerDetections(playerDetections: PlayerDetection[]): Player[] {
+  private convertFromPlayerDetections(
+    playerDetections: PlayerDetection[]
+  ): Player[] {
     return playerDetections.map(detection => ({
       id: detection.playerId,
       boundingBox: detection.boundingBox,
@@ -75,24 +86,27 @@ export class FormationAnalysisStage implements AnalysisStage {
       jersey: detection.jerseyNumber?.toString() || null,
       pose: null,
       velocity: { x: 0, y: 0 },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }));
   }
 
   /**
    * Analyze team formation
    */
-  private analyzeTeamFormation(players: Player[], team: string): TeamFormation | null {
+  private analyzeTeamFormation(
+    players: Player[],
+    team: string
+  ): TeamFormation | null {
     if (players.length < 3) {
       return null; // Need minimum players to determine formation
     }
 
     // Group players by field zones
     const zones = this.groupPlayersByZones(players);
-    
+
     // Determine formation pattern
     const formationPattern = this.determineFormationPattern(zones);
-    
+
     // Calculate formation metrics
     const metrics = this.calculateFormationMetrics(players, zones);
 
@@ -102,7 +116,7 @@ export class FormationAnalysisStage implements AnalysisStage {
       zones,
       metrics,
       playerCount: players.length,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -113,17 +127,20 @@ export class FormationAnalysisStage implements AnalysisStage {
     const zones: FormationZones = {
       defense: [],
       midfield: [],
-      attack: []
+      attack: [],
     };
 
     // Simplified zone classification based on Y position
     // Assuming field runs vertically with goals at top/bottom
     for (const player of players) {
-      if (player.position.y < 360) { // Top third
+      if (player.position.y < 360) {
+        // Top third
         zones.attack.push(player);
-      } else if (player.position.y < 720) { // Middle third
+      } else if (player.position.y < 720) {
+        // Middle third
         zones.midfield.push(player);
-      } else { // Bottom third
+      } else {
+        // Bottom third
         zones.defense.push(player);
       }
     }
@@ -153,14 +170,17 @@ export class FormationAnalysisStage implements AnalysisStage {
   /**
    * Calculate formation metrics
    */
-  private calculateFormationMetrics(players: Player[], zones: FormationZones): FormationMetrics {
+  private calculateFormationMetrics(
+    players: Player[],
+    zones: FormationZones
+  ): FormationMetrics {
     // Calculate team compactness
     const compactness = this.calculateCompactness(players);
-    
+
     // Calculate width and depth
     const width = this.calculateTeamWidth(players);
     const depth = this.calculateTeamDepth(players);
-    
+
     // Calculate center of mass
     const centerOfMass = this.calculateCenterOfMass(players);
 
@@ -170,7 +190,7 @@ export class FormationAnalysisStage implements AnalysisStage {
       depth,
       centerOfMass,
       defensiveLineHeight: this.calculateDefensiveLineHeight(zones.defense),
-      offensiveLineHeight: this.calculateOffensiveLineHeight(zones.attack)
+      offensiveLineHeight: this.calculateOffensiveLineHeight(zones.attack),
     };
   }
 
@@ -188,7 +208,10 @@ export class FormationAnalysisStage implements AnalysisStage {
         const player1 = players[i];
         const player2 = players[j];
         if (player1?.position && player2?.position) {
-          const distance = this.calculateDistance(player1.position, player2.position);
+          const distance = this.calculateDistance(
+            player1.position,
+            player2.position
+          );
           totalDistance += distance;
           pairCount++;
         }
@@ -229,7 +252,7 @@ export class FormationAnalysisStage implements AnalysisStage {
 
     return {
       x: totalX / players.length,
-      y: totalY / players.length
+      y: totalY / players.length,
     };
   }
 
@@ -238,7 +261,7 @@ export class FormationAnalysisStage implements AnalysisStage {
    */
   private calculateDefensiveLineHeight(defenders: Player[]): number {
     if (defenders.length === 0) return 0;
-    
+
     const yPositions = defenders.map(p => p.position.y);
     return yPositions.reduce((sum, y) => sum + y, 0) / yPositions.length;
   }
@@ -248,7 +271,7 @@ export class FormationAnalysisStage implements AnalysisStage {
    */
   private calculateOffensiveLineHeight(attackers: Player[]): number {
     if (attackers.length === 0) return 0;
-    
+
     const yPositions = attackers.map(p => p.position.y);
     return yPositions.reduce((sum, y) => sum + y, 0) / yPositions.length;
   }
@@ -256,7 +279,10 @@ export class FormationAnalysisStage implements AnalysisStage {
   /**
    * Calculate distance between two positions
    */
-  private calculateDistance(pos1: { x: number; y: number }, pos2: { x: number; y: number }): number {
+  private calculateDistance(
+    pos1: { x: number; y: number },
+    pos2: { x: number; y: number }
+  ): number {
     const dx = pos1.x - pos2.x;
     const dy = pos1.y - pos2.y;
     return Math.sqrt(dx * dx + dy * dy);
@@ -274,7 +300,10 @@ export class FormationAnalysisStage implements AnalysisStage {
       teamBPattern: teamBFormation?.pattern || 'unknown',
       teamACompactness: teamAFormation?.metrics.compactness || 0,
       teamBCompactness: teamBFormation?.metrics.compactness || 0,
-      formationBalance: this.calculateFormationBalance(teamAFormation, teamBFormation)
+      formationBalance: this.calculateFormationBalance(
+        teamAFormation,
+        teamBFormation
+      ),
     };
   }
 
@@ -291,8 +320,9 @@ export class FormationAnalysisStage implements AnalysisStage {
     const teamASpread = teamA.metrics.width + teamA.metrics.depth;
     const teamBSpread = teamB.metrics.width + teamB.metrics.depth;
 
-    return teamASpread > 0 && teamBSpread > 0 ? 
-      Math.min(teamASpread, teamBSpread) / Math.max(teamASpread, teamBSpread) : 0;
+    return teamASpread > 0 && teamBSpread > 0
+      ? Math.min(teamASpread, teamBSpread) / Math.max(teamASpread, teamBSpread)
+      : 0;
   }
 }
 

@@ -38,66 +38,78 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
         matchId,
         timestamp: '2024-01-01T00:00:00.000Z',
         data: {
-          shots: [{
-            teamId: homeTeamId,
-            playerId: 'player-123',
-            position: { x: 85.5, y: 45.2 },
-            targetPosition: { x: 100, y: 50 },
-            distanceToGoal: 15.3,
-            angle: 25.7,
-            bodyPart: 'foot',
-            situation: 'open_play',
-            defenderCount: 2,
-            gameState: {
-              minute: 45,
-              scoreDifference: 0,
-              isHome: true,
+          shots: [
+            {
+              teamId: homeTeamId,
+              playerId: 'player-123',
+              position: { x: 85.5, y: 45.2 },
+              targetPosition: { x: 100, y: 50 },
+              distanceToGoal: 15.3,
+              angle: 25.7,
+              bodyPart: 'foot',
+              situation: 'open_play',
+              defenderCount: 2,
+              gameState: {
+                minute: 45,
+                scoreDifference: 0,
+                isHome: true,
+              },
+              confidence: 0.95,
             },
-            confidence: 0.95,
-          }],
-          possessionEvents: [{
-            timestamp: 1234567890,
-            teamId: homeTeamId,
-            playerId: 'player-456',
-            eventType: 'pass',
-            position: { x: 50.0, y: 30.5 },
-            successful: true,
-            duration: 5,
-          }],
-          players: [{
-            id: 'player-789',
-            teamId: homeTeamId,
-            position: { x: 45.0, y: 55.0 },
-            velocity: { x: 2.5, y: -1.2 },
-            confidence: 0.92,
-          }],
+          ],
+          possessionEvents: [
+            {
+              timestamp: 1234567890,
+              teamId: homeTeamId,
+              playerId: 'player-456',
+              eventType: 'pass',
+              position: { x: 50.0, y: 30.5 },
+              successful: true,
+              duration: 5,
+            },
+          ],
+          players: [
+            {
+              id: 'player-789',
+              teamId: homeTeamId,
+              position: { x: 45.0, y: 55.0 },
+              velocity: { x: 2.5, y: -1.2 },
+              confidence: 0.92,
+            },
+          ],
           formations: {
             homeTeam: {
               formation: '4-4-2',
               confidence: 0.88,
-              players: [{
-                playerId: 'player-001',
-                position: 'defender',
-                coordinates: { x: 25.0, y: 50.0 },
-              }],
+              players: [
+                {
+                  playerId: 'player-001',
+                  position: 'defender',
+                  coordinates: { x: 25.0, y: 50.0 },
+                },
+              ],
             },
             awayTeam: {
               teamId: awayTeamId,
               formation: '4-3-3',
               confidence: 0.91,
-              players: [{
-                playerId: 'player-002',
-                position: 'midfielder',
-                coordinates: { x: 75.0, y: 50.0 },
-              }],
+              players: [
+                {
+                  playerId: 'player-002',
+                  position: 'midfielder',
+                  coordinates: { x: 75.0, y: 50.0 },
+                },
+              ],
             },
           },
-          ballTracking: [{
-            timestamp: 1234567890,
-            position: { x: 50.0, y: 50.0 },
-            velocity: { x: 10.5, y: -5.2 },
-            confidence: 0.97,
-          }],
+          ballTracking: [
+            {
+              timestamp: 1234567890,
+              position: { x: 50.0, y: 50.0 },
+              velocity: { x: 10.5, y: -5.2 },
+              confidence: 0.97,
+            },
+          ],
           metadata: {
             processingTime: 45.2,
             modelVersions: {
@@ -130,14 +142,16 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
         timestamp: '2024-01-01T00:00:00.000Z',
         data: {
           shots: [], // No shots detected
-          possessionEvents: [{
-            timestamp: 1234567890,
-            teamId: 'team-a',
-            playerId: 'player-123',
-            eventType: 'pass',
-            position: { x: 50.0, y: 30.5 },
-            successful: true,
-          }],
+          possessionEvents: [
+            {
+              timestamp: 1234567890,
+              teamId: 'team-a',
+              playerId: 'player-123',
+              eventType: 'pass',
+              position: { x: 50.0, y: 30.5 },
+              successful: true,
+            },
+          ],
           metadata: {
             processingTime: 30.1,
             analysisQuality: 'medium',
@@ -150,8 +164,12 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
       expect(partialAnalysisResult.eventType).toBe('PartialAnalysisCompleted');
       expect(partialAnalysisResult.data.shots).toHaveLength(0);
       expect(partialAnalysisResult.data.possessionEvents).toHaveLength(1);
-      expect(partialAnalysisResult.data.metadata.analysisQuality).toBe('medium');
-      expect(partialAnalysisResult.data.metadata.warnings).toContain('Low confidence in player detection');
+      expect(partialAnalysisResult.data.metadata.analysisQuality).toBe(
+        'medium'
+      );
+      expect(partialAnalysisResult.data.metadata.warnings).toContain(
+        'Low confidence in player detection'
+      );
     });
 
     it('should validate invalid analysis data structure', () => {
@@ -181,22 +199,26 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
         frameNumber: 1500,
         timestamp: 60000, // 1 minute into the match
         data: {
-          players: [{
-            id: 'player-123',
-            teamId: 'team-a',
-            position: { x: 45.0, y: 55.0 },
-            velocity: { x: 2.5, y: -1.2 },
-          }],
+          players: [
+            {
+              id: 'player-123',
+              teamId: 'team-a',
+              position: { x: 45.0, y: 55.0 },
+              velocity: { x: 2.5, y: -1.2 },
+            },
+          ],
           ball: {
             position: { x: 50.0, y: 50.0 },
             velocity: { x: 10.5, y: -5.2 },
             confidence: 0.97,
           },
-          events: [{
-            type: 'pass',
-            confidence: 0.85,
-            playerId: 'player-123',
-          }],
+          events: [
+            {
+              type: 'pass',
+              confidence: 0.85,
+              playerId: 'player-123',
+            },
+          ],
         },
       };
 

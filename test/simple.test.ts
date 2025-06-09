@@ -17,9 +17,9 @@ describe('Simple Test Suite', () => {
   it('should handle mock functions', () => {
     const mockFn = jest.fn();
     mockFn.mockReturnValue('mocked');
-    
+
     const result = mockFn('input');
-    
+
     expect(result).toBe('mocked');
     expect(mockFn).toHaveBeenCalledWith('input');
   });

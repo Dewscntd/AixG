@@ -4,7 +4,11 @@ export interface EventStore {
   /**
    * Append events to a stream
    */
-  append(streamId: string, events: DomainEvent[], expectedVersion?: number): Promise<void>;
+  append(
+    streamId: string,
+    events: DomainEvent[],
+    expectedVersion?: number
+  ): Promise<void>;
 
   /**
    * Read events from a stream
@@ -15,15 +19,18 @@ export interface EventStore {
    * Read events from a stream with pagination
    */
   readPaginated(
-    streamId: string, 
-    fromVersion?: number, 
+    streamId: string,
+    fromVersion?: number,
     maxCount?: number
   ): Promise<{ events: DomainEvent[]; hasMore: boolean }>;
 
   /**
    * Read all events of a specific type
    */
-  readByEventType(eventType: string, fromTimestamp?: Date): Promise<DomainEvent[]>;
+  readByEventType(
+    eventType: string,
+    fromTimestamp?: Date
+  ): Promise<DomainEvent[]>;
 
   /**
    * Get the current version of a stream
@@ -43,12 +50,18 @@ export interface EventStore {
   /**
    * Create a snapshot of the current state
    */
-  createSnapshot<T>(streamId: string, snapshot: T, version: number): Promise<void>;
+  createSnapshot<T>(
+    streamId: string,
+    snapshot: T,
+    version: number
+  ): Promise<void>;
 
   /**
    * Get the latest snapshot for a stream
    */
-  getSnapshot<T>(streamId: string): Promise<{ snapshot: T; version: number } | null>;
+  getSnapshot<T>(
+    streamId: string
+  ): Promise<{ snapshot: T; version: number } | null>;
 
   /**
    * Subscribe to all events
@@ -136,10 +149,14 @@ export interface StreamMetadata {
 }
 
 export class OptimisticConcurrencyError extends Error {
-  constructor(streamId: string, expectedVersion: number, actualVersion: number) {
+  constructor(
+    streamId: string,
+    expectedVersion: number,
+    actualVersion: number
+  ) {
     super(
       `Optimistic concurrency violation for stream ${streamId}. ` +
-      `Expected version ${expectedVersion}, but actual version is ${actualVersion}`
+        `Expected version ${expectedVersion}, but actual version is ${actualVersion}`
     );
     this.name = 'OptimisticConcurrencyError';
   }

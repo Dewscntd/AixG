@@ -19,7 +19,7 @@ export class StorageResult {
 
   constructor(props: StorageResultProps) {
     this.validateProps(props);
-    
+
     this._uploadId = props.uploadId;
     this._key = props.key;
     this._bucket = props.bucket;
@@ -88,7 +88,7 @@ export class StorageResult {
       url: this._url,
       size: this._size,
       etag: this._etag,
-      metadata: { ...this._metadata }
+      metadata: { ...this._metadata },
     };
   }
 
@@ -100,7 +100,7 @@ export class StorageResult {
       url: snapshot.url,
       size: snapshot.size,
       etag: snapshot.etag,
-      metadata: snapshot.metadata
+      metadata: snapshot.metadata,
     });
   }
 }

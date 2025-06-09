@@ -2,13 +2,21 @@
  * GraphQL types and input types for analytics API
  */
 
-import { ObjectType, Field, InputType, ID, Float, Int, registerEnumType } from '@nestjs/graphql';
+import {
+  ObjectType,
+  Field,
+  InputType,
+  ID,
+  Float,
+  Int,
+  registerEnumType,
+} from '@nestjs/graphql';
 
 // Enums
 export enum EntityType {
   TEAM = 'team',
   PLAYER = 'player',
-  MATCH = 'match'
+  MATCH = 'match',
 }
 
 export enum TimeInterval {
@@ -16,7 +24,7 @@ export enum TimeInterval {
   HOUR = 'hour',
   DAY = 'day',
   WEEK = 'week',
-  MONTH = 'month'
+  MONTH = 'month',
 }
 
 registerEnumType(EntityType, {

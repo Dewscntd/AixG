@@ -1,6 +1,6 @@
 /**
  * Root Layout Component
- * 
+ *
  * Implements the main application layout with:
  * - RTL/LTR support for Hebrew and English
  * - Progressive Web App capabilities
@@ -72,13 +72,15 @@ export async function generateMetadata({
       address: false,
       telephone: false,
     },
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+    metadataBase: new URL(
+      process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    ),
     alternates: {
       canonical: '/',
       languages: {
-        'he': '/he',
-        'en': '/en',
-        'ar': '/ar',
+        he: '/he',
+        en: '/en',
+        ar: '/ar',
       },
     },
     openGraph: {
@@ -202,28 +204,28 @@ export default async function RootLayout({
           type="font/woff2"
           crossOrigin="anonymous"
         />
-        
+
         {/* DNS prefetch for external resources */}
         <link rel="dns-prefetch" href="//fonts.googleapis.com" />
         <link rel="dns-prefetch" href="//fonts.gstatic.com" />
-        
+
         {/* Preconnect to GraphQL endpoint */}
         <link rel="preconnect" href={process.env.GRAPHQL_ENDPOINT} />
-        
+
         {/* Theme color meta tags */}
         <meta name="theme-color" content="#0ea5e9" />
         <meta name="msapplication-TileColor" content="#0ea5e9" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
-        
+
         {/* Security headers */}
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         <meta httpEquiv="X-Frame-Options" content="DENY" />
         <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
-        
+
         {/* Performance hints */}
         <meta httpEquiv="Accept-CH" content="DPR, Viewport-Width, Width" />
       </head>
-      
+
       <body
         className={cn(
           'min-h-full bg-background font-sans text-foreground',
@@ -286,5 +288,5 @@ export default async function RootLayout({
 
 // Generate static params for all supported locales
 export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
+  return locales.map(locale => ({ locale }));
 }

@@ -20,7 +20,7 @@ describe('API Gateway → Services Contract Tests', () => {
       log: path.resolve(process.cwd(), 'logs', 'pact-video.log'),
       dir: path.resolve(process.cwd(), 'pacts'),
       logLevel: 'info',
-      spec: 2
+      spec: 2,
     });
 
     analyticsServiceProvider = new Pact({
@@ -30,19 +30,19 @@ describe('API Gateway → Services Contract Tests', () => {
       log: path.resolve(process.cwd(), 'logs', 'pact-analytics.log'),
       dir: path.resolve(process.cwd(), 'pacts'),
       logLevel: 'info',
-      spec: 2
+      spec: 2,
     });
 
     await Promise.all([
       videoServiceProvider.setup(),
-      analyticsServiceProvider.setup()
+      analyticsServiceProvider.setup(),
     ]);
   });
 
   afterAll(async () => {
     await Promise.all([
       videoServiceProvider.finalize(),
-      analyticsServiceProvider.finalize()
+      analyticsServiceProvider.finalize(),
     ]);
   });
 
@@ -63,14 +63,14 @@ describe('API Gateway → Services Contract Tests', () => {
           method: 'GET',
           path: `/api/videos/${videoId}`,
           headers: {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer service-token'
-          }
+            Accept: 'application/json',
+            Authorization: 'Bearer service-token',
+          },
         },
         willRespondWith: {
           status: 200,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: {
             id: videoId,
@@ -80,25 +80,28 @@ describe('API Gateway → Services Contract Tests', () => {
             duration: 5400, // 90 minutes
             resolution: {
               width: 1920,
-              height: 1080
+              height: 1080,
             },
             fileSize: 2147483648, // 2GB
             uploadedAt: '2023-12-01T10:00:00Z',
             processedAt: '2023-12-01T10:15:00Z',
             matchId,
-            teamId
-          }
-        }
+            teamId,
+          },
+        },
       };
 
       await videoServiceProvider.addInteraction(interaction);
 
-      const response = await fetch(`${videoServiceProvider.mockService.baseUrl}/api/videos/${videoId}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer service-token'
+      const response = await fetch(
+        `${videoServiceProvider.mockService.baseUrl}/api/videos/${videoId}`,
+        {
+          headers: {
+            Accept: 'application/json',
+            Authorization: 'Bearer service-token',
+          },
         }
-      });
+      );
 
       expect(response.status).toBe(200);
       const video = await response.json();
@@ -117,7 +120,7 @@ describe('API Gateway → Services Contract Tests', () => {
         mimeType: 'video/mp4',
         matchId,
         teamId,
-        uploadedBy: 'user-123'
+        uploadedBy: 'user-123',
       };
 
       const interaction: InteractionObject = {
@@ -128,33 +131,36 @@ describe('API Gateway → Services Contract Tests', () => {
           path: '/api/videos/upload',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer service-token'
+            Authorization: 'Bearer service-token',
           },
-          body: uploadRequest
+          body: uploadRequest,
         },
         willRespondWith: {
           status: 201,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: {
             videoId: responseVideoId,
             uploadUrl: 'https://storage.example.com/upload/signed-url',
-            expiresAt: '2023-12-01T11:00:00Z'
-          }
-        }
+            expiresAt: '2023-12-01T11:00:00Z',
+          },
+        },
       };
 
       await videoServiceProvider.addInteraction(interaction);
 
-      const response = await fetch(`${videoServiceProvider.mockService.baseUrl}/api/videos/upload`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer service-token'
-        },
-        body: JSON.stringify(uploadRequest)
-      });
+      const response = await fetch(
+        `${videoServiceProvider.mockService.baseUrl}/api/videos/upload`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer service-token',
+          },
+          body: JSON.stringify(uploadRequest),
+        }
+      );
 
       expect(response.status).toBe(201);
       const uploadResponse = await response.json();
@@ -172,33 +178,36 @@ describe('API Gateway → Services Contract Tests', () => {
           method: 'GET',
           path: `/api/videos/${videoId}/status`,
           headers: {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer service-token'
-          }
+            Accept: 'application/json',
+            Authorization: 'Bearer service-token',
+          },
         },
         willRespondWith: {
           status: 200,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: {
             videoId,
             status: 'PROCESSING',
             progress: 65,
             estimatedCompletion: '2023-12-01T10:20:00Z',
-            currentStage: 'player_detection'
-          }
-        }
+            currentStage: 'player_detection',
+          },
+        },
       };
 
       await videoServiceProvider.addInteraction(interaction);
 
-      const response = await fetch(`${videoServiceProvider.mockService.baseUrl}/api/videos/${videoId}/status`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer service-token'
+      const response = await fetch(
+        `${videoServiceProvider.mockService.baseUrl}/api/videos/${videoId}/status`,
+        {
+          headers: {
+            Accept: 'application/json',
+            Authorization: 'Bearer service-token',
+          },
         }
-      });
+      );
 
       expect(response.status).toBe(200);
       const status = await response.json();
@@ -224,14 +233,14 @@ describe('API Gateway → Services Contract Tests', () => {
           method: 'GET',
           path: `/api/analytics/match/${matchId}`,
           headers: {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer service-token'
-          }
+            Accept: 'application/json',
+            Authorization: 'Bearer service-token',
+          },
         },
         willRespondWith: {
           status: 200,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: {
             matchId,
@@ -247,7 +256,7 @@ describe('API Gateway → Services Contract Tests', () => {
               fouls: 11,
               yellowCards: 2,
               redCards: 0,
-              formation: '4-3-3'
+              formation: '4-3-3',
             },
             awayTeam: {
               teamId: awayTeamId,
@@ -261,36 +270,39 @@ describe('API Gateway → Services Contract Tests', () => {
               fouls: 14,
               yellowCards: 3,
               redCards: 1,
-              formation: '4-4-2'
+              formation: '4-4-2',
             },
             timeline: [
               {
                 minute: 15,
                 event: 'goal',
                 team: 'home',
-                xG: 0.85
+                xG: 0.85,
               },
               {
                 minute: 67,
                 event: 'goal',
                 team: 'away',
-                xG: 0.23
-              }
+                xG: 0.23,
+              },
             ],
             lastUpdated: '2023-12-01T10:30:00Z',
-            version: 3
-          }
-        }
+            version: 3,
+          },
+        },
       };
 
       await analyticsServiceProvider.addInteraction(interaction);
 
-      const response = await fetch(`${analyticsServiceProvider.mockService.baseUrl}/api/analytics/match/${matchId}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer service-token'
+      const response = await fetch(
+        `${analyticsServiceProvider.mockService.baseUrl}/api/analytics/match/${matchId}`,
+        {
+          headers: {
+            Accept: 'application/json',
+            Authorization: 'Bearer service-token',
+          },
         }
-      });
+      );
 
       expect(response.status).toBe(200);
       const analytics = await response.json();
@@ -310,14 +322,14 @@ describe('API Gateway → Services Contract Tests', () => {
           method: 'GET',
           path: `/api/analytics/player/${playerId}/match/${matchId}`,
           headers: {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer service-token'
-          }
+            Accept: 'application/json',
+            Authorization: 'Bearer service-token',
+          },
         },
         willRespondWith: {
           status: 200,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: {
             playerId,
@@ -340,20 +352,23 @@ describe('API Gateway → Services Contract Tests', () => {
             maxSpeed: 32.1, // km/h
             heatmap: [
               { x: 85, y: 50, intensity: 0.8 },
-              { x: 90, y: 45, intensity: 0.6 }
-            ]
-          }
-        }
+              { x: 90, y: 45, intensity: 0.6 },
+            ],
+          },
+        },
       };
 
       await analyticsServiceProvider.addInteraction(interaction);
 
-      const response = await fetch(`${analyticsServiceProvider.mockService.baseUrl}/api/analytics/player/${playerId}/match/${matchId}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer service-token'
+      const response = await fetch(
+        `${analyticsServiceProvider.mockService.baseUrl}/api/analytics/player/${playerId}/match/${matchId}`,
+        {
+          headers: {
+            Accept: 'application/json',
+            Authorization: 'Bearer service-token',
+          },
         }
-      });
+      );
 
       expect(response.status).toBe(200);
       const playerAnalytics = await response.json();
@@ -369,7 +384,7 @@ describe('API Gateway → Services Contract Tests', () => {
         matchId,
         recalculateAll: false,
         includePlayerAnalytics: true,
-        includeTeamAnalytics: true
+        includeTeamAnalytics: true,
       };
 
       const interaction: InteractionObject = {
@@ -380,33 +395,36 @@ describe('API Gateway → Services Contract Tests', () => {
           path: '/api/analytics/calculate',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer service-token'
+            Authorization: 'Bearer service-token',
           },
-          body: calculationRequest
+          body: calculationRequest,
         },
         willRespondWith: {
           status: 202,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: {
             calculationId,
             status: 'queued',
-            estimatedCompletion: '2023-12-01T10:35:00Z'
-          }
-        }
+            estimatedCompletion: '2023-12-01T10:35:00Z',
+          },
+        },
       };
 
       await analyticsServiceProvider.addInteraction(interaction);
 
-      const response = await fetch(`${analyticsServiceProvider.mockService.baseUrl}/api/analytics/calculate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer service-token'
-        },
-        body: JSON.stringify(calculationRequest)
-      });
+      const response = await fetch(
+        `${analyticsServiceProvider.mockService.baseUrl}/api/analytics/calculate`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer service-token',
+          },
+          body: JSON.stringify(calculationRequest),
+        }
+      );
 
       expect(response.status).toBe(202);
       const calculation = await response.json();
@@ -425,33 +443,36 @@ describe('API Gateway → Services Contract Tests', () => {
           method: 'GET',
           path: `/api/videos/${videoId}`,
           headers: {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer service-token'
-          }
+            Accept: 'application/json',
+            Authorization: 'Bearer service-token',
+          },
         },
         willRespondWith: {
           status: 503,
           headers: {
             'Content-Type': 'application/json',
-            'Retry-After': '30'
+            'Retry-After': '30',
           },
           body: {
             error: 'Service Unavailable',
             code: 'SERVICE_UNAVAILABLE',
             message: 'The video service is temporarily unavailable',
-            retryAfter: 30
-          }
-        }
+            retryAfter: 30,
+          },
+        },
       };
 
       await videoServiceProvider.addInteraction(interaction);
 
-      const response = await fetch(`${videoServiceProvider.mockService.baseUrl}/api/videos/${videoId}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer service-token'
+      const response = await fetch(
+        `${videoServiceProvider.mockService.baseUrl}/api/videos/${videoId}`,
+        {
+          headers: {
+            Accept: 'application/json',
+            Authorization: 'Bearer service-token',
+          },
         }
-      });
+      );
 
       expect(response.status).toBe(503);
       expect(response.headers.get('Retry-After')).toBe('30');

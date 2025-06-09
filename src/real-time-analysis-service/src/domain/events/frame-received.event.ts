@@ -41,7 +41,7 @@ export class FrameReceivedEvent extends DomainEvent {
       timestamp: this.timestamp,
       width: this.width,
       height: this.height,
-      sizeBytes: this.sizeBytes
+      sizeBytes: this.sizeBytes,
     };
   }
 
@@ -53,7 +53,7 @@ export class FrameReceivedEvent extends DomainEvent {
       height: this.height,
       sizeBytes: this.sizeBytes,
       resolution: `${this.width}x${this.height}`,
-      aspectRatio: this.width / this.height
+      aspectRatio: this.width / this.height,
     };
   }
 
@@ -68,11 +68,11 @@ export class FrameReceivedEvent extends DomainEvent {
       data.correlationId,
       data.causationId
     );
-    
+
     // Override generated values with persisted ones
     (event as any).eventId = data.eventId;
     (event as any).occurredOn = new Date(data.occurredOn);
-    
+
     return event;
   }
 }

@@ -1,4 +1,9 @@
-import { AnalysisStage, StageInput, StageResult, EdgeMLInference } from '../entities/live-analysis-pipeline';
+import {
+  AnalysisStage,
+  StageInput,
+  StageResult,
+  EdgeMLInference,
+} from '../entities/live-analysis-pipeline';
 import { PlayerDetection } from '../../infrastructure/ml/edge-ml-inference';
 
 /**
@@ -12,20 +17,23 @@ export class PlayerDetectionStage implements AnalysisStage {
 
   async process(input: StageInput): Promise<StageResult> {
     const startTime = Date.now();
-    
+
     try {
       const { frame, context } = input;
       const preprocessedFrame = context.preprocessedFrame || frame;
 
       // Perform player detection using ML inference
       const detectionResult = await this.mlInference.analyze(preprocessedFrame);
-      
+
       // Process detection results
       const players = this.processDetections(detectionResult);
-      
+
       // Track players across frames (using previous context if available)
       const previousPlayerDetections = context.previousPlayers;
-      const trackedPlayers = this.trackPlayers(players, previousPlayerDetections);
+      const trackedPlayers = this.trackPlayers(
+        players,
+        previousPlayerDetections
+      );
 
       // Calculate player statistics
       const playerStats = this.calculatePlayerStats(trackedPlayers);
@@ -38,21 +46,20 @@ export class PlayerDetectionStage implements AnalysisStage {
         processingTimeMs: processingTime,
         output: {
           players: this.convertToPlayerDetections(trackedPlayers),
-          stats: playerStats
-        }
+          stats: playerStats,
+        },
       };
-
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      
+
       return {
         stageName: this.name,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {
-          players: []
-        }
+          players: [],
+        },
       };
     }
   }
@@ -63,38 +70,43 @@ export class PlayerDetectionStage implements AnalysisStage {
   private processDetections(detectionResult: any): Player[] {
     // In a real implementation, this would parse the ML model output
     // For now, we'll simulate player detections
-    
+
     if (!detectionResult || !detectionResult.detections) {
       return [];
     }
 
     return detectionResult.detections
-      .filter((detection: any) => detection.class === 'person' && detection.confidence > 0.5)
+      .filter(
+        (detection: any) =>
+          detection.class === 'person' && detection.confidence > 0.5
+      )
       .map((detection: any, index: number) => ({
         id: `player_${index}`,
         boundingBox: {
           x: detection.bbox.x,
           y: detection.bbox.y,
           width: detection.bbox.width,
-          height: detection.bbox.height
+          height: detection.bbox.height,
         },
         confidence: detection.confidence,
         position: {
           x: detection.bbox.x + detection.bbox.width / 2,
-          y: detection.bbox.y + detection.bbox.height / 2
+          y: detection.bbox.y + detection.bbox.height / 2,
         },
         team: null, // Will be determined in team classification stage
         jersey: null,
         pose: detection.pose || null,
         velocity: { x: 0, y: 0 }, // Will be calculated in tracking
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }));
   }
 
   /**
    * Convert PlayerDetection[] to Player[] for internal processing
    */
-  private convertFromPlayerDetections(playerDetections?: PlayerDetection[]): Player[] {
+  private convertFromPlayerDetections(
+    playerDetections?: PlayerDetection[]
+  ): Player[] {
     if (!playerDetections) return [];
 
     return playerDetections.map(detection => ({
@@ -106,7 +118,7 @@ export class PlayerDetectionStage implements AnalysisStage {
       jersey: detection.jerseyNumber?.toString() || null,
       pose: null,
       velocity: { x: 0, y: 0 },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }));
   }
 
@@ -121,15 +133,20 @@ export class PlayerDetectionStage implements AnalysisStage {
       position: player.position,
       ...(player.team && { teamId: player.team }),
       ...(player.jersey && { jerseyNumber: parseInt(player.jersey) }),
-      processingTimeMs: 10 // Mock processing time
+      processingTimeMs: 10, // Mock processing time
     }));
   }
 
   /**
    * Track players across frames using simple position-based matching
    */
-  private trackPlayers(currentPlayers: Player[], previousPlayerDetections?: PlayerDetection[]): Player[] {
-    const previousPlayers = this.convertFromPlayerDetections(previousPlayerDetections);
+  private trackPlayers(
+    currentPlayers: Player[],
+    previousPlayerDetections?: PlayerDetection[]
+  ): Player[] {
+    const previousPlayers = this.convertFromPlayerDetections(
+      previousPlayerDetections
+    );
     if (!previousPlayers || previousPlayers.length === 0) {
       return currentPlayers;
     }
@@ -152,7 +169,8 @@ export class PlayerDetectionStage implements AnalysisStage {
           previousPlayer.position
         );
 
-        if (distance < bestDistance && distance < 100) { // Max tracking distance
+        if (distance < bestDistance && distance < 100) {
+          // Max tracking distance
           bestDistance = distance;
           bestMatch = previousPlayer;
         }
@@ -171,7 +189,7 @@ export class PlayerDetectionStage implements AnalysisStage {
           id: bestMatch.id,
           velocity,
           team: bestMatch.team, // Preserve team assignment
-          jersey: bestMatch.jersey
+          jersey: bestMatch.jersey,
         });
 
         usedPreviousPlayers.add(bestMatch.id);
@@ -179,7 +197,7 @@ export class PlayerDetectionStage implements AnalysisStage {
         // New player
         trackedPlayers.push({
           ...currentPlayer,
-          id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         });
       }
     }
@@ -210,7 +228,7 @@ export class PlayerDetectionStage implements AnalysisStage {
 
     return {
       x: (currentPos.x - previousPos.x) / timeDelta,
-      y: (currentPos.y - previousPos.y) / timeDelta
+      y: (currentPos.y - previousPos.y) / timeDelta,
     };
   }
 
@@ -222,7 +240,10 @@ export class PlayerDetectionStage implements AnalysisStage {
       return 0;
     }
 
-    const totalConfidence = players.reduce((sum, player) => sum + player.confidence, 0);
+    const totalConfidence = players.reduce(
+      (sum, player) => sum + player.confidence,
+      0
+    );
     return totalConfidence / players.length;
   }
 
@@ -235,7 +256,7 @@ export class PlayerDetectionStage implements AnalysisStage {
       averageConfidence: this.calculateAverageConfidence(players),
       playersWithTeam: players.filter(p => p.team !== null).length,
       playersWithJersey: players.filter(p => p.jersey !== null).length,
-      averageVelocity: this.calculateAverageVelocity(players)
+      averageVelocity: this.calculateAverageVelocity(players),
     };
   }
 

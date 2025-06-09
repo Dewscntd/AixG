@@ -57,7 +57,7 @@ export class PostgreSQLVideoRepository implements VideoRepository {
 
   async save(video: Video): Promise<Video> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = `
         INSERT INTO videos (
@@ -100,15 +100,14 @@ export class PostgreSQLVideoRepository implements VideoRepository {
         video.videoMetadata?.format,
         video.videoMetadata?.checksum,
         video.createdAt,
-        video.updatedAt
+        video.updatedAt,
       ];
 
       await client.query(query, values);
-      
-      this.logger.log(`Video saved: ${video.id.value}`);
-      
-      return video;
 
+      this.logger.log(`Video saved: ${video.id.value}`);
+
+      return video;
     } catch (error) {
       this.logger.error(`Failed to save video: ${error.message}`, error.stack);
       throw new Error(`Failed to save video: ${error.message}`);
@@ -119,19 +118,21 @@ export class PostgreSQLVideoRepository implements VideoRepository {
 
   async findById(id: VideoId): Promise<Video | null> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = 'SELECT * FROM videos WHERE id = $1';
       const result = await client.query(query, [id.value]);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
 
       return this.mapRowToVideo(result.rows[0]);
-
     } catch (error) {
-      this.logger.error(`Failed to find video by ID: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to find video by ID: ${error.message}`,
+        error.stack
+      );
       throw new Error(`Failed to find video: ${error.message}`);
     } finally {
       client.release();
@@ -140,19 +141,21 @@ export class PostgreSQLVideoRepository implements VideoRepository {
 
   async findByUploadId(uploadId: string): Promise<Video | null> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = 'SELECT * FROM videos WHERE upload_id = $1';
       const result = await client.query(query, [uploadId]);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
 
       return this.mapRowToVideo(result.rows[0]);
-
     } catch (error) {
-      this.logger.error(`Failed to find video by upload ID: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to find video by upload ID: ${error.message}`,
+        error.stack
+      );
       throw new Error(`Failed to find video: ${error.message}`);
     } finally {
       client.release();
@@ -161,7 +164,7 @@ export class PostgreSQLVideoRepository implements VideoRepository {
 
   async update(video: Video): Promise<Video> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = `
         UPDATE videos SET
@@ -192,21 +195,23 @@ export class PostgreSQLVideoRepository implements VideoRepository {
         video.videoMetadata?.codec,
         video.videoMetadata?.format,
         video.videoMetadata?.checksum,
-        video.updatedAt
+        video.updatedAt,
       ];
 
       const result = await client.query(query, values);
-      
+
       if (result.rowCount === 0) {
         throw new Error(`Video not found: ${video.id.value}`);
       }
-      
-      this.logger.log(`Video updated: ${video.id.value}`);
-      
-      return video;
 
+      this.logger.log(`Video updated: ${video.id.value}`);
+
+      return video;
     } catch (error) {
-      this.logger.error(`Failed to update video: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to update video: ${error.message}`,
+        error.stack
+      );
       throw new Error(`Failed to update video: ${error.message}`);
     } finally {
       client.release();
@@ -221,7 +226,7 @@ export class PostgreSQLVideoRepository implements VideoRepository {
       uploadedBy: row.uploaded_by,
       matchId: row.match_id,
       teamId: row.team_id,
-      tags: row.tags
+      tags: row.tags,
     });
 
     let storageResult: StorageResult | undefined;
@@ -232,7 +237,7 @@ export class PostgreSQLVideoRepository implements VideoRepository {
         bucket: row.storage_bucket,
         url: row.storage_url,
         size: row.file_size,
-        etag: row.storage_etag
+        etag: row.storage_etag,
       });
     }
 
@@ -246,7 +251,7 @@ export class PostgreSQLVideoRepository implements VideoRepository {
         codec: row.video_codec!,
         format: row.video_format!,
         fileSize: row.file_size,
-        checksum: row.video_checksum!
+        checksum: row.video_checksum!,
       });
     }
 
@@ -260,7 +265,7 @@ export class PostgreSQLVideoRepository implements VideoRepository {
       validationErrors: row.validation_errors,
       validationWarnings: row.validation_warnings,
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
     });
   }
 }

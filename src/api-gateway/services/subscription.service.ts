@@ -1,6 +1,6 @@
 /**
  * Subscription Service
- * 
+ *
  * Manages GraphQL subscriptions and real-time updates using Redis pub/sub
  * Implements composition pattern for scalable real-time communication
  */
@@ -36,13 +36,13 @@ export class SubscriptionService {
 
   constructor(private readonly configService: ConfigService) {
     const redisUrl = this.configService.get<string>('redisUrl');
-    
+
     // Create Redis clients for pub/sub
     const publisher = new Redis(redisUrl);
     const subscriber = new Redis(redisUrl);
-    
+
     this.redis = new Redis(redisUrl);
-    
+
     // Initialize Redis-based PubSub
     this.pubSub = new RedisPubSub({
       publisher,
@@ -60,7 +60,7 @@ export class SubscriptionService {
   async publish(event: SubscriptionEvent): Promise<void> {
     try {
       const eventKey = this.getEventKey(event.type);
-      
+
       // Add metadata
       const enrichedEvent = {
         ...event,
@@ -73,18 +73,29 @@ export class SubscriptionService {
 
       // Publish to filtered channels if applicable
       if (event.userId) {
-        await this.pubSub.publish(`${eventKey}:user:${event.userId}`, enrichedEvent);
-      }
-      
-      if (event.teamId) {
-        await this.pubSub.publish(`${eventKey}:team:${event.teamId}`, enrichedEvent);
-      }
-      
-      if (event.matchId) {
-        await this.pubSub.publish(`${eventKey}:match:${event.matchId}`, enrichedEvent);
+        await this.pubSub.publish(
+          `${eventKey}:user:${event.userId}`,
+          enrichedEvent
+        );
       }
 
-      this.logger.debug(`Published event: ${event.type}`, { eventId: enrichedEvent.id });
+      if (event.teamId) {
+        await this.pubSub.publish(
+          `${eventKey}:team:${event.teamId}`,
+          enrichedEvent
+        );
+      }
+
+      if (event.matchId) {
+        await this.pubSub.publish(
+          `${eventKey}:match:${event.matchId}`,
+          enrichedEvent
+        );
+      }
+
+      this.logger.debug(`Published event: ${event.type}`, {
+        eventId: enrichedEvent.id,
+      });
     } catch (error) {
       this.logger.error(`Failed to publish event: ${event.type}`, error);
       throw error;
@@ -94,13 +105,16 @@ export class SubscriptionService {
   /**
    * Creates a subscription for match analysis progress
    */
-  subscribeToMatchAnalysisProgress(matchId: string, filter?: SubscriptionFilter) {
-    const channel = filter?.userId 
+  subscribeToMatchAnalysisProgress(
+    matchId: string,
+    filter?: SubscriptionFilter
+  ) {
+    const channel = filter?.userId
       ? `MATCH_ANALYSIS_PROGRESS:match:${matchId}:user:${filter.userId}`
       : `MATCH_ANALYSIS_PROGRESS:match:${matchId}`;
-    
+
     this.incrementSubscriptionCount(channel);
-    
+
     return this.pubSub.asyncIterator(channel);
   }
 
@@ -108,12 +122,12 @@ export class SubscriptionService {
    * Creates a subscription for live metrics updates
    */
   subscribeToLiveMetrics(matchId: string, filter?: SubscriptionFilter) {
-    const channel = filter?.userId 
+    const channel = filter?.userId
       ? `LIVE_METRICS:match:${matchId}:user:${filter.userId}`
       : `LIVE_METRICS:match:${matchId}`;
-    
+
     this.incrementSubscriptionCount(channel);
-    
+
     return this.pubSub.asyncIterator(channel);
   }
 
@@ -121,12 +135,12 @@ export class SubscriptionService {
    * Creates a subscription for video processing updates
    */
   subscribeToVideoProcessing(videoId: string, filter?: SubscriptionFilter) {
-    const channel = filter?.userId 
+    const channel = filter?.userId
       ? `VIDEO_PROCESSING:video:${videoId}:user:${filter.userId}`
       : `VIDEO_PROCESSING:video:${videoId}`;
-    
+
     this.incrementSubscriptionCount(channel);
-    
+
     return this.pubSub.asyncIterator(channel);
   }
 
@@ -134,12 +148,12 @@ export class SubscriptionService {
    * Creates a subscription for team updates
    */
   subscribeToTeamUpdates(teamId: string, filter?: SubscriptionFilter) {
-    const channel = filter?.userId 
+    const channel = filter?.userId
       ? `TEAM_UPDATES:team:${teamId}:user:${filter.userId}`
       : `TEAM_UPDATES:team:${teamId}`;
-    
+
     this.incrementSubscriptionCount(channel);
-    
+
     return this.pubSub.asyncIterator(channel);
   }
 
@@ -148,9 +162,9 @@ export class SubscriptionService {
    */
   subscribeToUserNotifications(userId: string) {
     const channel = `USER_NOTIFICATIONS:user:${userId}`;
-    
+
     this.incrementSubscriptionCount(channel);
-    
+
     return this.pubSub.asyncIterator(channel);
   }
 
@@ -253,16 +267,18 @@ export class SubscriptionService {
   async healthCheck(): Promise<{ redis: boolean; pubsub: boolean }> {
     try {
       await this.redis.ping();
-      
+
       // Test pub/sub functionality
       const testChannel = 'health_check';
       const testMessage = { test: true, timestamp: Date.now() };
-      
+
       await this.pubSub.publish(testChannel, testMessage);
-      
+
       return { redis: true, pubsub: true };
     } catch (error) {
-      this.logger.error(`Subscription service health check failed: ${error.message}`);
+      this.logger.error(
+        `Subscription service health check failed: ${error.message}`
+      );
       return { redis: false, pubsub: false };
     }
   }
@@ -275,7 +291,9 @@ export class SubscriptionService {
       await this.redis.quit();
       this.logger.log('Subscription service cleanup completed');
     } catch (error) {
-      this.logger.error(`Failed to cleanup subscription service: ${error.message}`);
+      this.logger.error(
+        `Failed to cleanup subscription service: ${error.message}`
+      );
     }
   }
 

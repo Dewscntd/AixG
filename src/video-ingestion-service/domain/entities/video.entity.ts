@@ -3,7 +3,10 @@ import { UploadMetadata } from '../value-objects/upload-metadata.value-object';
 import { VideoMetadata } from '../value-objects/video-metadata.value-object';
 import { StorageResult } from '../value-objects/storage-result.value-object';
 import { DomainEvent } from '../events/domain-event.interface';
-import { VideoUploadedEvent, VideoUploadedEventProps } from '../events/video-uploaded.event';
+import {
+  VideoUploadedEvent,
+  VideoUploadedEventProps,
+} from '../events/video-uploaded.event';
 import { VideoValidatedEvent } from '../events/video-validated.event';
 import { VideoProcessingStartedEvent } from '../events/video-processing-started.event';
 
@@ -14,7 +17,7 @@ export enum VideoStatus {
   VALIDATED = 'VALIDATED',
   PROCESSING = 'PROCESSING',
   PROCESSED = 'PROCESSED',
-  FAILED = 'FAILED'
+  FAILED = 'FAILED',
 }
 
 export interface VideoProps {
@@ -66,7 +69,7 @@ export class Video {
       validationErrors: [],
       validationWarnings: [],
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
     return video;
@@ -120,7 +123,9 @@ export class Video {
   // Domain behavior methods
   markAsUploaded(storageResult: StorageResult): void {
     if (this._status !== VideoStatus.UPLOADING) {
-      throw new Error(`Cannot mark video as uploaded. Current status: ${this._status}`);
+      throw new Error(
+        `Cannot mark video as uploaded. Current status: ${this._status}`
+      );
     }
 
     this._storageResult = storageResult;
@@ -136,7 +141,7 @@ export class Video {
       mimeType: this._uploadMetadata.mimeType,
       storageKey: storageResult.key,
       storageBucket: storageResult.bucket,
-      uploadedBy: this._uploadMetadata.uploadedBy
+      uploadedBy: this._uploadMetadata.uploadedBy,
     };
 
     if (this._uploadMetadata.matchId !== undefined) {
@@ -147,12 +152,16 @@ export class Video {
       eventProps.teamId = this._uploadMetadata.teamId;
     }
 
-    this.addDomainEvent(new VideoUploadedEvent(eventProps as VideoUploadedEventProps));
+    this.addDomainEvent(
+      new VideoUploadedEvent(eventProps as VideoUploadedEventProps)
+    );
   }
 
   updateUploadProgress(progress: number): void {
     if (this._status !== VideoStatus.UPLOADING) {
-      throw new Error(`Cannot update upload progress. Current status: ${this._status}`);
+      throw new Error(
+        `Cannot update upload progress. Current status: ${this._status}`
+      );
     }
 
     if (progress < 0) {
@@ -169,7 +178,9 @@ export class Video {
 
   startValidation(): void {
     if (this._status !== VideoStatus.UPLOADED) {
-      throw new Error(`Cannot start validation. Current status: ${this._status}`);
+      throw new Error(
+        `Cannot start validation. Current status: ${this._status}`
+      );
     }
 
     this._status = VideoStatus.VALIDATING;
@@ -182,29 +193,36 @@ export class Video {
     warnings: string[] = []
   ): void {
     if (this._status !== VideoStatus.VALIDATING) {
-      throw new Error(`Cannot complete validation. Current status: ${this._status}`);
+      throw new Error(
+        `Cannot complete validation. Current status: ${this._status}`
+      );
     }
 
     this._videoMetadata = videoMetadata;
     this._validationErrors = [...errors];
     this._validationWarnings = [...warnings];
-    this._status = errors.length > 0 ? VideoStatus.FAILED : VideoStatus.VALIDATED;
+    this._status =
+      errors.length > 0 ? VideoStatus.FAILED : VideoStatus.VALIDATED;
     this._updatedAt = new Date();
 
-    this.addDomainEvent(new VideoValidatedEvent({
-      videoId: this._id,
-      metadata: videoMetadata,
-      validationResults: {
-        isValid: errors.length === 0,
-        errors: [...errors],
-        warnings: [...warnings]
-      }
-    }));
+    this.addDomainEvent(
+      new VideoValidatedEvent({
+        videoId: this._id,
+        metadata: videoMetadata,
+        validationResults: {
+          isValid: errors.length === 0,
+          errors: [...errors],
+          warnings: [...warnings],
+        },
+      })
+    );
   }
 
   startProcessing(processingId?: string): void {
     if (this._status !== VideoStatus.VALIDATED) {
-      throw new Error(`Cannot start processing. Current status: ${this._status}`);
+      throw new Error(
+        `Cannot start processing. Current status: ${this._status}`
+      );
     }
 
     this._status = VideoStatus.PROCESSING;
@@ -215,18 +233,24 @@ export class Video {
       : 300; // Default 5 minutes
 
     // Generate a default processing ID if not provided
-    const finalProcessingId = processingId || `proc_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    const finalProcessingId =
+      processingId ||
+      `proc_${Date.now()}_${Math.random().toString(36).substring(2)}`;
 
-    this.addDomainEvent(new VideoProcessingStartedEvent({
-      videoId: this._id,
-      processingId: finalProcessingId,
-      estimatedDuration
-    }));
+    this.addDomainEvent(
+      new VideoProcessingStartedEvent({
+        videoId: this._id,
+        processingId: finalProcessingId,
+        estimatedDuration,
+      })
+    );
   }
 
   markAsProcessed(): void {
     if (this._status !== VideoStatus.PROCESSING) {
-      throw new Error(`Cannot mark as processed. Current status: ${this._status}`);
+      throw new Error(
+        `Cannot mark as processed. Current status: ${this._status}`
+      );
     }
 
     this._status = VideoStatus.PROCESSED;
@@ -241,7 +265,10 @@ export class Video {
 
   // Domain validation methods
   isReadyForProcessing(): boolean {
-    return this._status === VideoStatus.VALIDATED && this._validationErrors.length === 0;
+    return (
+      this._status === VideoStatus.VALIDATED &&
+      this._validationErrors.length === 0
+    );
   }
 
   isHighDefinition(): boolean {
@@ -249,7 +276,9 @@ export class Video {
   }
 
   getDurationInMinutes(): number {
-    return this._videoMetadata ? Math.ceil(this._videoMetadata.duration / 60) : 0;
+    return this._videoMetadata
+      ? Math.ceil(this._videoMetadata.duration / 60)
+      : 0;
   }
 
   // Add validation warning
@@ -261,7 +290,9 @@ export class Video {
   // Complete processing
   completeProcessing(): void {
     if (this._status !== VideoStatus.PROCESSING) {
-      throw new Error(`Cannot complete processing. Current status: ${this._status}`);
+      throw new Error(
+        `Cannot complete processing. Current status: ${this._status}`
+      );
     }
     this.markAsProcessed();
   }
@@ -278,7 +309,7 @@ export class Video {
       validationErrors: [...this._validationErrors],
       validationWarnings: [...this._validationWarnings],
       createdAt: this._createdAt,
-      updatedAt: this._updatedAt
+      updatedAt: this._updatedAt,
     };
   }
 
@@ -286,14 +317,18 @@ export class Video {
     return new Video({
       id: VideoId.fromString(snapshot.id),
       uploadMetadata: UploadMetadata.fromSnapshot(snapshot.uploadMetadata),
-      storageResult: snapshot.storageResult ? StorageResult.fromSnapshot(snapshot.storageResult) : undefined,
-      videoMetadata: snapshot.videoMetadata ? VideoMetadata.fromSnapshot(snapshot.videoMetadata) : undefined,
+      storageResult: snapshot.storageResult
+        ? StorageResult.fromSnapshot(snapshot.storageResult)
+        : undefined,
+      videoMetadata: snapshot.videoMetadata
+        ? VideoMetadata.fromSnapshot(snapshot.videoMetadata)
+        : undefined,
       status: snapshot.status,
       uploadProgress: snapshot.uploadProgress,
       validationErrors: [...snapshot.validationErrors],
       validationWarnings: [...snapshot.validationWarnings],
       createdAt: snapshot.createdAt,
-      updatedAt: snapshot.updatedAt
+      updatedAt: snapshot.updatedAt,
     });
   }
 
@@ -311,8 +346,12 @@ export class Video {
 export interface VideoSnapshot {
   id: string;
   uploadMetadata: import('../value-objects/upload-metadata.value-object').UploadMetadataSnapshot;
-  storageResult?: import('../value-objects/storage-result.value-object').StorageResultSnapshot | undefined;
-  videoMetadata?: import('../value-objects/video-metadata.value-object').VideoMetadataSnapshot | undefined;
+  storageResult?:
+    | import('../value-objects/storage-result.value-object').StorageResultSnapshot
+    | undefined;
+  videoMetadata?:
+    | import('../value-objects/video-metadata.value-object').VideoMetadataSnapshot
+    | undefined;
   status: VideoStatus;
   uploadProgress: number;
   validationErrors: string[];

@@ -7,7 +7,7 @@ import {
   Body,
   HttpException,
   HttpStatus,
-  Logger
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { RealTimeAnalysisService } from '../application/services/real-time-analysis.service';
@@ -39,21 +39,21 @@ export class RealTimeAnalysisController {
   async startStream(@Body() startStreamDto: StartStreamDto) {
     try {
       this.logger.log('Starting new live analysis stream');
-      
+
       const result = await this.realTimeAnalysisService.startStream(
         startStreamDto.metadata
       );
 
       this.logger.log(`Stream started: ${result.streamId}`);
-      
+
       return {
         success: true,
         data: result,
-        message: 'Live analysis stream started successfully'
+        message: 'Live analysis stream started successfully',
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(`Failed to start stream: ${errorMessage}`, errorStack);
       throw new HttpException(
@@ -75,21 +75,24 @@ export class RealTimeAnalysisController {
   async stopStream(@Param('streamId') streamId: string) {
     try {
       this.logger.log(`Stopping stream: ${streamId}`);
-      
+
       const streamIdObj = StreamId.fromString(streamId);
       await this.realTimeAnalysisService.stopStream(streamIdObj);
 
       this.logger.log(`Stream stopped: ${streamId}`);
-      
+
       return {
         success: true,
-        message: 'Live analysis stream stopped successfully'
+        message: 'Live analysis stream stopped successfully',
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Failed to stop stream ${streamId}: ${errorMessage}`, errorStack);
+      this.logger.error(
+        `Failed to stop stream ${streamId}: ${errorMessage}`,
+        errorStack
+      );
 
       if (errorMessage.includes('not found')) {
         throw new HttpException(
@@ -111,12 +114,16 @@ export class RealTimeAnalysisController {
   @Get('streams/:streamId')
   @ApiOperation({ summary: 'Get stream status and metrics' })
   @ApiParam({ name: 'streamId', description: 'Stream ID to query' })
-  @ApiResponse({ status: 200, description: 'Stream metrics retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Stream metrics retrieved successfully',
+  })
   @ApiResponse({ status: 404, description: 'Stream not found' })
   async getStreamMetrics(@Param('streamId') streamId: string) {
     try {
       const streamIdObj = StreamId.fromString(streamId);
-      const metrics = this.realTimeAnalysisService.getStreamMetrics(streamIdObj);
+      const metrics =
+        this.realTimeAnalysisService.getStreamMetrics(streamIdObj);
 
       if (!metrics) {
         throw new HttpException(
@@ -127,13 +134,16 @@ export class RealTimeAnalysisController {
 
       return {
         success: true,
-        data: metrics
+        data: metrics,
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Failed to get stream metrics ${streamId}: ${errorMessage}`, errorStack);
+      this.logger.error(
+        `Failed to get stream metrics ${streamId}: ${errorMessage}`,
+        errorStack
+      );
 
       if (error instanceof HttpException) {
         throw error;
@@ -151,23 +161,29 @@ export class RealTimeAnalysisController {
    */
   @Get('streams')
   @ApiOperation({ summary: 'Get all active streams' })
-  @ApiResponse({ status: 200, description: 'Active streams retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active streams retrieved successfully',
+  })
   async getActiveStreams() {
     try {
       const activeStreams = this.realTimeAnalysisService.getActiveStreams();
-      
+
       return {
         success: true,
         data: {
           activeStreams,
-          count: activeStreams.length
-        }
+          count: activeStreams.length,
+        },
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Failed to get active streams: ${errorMessage}`, errorStack);
+      this.logger.error(
+        `Failed to get active streams: ${errorMessage}`,
+        errorStack
+      );
       throw new HttpException(
         `Failed to get active streams: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
@@ -190,18 +206,24 @@ export class RealTimeAnalysisController {
   ) {
     try {
       this.logger.log(`Signaling peer: ${peerId}`);
-      
-      await this.realTimeAnalysisService.signalPeer(peerId, signalDto.signalData as WebRTCSignalData);
-      
+
+      await this.realTimeAnalysisService.signalPeer(
+        peerId,
+        signalDto.signalData as WebRTCSignalData
+      );
+
       return {
         success: true,
-        message: 'Peer signaled successfully'
+        message: 'Peer signaled successfully',
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Failed to signal peer ${peerId}: ${errorMessage}`, errorStack);
+      this.logger.error(
+        `Failed to signal peer ${peerId}: ${errorMessage}`,
+        errorStack
+      );
       throw new HttpException(
         `Failed to signal peer: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
@@ -214,20 +236,26 @@ export class RealTimeAnalysisController {
    */
   @Get('stats')
   @ApiOperation({ summary: 'Get service statistics' })
-  @ApiResponse({ status: 200, description: 'Service statistics retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Service statistics retrieved successfully',
+  })
   async getServiceStats() {
     try {
       const stats = this.realTimeAnalysisService.getServiceStats();
-      
+
       return {
         success: true,
-        data: stats
+        data: stats,
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Failed to get service stats: ${errorMessage}`, errorStack);
+      this.logger.error(
+        `Failed to get service stats: ${errorMessage}`,
+        errorStack
+      );
       throw new HttpException(
         `Failed to get service statistics: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
@@ -246,7 +274,7 @@ export class RealTimeAnalysisController {
       success: true,
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      service: 'real-time-analysis-service'
+      service: 'real-time-analysis-service',
     };
   }
 }

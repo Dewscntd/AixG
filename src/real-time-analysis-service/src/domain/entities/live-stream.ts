@@ -35,10 +35,7 @@ export class LiveStream {
   /**
    * Create a new live stream
    */
-  static create(
-    bufferSize?: number,
-    metadata?: StreamMetadata
-  ): LiveStream {
+  static create(bufferSize?: number, metadata?: StreamMetadata): LiveStream {
     const id = StreamId.generate();
     return new LiveStream(id, bufferSize, metadata);
   }
@@ -72,12 +69,10 @@ export class LiveStream {
 
     this._status = StreamStatus.ACTIVE;
     this._startedAt = new Date();
-    
-    this.addDomainEvent(new StreamStartedEvent(
-      this._id.value,
-      this._startedAt,
-      this._metadata
-    ));
+
+    this.addDomainEvent(
+      new StreamStartedEvent(this._id.value, this._startedAt, this._metadata)
+    );
   }
 
   /**
@@ -90,13 +85,15 @@ export class LiveStream {
 
     this._status = StreamStatus.STOPPED;
     this._stoppedAt = new Date();
-    
-    this.addDomainEvent(new StreamStoppedEvent(
-      this._id.value,
-      this._stoppedAt,
-      this._frameCount,
-      this.getDuration()
-    ));
+
+    this.addDomainEvent(
+      new StreamStoppedEvent(
+        this._id.value,
+        this._stoppedAt,
+        this._frameCount,
+        this.getDuration()
+      )
+    );
   }
 
   /**
@@ -108,7 +105,10 @@ export class LiveStream {
     }
 
     // Validate frame timestamp ordering
-    if (this._lastFrameTimestamp && frame.timestamp < this._lastFrameTimestamp) {
+    if (
+      this._lastFrameTimestamp &&
+      frame.timestamp < this._lastFrameTimestamp
+    ) {
       throw new Error('Frame timestamp must be greater than previous frame');
     }
 
@@ -116,14 +116,16 @@ export class LiveStream {
     this._frameCount++;
     this._lastFrameTimestamp = frame.timestamp;
 
-    this.addDomainEvent(new FrameReceivedEvent(
-      this._id.value,
-      frame.frameNumber,
-      frame.timestamp,
-      frame.width,
-      frame.height,
-      frame.sizeBytes
-    ));
+    this.addDomainEvent(
+      new FrameReceivedEvent(
+        this._id.value,
+        frame.frameNumber,
+        frame.timestamp,
+        frame.width,
+        frame.height,
+        frame.sizeBytes
+      )
+    );
   }
 
   /**
@@ -147,7 +149,7 @@ export class LiveStream {
     if (!this._startedAt) {
       return 0;
     }
-    
+
     const endTime = this._stoppedAt || new Date();
     return endTime.getTime() - this._startedAt.getTime();
   }
@@ -160,7 +162,7 @@ export class LiveStream {
     if (duration === 0) {
       return 0;
     }
-    
+
     return (this._frameCount / duration) * 1000;
   }
 
@@ -184,17 +186,31 @@ export class LiveStream {
     }
 
     const now = Date.now();
-    return (now - this._lastFrameTimestamp) <= maxFrameGapMs;
+    return now - this._lastFrameTimestamp <= maxFrameGapMs;
   }
 
   // Getters
-  get id(): StreamId { return this._id; }
-  get status(): StreamStatus { return this._status; }
-  get frameCount(): number { return this._frameCount; }
-  get startedAt(): Date | undefined { return this._startedAt; }
-  get stoppedAt(): Date | undefined { return this._stoppedAt; }
-  get metadata(): StreamMetadata { return { ...this._metadata }; }
-  get bufferUtilization(): number { return this._frameBuffer.utilization; }
+  get id(): StreamId {
+    return this._id;
+  }
+  get status(): StreamStatus {
+    return this._status;
+  }
+  get frameCount(): number {
+    return this._frameCount;
+  }
+  get startedAt(): Date | undefined {
+    return this._startedAt;
+  }
+  get stoppedAt(): Date | undefined {
+    return this._stoppedAt;
+  }
+  get metadata(): StreamMetadata {
+    return { ...this._metadata };
+  }
+  get bufferUtilization(): number {
+    return this._frameBuffer.utilization;
+  }
 
   /**
    * Get and clear domain events
@@ -217,7 +233,7 @@ export enum StreamStatus {
   CREATED = 'created',
   ACTIVE = 'active',
   STOPPED = 'stopped',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 /**

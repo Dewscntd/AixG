@@ -1,4 +1,8 @@
-import { AnalysisStage, StageInput, StageResult } from '../entities/live-analysis-pipeline';
+import {
+  AnalysisStage,
+  StageInput,
+  StageResult,
+} from '../entities/live-analysis-pipeline';
 import { VideoFrame, VideoFrameFormat } from '../value-objects/video-frame';
 
 /**
@@ -14,22 +18,29 @@ export class FramePreprocessingStage implements AnalysisStage {
 
   async process(input: StageInput): Promise<StageResult> {
     const startTime = Date.now();
-    
+
     try {
       const { frame } = input;
       let processedFrame = frame;
       const operations: string[] = [];
 
       // Resize if needed
-      if (frame.width !== this.targetWidth || frame.height !== this.targetHeight) {
+      if (
+        frame.width !== this.targetWidth ||
+        frame.height !== this.targetHeight
+      ) {
         processedFrame = frame.resize(this.targetWidth, this.targetHeight);
-        operations.push(`resized from ${frame.width}x${frame.height} to ${this.targetWidth}x${this.targetHeight}`);
+        operations.push(
+          `resized from ${frame.width}x${frame.height} to ${this.targetWidth}x${this.targetHeight}`
+        );
       }
 
       // Format conversion if needed
       if (frame.format !== this.targetFormat) {
         // In a real implementation, this would convert the frame format
-        operations.push(`converted from ${frame.format} to ${this.targetFormat}`);
+        operations.push(
+          `converted from ${frame.format} to ${this.targetFormat}`
+        );
       }
 
       // Normalize frame data (brightness, contrast, etc.)
@@ -38,7 +49,7 @@ export class FramePreprocessingStage implements AnalysisStage {
         ...processedFrame.metadata,
         ...normalizedMetadata,
         preprocessed: true,
-        operations
+        operations,
       });
 
       const processingTime = Date.now() - startTime;
@@ -48,19 +59,18 @@ export class FramePreprocessingStage implements AnalysisStage {
         success: true,
         processingTimeMs: processingTime,
         output: {
-          preprocessedFrame: processedFrame
-        }
+          preprocessedFrame: processedFrame,
+        },
       };
-
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      
+
       return {
         stageName: this.name,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
-        output: {}
+        output: {},
       };
     }
   }
@@ -74,12 +84,12 @@ export class FramePreprocessingStage implements AnalysisStage {
     // - Contrast
     // - Color balance
     // - Noise reduction
-    
+
     return {
       brightness: 'normalized',
       contrast: 'enhanced',
       colorBalance: 'adjusted',
-      noiseReduction: 'applied'
+      noiseReduction: 'applied',
     };
   }
 
@@ -87,16 +97,18 @@ export class FramePreprocessingStage implements AnalysisStage {
    * Check if frame needs preprocessing
    */
   private needsPreprocessing(frame: VideoFrame): boolean {
-    return frame.width !== this.targetWidth || 
-           frame.height !== this.targetHeight ||
-           frame.format !== this.targetFormat;
+    return (
+      frame.width !== this.targetWidth ||
+      frame.height !== this.targetHeight ||
+      frame.format !== this.targetFormat
+    );
   }
 
   /**
    * Calculate optimal dimensions maintaining aspect ratio
    */
   private calculateOptimalDimensions(
-    originalWidth: number, 
+    originalWidth: number,
     originalHeight: number
   ): { width: number; height: number } {
     const aspectRatio = originalWidth / originalHeight;
@@ -106,13 +118,13 @@ export class FramePreprocessingStage implements AnalysisStage {
       // Original is wider, fit to width
       return {
         width: this.targetWidth,
-        height: Math.round(this.targetWidth / aspectRatio)
+        height: Math.round(this.targetWidth / aspectRatio),
       };
     } else {
       // Original is taller, fit to height
       return {
         width: Math.round(this.targetHeight * aspectRatio),
-        height: this.targetHeight
+        height: this.targetHeight,
       };
     }
   }

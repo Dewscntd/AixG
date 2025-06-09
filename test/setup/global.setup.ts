@@ -16,8 +16,11 @@ process.env.NODE_ENV = 'test';
 process.env.LOG_LEVEL = 'error';
 
 // Database configuration for tests
-process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://test:test@localhost:5432/footanalytics_test';
-process.env.REDIS_URL = process.env.TEST_REDIS_URL || 'redis://localhost:6379/1';
+process.env.DATABASE_URL =
+  process.env.TEST_DATABASE_URL ||
+  'postgresql://test:test@localhost:5432/footanalytics_test';
+process.env.REDIS_URL =
+  process.env.TEST_REDIS_URL || 'redis://localhost:6379/1';
 
 // Disable external services in tests
 process.env.DISABLE_EXTERNAL_SERVICES = 'true';
@@ -49,25 +52,25 @@ export default async function globalSetup(): Promise<void> {
 
   // Configure global test environment
   global.testStartTime = Date.now();
-  
+
   // Initialize test database if needed
   if (process.env.INIT_TEST_DB === 'true') {
     console.log('📊 Initializing test database...');
     // Database initialization would go here
   }
-  
+
   // Initialize test Redis if needed
   if (process.env.INIT_TEST_REDIS === 'true') {
     console.log('🔴 Initializing test Redis...');
     // Redis initialization would go here
   }
-  
+
   // Start test containers if needed
   if (process.env.USE_TEST_CONTAINERS === 'true') {
     console.log('🐳 Starting test containers...');
     // TestContainers setup would go here
   }
-  
+
   console.log('✅ Global test setup completed');
 }
 

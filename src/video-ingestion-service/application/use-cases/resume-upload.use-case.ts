@@ -39,10 +39,15 @@ export class ResumeUploadUseCase {
       }
 
       // Get current upload progress from storage
-      const currentProgress = await this.storageService.getUploadProgress(command.uploadId);
-      
+      const currentProgress = await this.storageService.getUploadProgress(
+        command.uploadId
+      );
+
       // Validate offset
-      if (command.offset !== Math.floor((currentProgress / 100) * video.uploadMetadata.size)) {
+      if (
+        command.offset !==
+        Math.floor((currentProgress / 100) * video.uploadMetadata.size)
+      ) {
         throw new Error('Invalid offset for resume upload');
       }
 
@@ -54,7 +59,9 @@ export class ResumeUploadUseCase {
       );
 
       // Calculate new progress
-      const newProgress = Math.floor((storageResult.size / video.uploadMetadata.size) * 100);
+      const newProgress = Math.floor(
+        (storageResult.size / video.uploadMetadata.size) * 100
+      );
       const isComplete = newProgress >= 100;
 
       if (isComplete) {
@@ -78,9 +85,8 @@ export class ResumeUploadUseCase {
         uploadId: command.uploadId,
         progress: newProgress,
         isComplete,
-        uploadUrl: isComplete ? storageResult.url : undefined
+        uploadUrl: isComplete ? storageResult.url : undefined,
       };
-
     } catch (error) {
       throw new Error(`Failed to resume upload: ${error.message}`);
     }
@@ -88,7 +94,7 @@ export class ResumeUploadUseCase {
 
   private async publishDomainEvents(video: any): Promise<void> {
     const events = video.domainEvents;
-    
+
     if (events.length > 0) {
       await this.eventPublisher.publishBatch(events);
       video.clearDomainEvents();

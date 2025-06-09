@@ -61,7 +61,7 @@ export abstract class BaseDomainEvent implements DomainEvent {
       correlationId: this.correlationId,
       causationId: this.causationId,
       metadata: this.metadata,
-      ...this.getEventData()
+      ...this.getEventData(),
     };
   }
 

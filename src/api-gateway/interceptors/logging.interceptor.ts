@@ -1,11 +1,17 @@
 /**
  * Logging Interceptor
- * 
+ *
  * Intercepts all requests to log GraphQL operations with structured logging
  * Implements composition pattern for flexible logging strategies
  */
 
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+} from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
@@ -58,7 +64,8 @@ export class LoggingInterceptor implements NestInterceptor {
 
   constructor(private readonly configService: ConfigService) {
     this.logLevel = this.configService.get<string>('logLevel', 'info');
-    this.isProduction = this.configService.get<string>('nodeEnv') === 'production';
+    this.isProduction =
+      this.configService.get<string>('nodeEnv') === 'production';
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
@@ -79,25 +86,32 @@ export class LoggingInterceptor implements NestInterceptor {
     this.logRequest(logEntry);
 
     return next.handle().pipe(
-      tap((result) => {
+      tap(result => {
         // Log successful response
         const duration = Date.now() - startTime;
-        this.logResponse({
-          ...logEntry,
-          duration,
-          success: true,
-        }, result);
+        this.logResponse(
+          {
+            ...logEntry,
+            duration,
+            success: true,
+          },
+          result
+        );
       }),
-      catchError((error) => {
+      catchError(error => {
         // Log error response
         const duration = Date.now() - startTime;
-        this.logResponse({
-          ...logEntry,
-          duration,
-          success: false,
-          errorMessage: error.message,
-          errorCode: error.extensions?.code || 'UNKNOWN_ERROR',
-        }, null, error);
+        this.logResponse(
+          {
+            ...logEntry,
+            duration,
+            success: false,
+            errorMessage: error.message,
+            errorCode: error.extensions?.code || 'UNKNOWN_ERROR',
+          },
+          null,
+          error
+        );
 
         // Re-throw the error
         throw error;
@@ -108,7 +122,11 @@ export class LoggingInterceptor implements NestInterceptor {
   /**
    * Creates the base log entry with common fields
    */
-  private createBaseLogEntry(context: GraphQLContext, info: GraphQLInfo, _startTime: number): LogEntry {
+  private createBaseLogEntry(
+    context: GraphQLContext,
+    info: GraphQLInfo,
+    _startTime: number
+  ): LogEntry {
     const operationName = info?.operation?.name?.value || 'anonymous';
     const operationType = this.getOperationType(info);
 
@@ -145,7 +163,11 @@ export class LoggingInterceptor implements NestInterceptor {
   /**
    * Logs the response (success or error)
    */
-  private logResponse(logEntry: LogEntry, result?: unknown, _error?: Error): void {
+  private logResponse(
+    logEntry: LogEntry,
+    result?: unknown,
+    _error?: Error
+  ): void {
     const logData = {
       ...logEntry,
       resultSize: result ? this.calculateResultSize(result) : undefined,
@@ -167,7 +189,7 @@ export class LoggingInterceptor implements NestInterceptor {
     } else {
       // Log errors
       const errorLevel = this.getErrorLogLevel(logEntry.errorCode);
-      
+
       switch (errorLevel) {
         case 'error':
           this.logger.error('GraphQL Request Failed', logData);
@@ -269,7 +291,9 @@ export class LoggingInterceptor implements NestInterceptor {
   /**
    * Determines the appropriate log level for errors
    */
-  private getErrorLogLevel(errorCode?: string): 'error' | 'warn' | 'debug' | 'log' {
+  private getErrorLogLevel(
+    errorCode?: string
+  ): 'error' | 'warn' | 'debug' | 'log' {
     if (!errorCode) return 'error';
 
     switch (errorCode) {
@@ -278,16 +302,16 @@ export class LoggingInterceptor implements NestInterceptor {
       case 'VALIDATION_ERROR':
       case 'NOT_FOUND':
         return 'warn';
-      
+
       case 'RATE_LIMITED':
       case 'QUERY_TOO_COMPLEX':
         return 'debug';
-      
+
       case 'TIMEOUT':
       case 'SERVICE_UNAVAILABLE':
       case 'INTERNAL_ERROR':
         return 'error';
-      
+
       default:
         return 'log';
     }
@@ -301,8 +325,10 @@ export class LoggingInterceptor implements NestInterceptor {
       return false;
     }
 
-    return info.operation.selectionSet.selections.some((selection: GraphQLSelection) =>
-      selection.name?.value === '__schema' || selection.name?.value === '__type'
+    return info.operation.selectionSet.selections.some(
+      (selection: GraphQLSelection) =>
+        selection.name?.value === '__schema' ||
+        selection.name?.value === '__type'
     );
   }
 }

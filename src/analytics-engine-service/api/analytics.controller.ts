@@ -12,14 +12,14 @@ import {
   Float,
   Int,
   ObjectType,
-  Field
+  Field,
 } from '@nestjs/graphql';
 import { Logger } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 import {
   AnalyticsApplicationService,
   MatchAnalyticsResponse,
-  TeamAnalyticsResponse
+  TeamAnalyticsResponse,
 } from '../application/analytics-application.service';
 
 // GraphQL Types
@@ -33,20 +33,21 @@ import {
   UpdatePossessionInput,
   ProcessMLPipelineInput,
   GetTimeSeriesInput,
-  MLPipelineOutputInput
+  MLPipelineOutputInput,
 } from './types/analytics.types';
 
 // Command Types
-import { ProcessMLPipelineOutputData, ShotDataCommand } from '../application/commands/analytics-commands';
+import {
+  ProcessMLPipelineOutputData,
+  ShotDataCommand,
+} from '../application/commands/analytics-commands';
 
 @Resolver()
 export class AnalyticsController {
   private readonly logger = new Logger(AnalyticsController.name);
   private readonly pubSub = new PubSub();
 
-  constructor(
-    private readonly analyticsService: AnalyticsApplicationService
-  ) {}
+  constructor(private readonly analyticsService: AnalyticsApplicationService) {}
 
   // Queries (Read operations)
   @Query(() => MatchAnalyticsType)
@@ -87,7 +88,7 @@ export class AnalyticsController {
     @Args('input') input: GetTimeSeriesInput
   ): Promise<TimeSeriesDataType[]> {
     this.logger.log(`Getting time series analytics: ${JSON.stringify(input)}`);
-    
+
     const result = await this.analyticsService.getTimeSeriesAnalytics(
       input.entityType,
       input.entityId,
@@ -96,7 +97,7 @@ export class AnalyticsController {
       input.toDate,
       input.interval
     );
-    
+
     return result.data;
   }
 
@@ -105,8 +106,10 @@ export class AnalyticsController {
     @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
     @Args('teamId', { type: () => ID, nullable: true }) teamId?: string
   ): Promise<MatchAnalyticsType[]> {
-    this.logger.log(`Getting recent matches, limit: ${limit}, teamId: ${teamId}`);
-    
+    this.logger.log(
+      `Getting recent matches, limit: ${limit}, teamId: ${teamId}`
+    );
+
     // This would be implemented with a specific query
     // For now, return empty array
     return [];
@@ -118,7 +121,7 @@ export class AnalyticsController {
     @Args('input') input: CreateMatchAnalyticsInput
   ): Promise<boolean> {
     this.logger.log(`Creating match analytics: ${JSON.stringify(input)}`);
-    
+
     try {
       await this.analyticsService.createMatchAnalytics(
         input.matchId,
@@ -126,33 +129,34 @@ export class AnalyticsController {
         input.awayTeamId,
         input.matchDuration
       );
-      
+
       // Publish subscription update
       this.pubSub.publish('MATCH_ANALYTICS_CREATED', {
         matchAnalyticsCreated: {
           matchId: input.matchId,
           homeTeamId: input.homeTeamId,
-          awayTeamId: input.awayTeamId
-        }
+          awayTeamId: input.awayTeamId,
+        },
       });
-      
+
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to create match analytics: ${errorMessage}`);
       throw error;
     }
   }
 
   @Mutation(() => Boolean)
-  async updateMatchXG(
-    @Args('input') input: UpdateXGInput
-  ): Promise<boolean> {
+  async updateMatchXG(@Args('input') input: UpdateXGInput): Promise<boolean> {
     this.logger.log(`Updating match xG: ${JSON.stringify(input)}`);
 
     try {
       // Convert JSON string to ShotDataCommand if provided
-      const shotData = input.shotData ? JSON.parse(input.shotData) as ShotDataCommand : undefined;
+      const shotData = input.shotData
+        ? (JSON.parse(input.shotData) as ShotDataCommand)
+        : undefined;
 
       await this.analyticsService.updateMatchXG(
         input.matchId,
@@ -160,20 +164,21 @@ export class AnalyticsController {
         input.newXG,
         shotData
       );
-      
+
       // Publish real-time update
       this.pubSub.publish('XG_UPDATED', {
         xgUpdated: {
           matchId: input.matchId,
           teamId: input.teamId,
           newXG: input.newXG,
-          timestamp: new Date()
-        }
+          timestamp: new Date(),
+        },
       });
-      
+
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to update match xG: ${errorMessage}`);
       throw error;
     }
@@ -184,27 +189,28 @@ export class AnalyticsController {
     @Args('input') input: UpdatePossessionInput
   ): Promise<boolean> {
     this.logger.log(`Updating match possession: ${JSON.stringify(input)}`);
-    
+
     try {
       await this.analyticsService.updateMatchPossession(
         input.matchId,
         input.homeTeamPossession,
         input.awayTeamPossession
       );
-      
+
       // Publish real-time update
       this.pubSub.publish('POSSESSION_UPDATED', {
         possessionUpdated: {
           matchId: input.matchId,
           homeTeamPossession: input.homeTeamPossession,
           awayTeamPossession: input.awayTeamPossession,
-          timestamp: new Date()
-        }
+          timestamp: new Date(),
+        },
       });
-      
+
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to update match possession: ${errorMessage}`);
       throw error;
     }
@@ -214,7 +220,9 @@ export class AnalyticsController {
   async processMLPipelineOutput(
     @Args('input') input: ProcessMLPipelineInput
   ): Promise<boolean> {
-    this.logger.log(`Processing ML pipeline output for match: ${input.matchId}`);
+    this.logger.log(
+      `Processing ML pipeline output for match: ${input.matchId}`
+    );
 
     try {
       // Convert GraphQL input to command data
@@ -224,20 +232,23 @@ export class AnalyticsController {
         input.matchId,
         pipelineData
       );
-      
+
       // Publish comprehensive update
       this.pubSub.publish('ML_PIPELINE_PROCESSED', {
         mlPipelineProcessed: {
           matchId: input.matchId,
           timestamp: new Date(),
-          outputTypes: Object.keys(input.pipelineOutput)
-        }
+          outputTypes: Object.keys(input.pipelineOutput),
+        },
       });
-      
+
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to process ML pipeline output: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to process ML pipeline output: ${errorMessage}`
+      );
       throw error;
     }
   }
@@ -247,12 +258,13 @@ export class AnalyticsController {
     @Args('projectionName') projectionName: string
   ): Promise<boolean> {
     this.logger.log(`Rebuilding projection: ${projectionName}`);
-    
+
     try {
       await this.analyticsService.rebuildProjection(projectionName);
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to rebuild projection: ${errorMessage}`);
       throw error;
     }
@@ -260,11 +272,10 @@ export class AnalyticsController {
 
   // Subscriptions (Real-time updates)
   @Subscription(() => MatchAnalyticsType, {
-    filter: (payload, variables) => payload.matchAnalyticsUpdated.matchId === variables.matchId
+    filter: (payload, variables) =>
+      payload.matchAnalyticsUpdated.matchId === variables.matchId,
   })
-  matchAnalyticsUpdated(
-    @Args('matchId', { type: () => ID }) _matchId: string
-  ) {
+  matchAnalyticsUpdated(@Args('matchId', { type: () => ID }) _matchId: string) {
     return this.pubSub.asyncIterator('MATCH_ANALYTICS_UPDATED');
   }
 
@@ -296,16 +307,21 @@ export class AnalyticsController {
     const health = await this.analyticsService.healthCheck();
 
     return {
-      status: health.eventStore && health.readDatabase && health.projections ? 'healthy' : 'unhealthy',
+      status:
+        health.eventStore && health.readDatabase && health.projections
+          ? 'healthy'
+          : 'unhealthy',
       eventStore: health.eventStore,
       readDatabase: health.readDatabase,
       projections: health.projections,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
   // Helper method to convert GraphQL input to command data
-  private convertMLPipelineInput(input: MLPipelineOutputInput): ProcessMLPipelineOutputData {
+  private convertMLPipelineInput(
+    input: MLPipelineOutputInput
+  ): ProcessMLPipelineOutputData {
     return {
       shots: input.shots?.map(shot => ({
         teamId: shot.teamId,
@@ -313,38 +329,42 @@ export class AnalyticsController {
         targetPosition: { x: shot.targetPosition.x, y: shot.targetPosition.y },
         timestamp: shot.timestamp,
         bodyPart: shot.bodyPart,
-        situation: shot.situation
+        situation: shot.situation,
       })),
       possessionSequences: input.possessionSequences?.map(seq => ({
         teamId: seq.teamId,
         startTime: seq.startTime,
         endTime: seq.endTime,
-        events: JSON.parse(seq.events) // Parse JSON string to array
+        events: JSON.parse(seq.events), // Parse JSON string to array
       })),
       formations: input.formations?.map(formation => ({
         teamId: formation.teamId,
         formation: formation.formation,
         confidence: formation.confidence,
         timestamp: formation.timestamp,
-        playerPositions: JSON.parse(formation.playerPositions) // Parse JSON string to array
-      }))
+        playerPositions: JSON.parse(formation.playerPositions), // Parse JSON string to array
+      })),
     };
   }
 
   // Helper method to convert MatchAnalyticsResponse to MatchAnalyticsType
-  private convertToMatchAnalyticsType(response: MatchAnalyticsResponse): MatchAnalyticsType {
+  private convertToMatchAnalyticsType(
+    response: MatchAnalyticsResponse
+  ): MatchAnalyticsType {
     return {
       matchId: response.matchId,
       homeTeam: this.convertToTeamMetricsType(response.homeTeam),
       awayTeam: this.convertToTeamMetricsType(response.awayTeam),
       matchDuration: response.matchDuration,
       lastUpdated: response.lastUpdated,
-      status: response.status
+      status: response.status,
     };
   }
 
   // Helper method to convert TeamAnalyticsResponse to TeamMetricsType
-  private convertToTeamMetricsType(response: TeamAnalyticsResponse): TeamMetricsType {
+  private convertToTeamMetricsType(
+    response: TeamAnalyticsResponse
+  ): TeamMetricsType {
     return {
       teamId: response.teamId,
       teamName: 'Unknown Team', // Default value since response doesn't include teamName
@@ -354,12 +374,14 @@ export class AnalyticsController {
       passAccuracy: response.passAccuracy,
       shotsOnTarget: response.shotsOnTarget,
       shotsOffTarget: response.shotsOffTarget,
-      formation: response.formation ?? undefined
+      formation: response.formation ?? undefined,
     };
   }
 
   // Helper method to convert TeamAnalyticsResponse to TeamAnalyticsType
-  private convertToTeamAnalyticsType(response: TeamAnalyticsResponse): TeamAnalyticsType {
+  private convertToTeamAnalyticsType(
+    response: TeamAnalyticsResponse
+  ): TeamAnalyticsType {
     return {
       teamId: response.teamId,
       teamName: 'Unknown Team', // Default value since response doesn't include teamName
@@ -374,7 +396,7 @@ export class AnalyticsController {
       avgPossession: response.possession,
       avgPassAccuracy: response.passAccuracy,
       form: [], // Default empty array
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     };
   }
 }

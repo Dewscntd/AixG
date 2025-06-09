@@ -1,6 +1,6 @@
 /**
  * DataSources Types
- * 
+ *
  * Defines the data sources available in the GraphQL context
  */
 
@@ -133,23 +133,23 @@ export interface DataSources {
   // Match-related loaders
   matchLoader: DataLoader<string, Match>;
   matchesByTeamLoader: DataLoader<string, Match[]>;
-  
+
   // Video-related loaders
   videoLoader: DataLoader<string, Video>;
   videosByMatchLoader: DataLoader<string, Video[]>;
-  
+
   // Team-related loaders
   teamLoader: DataLoader<string, Team>;
   teamsLoader: DataLoader<void, Team[]>;
-  
+
   // Player-related loaders
   playerLoader: DataLoader<string, Player>;
   playersByTeamLoader: DataLoader<string, Player[]>;
-  
+
   // Analytics-related loaders
   matchAnalyticsLoader: DataLoader<string, MatchAnalytics>;
   matchEventsLoader: DataLoader<string, MatchEvent[]>;
-  
+
   // User-related loaders (for authentication/authorization)
   userLoader: DataLoader<string, User>;
   usersByTeamLoader: DataLoader<string, User[]>;

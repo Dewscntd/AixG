@@ -20,11 +20,15 @@ export const SnapshotTestUtils = {
   /**
    * Creates or compares a snapshot
    */
-  expectMatchSnapshot: (testName: string, data: any, options: SnapshotOptions = {}) => {
+  expectMatchSnapshot: (
+    testName: string,
+    data: any,
+    options: SnapshotOptions = {}
+  ) => {
     const snapshotPath = getSnapshotPath(testName, options.directory);
     const normalizedData = normalizeSnapshotData(data, options);
     const serializedData = serializeSnapshotData(normalizedData, options);
-    
+
     if (existsSync(snapshotPath)) {
       if (SNAPSHOT_CONFIG.updateSnapshots) {
         updateSnapshot(snapshotPath, serializedData, testName);
@@ -48,93 +52,117 @@ export const SnapshotTestUtils = {
    * Normalizes ML output data for consistent snapshots
    */
   normalizeMLOutput: (output: any) => ({
-      ...output,
-      // Remove timestamps and random IDs
-      timestamp: 'normalized',
-      id: output.id ? 'normalized-id' : undefined,
-      
-      // Round floating point numbers
-      confidence: typeof output.confidence === 'number' 
-        ? Math.round(output.confidence * 1000) / 1000 
+    ...output,
+    // Remove timestamps and random IDs
+    timestamp: 'normalized',
+    id: output.id ? 'normalized-id' : undefined,
+
+    // Round floating point numbers
+    confidence:
+      typeof output.confidence === 'number'
+        ? Math.round(output.confidence * 1000) / 1000
         : output.confidence,
-      
-      // Normalize positions
-      position: output.position ? {
-        x: Math.round(output.position.x * 100) / 100,
-        y: Math.round(output.position.y * 100) / 100,
-      } : undefined,
-      
-      // Normalize arrays recursively
-      players: output.players?.map((player: any) => 
-        SnapshotTestUtils.normalizeMLOutput(player)
-      ),
-      
-      events: output.events?.map((event: any) => 
-        SnapshotTestUtils.normalizeMLOutput(event)
-      ),
-      
-      // Remove processing times
-      processingTime: 'normalized',
-      metadata: output.metadata ? {
-        ...output.metadata,
-        processingTime: 'normalized',
-        timestamp: 'normalized',
-      } : undefined,
-    }),
+
+    // Normalize positions
+    position: output.position
+      ? {
+          x: Math.round(output.position.x * 100) / 100,
+          y: Math.round(output.position.y * 100) / 100,
+        }
+      : undefined,
+
+    // Normalize arrays recursively
+    players: output.players?.map((player: any) =>
+      SnapshotTestUtils.normalizeMLOutput(player)
+    ),
+
+    events: output.events?.map((event: any) =>
+      SnapshotTestUtils.normalizeMLOutput(event)
+    ),
+
+    // Remove processing times
+    processingTime: 'normalized',
+    metadata: output.metadata
+      ? {
+          ...output.metadata,
+          processingTime: 'normalized',
+          timestamp: 'normalized',
+        }
+      : undefined,
+  }),
 
   /**
    * Normalizes analytics data for consistent snapshots
    */
   normalizeAnalyticsData: (data: any) => ({
-      ...data,
-      // Round metrics to consistent precision
-      xG: typeof data.xG === 'number' ? Math.round(data.xG * 1000) / 1000 : data.xG,
-      possession: typeof data.possession === 'number' 
-        ? Math.round(data.possession * 100) / 100 
+    ...data,
+    // Round metrics to consistent precision
+    xG:
+      typeof data.xG === 'number' ? Math.round(data.xG * 1000) / 1000 : data.xG,
+    possession:
+      typeof data.possession === 'number'
+        ? Math.round(data.possession * 100) / 100
         : data.possession,
-      
-      // Normalize timestamps
-      lastUpdated: 'normalized',
-      createdAt: 'normalized',
-      updatedAt: 'normalized',
-      
-      // Normalize IDs
-      id: data.id ? 'normalized-id' : undefined,
-      matchId: data.matchId ? 'normalized-match-id' : undefined,
-      teamId: data.teamId ? 'normalized-team-id' : undefined,
-      
-      // Recursively normalize nested objects
-      homeTeam: data.homeTeam ? SnapshotTestUtils.normalizeAnalyticsData(data.homeTeam) : undefined,
-      awayTeam: data.awayTeam ? SnapshotTestUtils.normalizeAnalyticsData(data.awayTeam) : undefined,
-    }),
+
+    // Normalize timestamps
+    lastUpdated: 'normalized',
+    createdAt: 'normalized',
+    updatedAt: 'normalized',
+
+    // Normalize IDs
+    id: data.id ? 'normalized-id' : undefined,
+    matchId: data.matchId ? 'normalized-match-id' : undefined,
+    teamId: data.teamId ? 'normalized-team-id' : undefined,
+
+    // Recursively normalize nested objects
+    homeTeam: data.homeTeam
+      ? SnapshotTestUtils.normalizeAnalyticsData(data.homeTeam)
+      : undefined,
+    awayTeam: data.awayTeam
+      ? SnapshotTestUtils.normalizeAnalyticsData(data.awayTeam)
+      : undefined,
+  }),
 
   /**
    * Compares two snapshots with tolerance for floating point numbers
    */
-  compareWithTolerance: (actual: any, expected: any, tolerance = SNAPSHOT_CONFIG.tolerance): boolean => {
+  compareWithTolerance: (
+    actual: any,
+    expected: any,
+    tolerance = SNAPSHOT_CONFIG.tolerance
+  ): boolean => {
     if (typeof actual === 'number' && typeof expected === 'number') {
       return Math.abs(actual - expected) <= tolerance;
     }
-    
+
     if (Array.isArray(actual) && Array.isArray(expected)) {
       if (actual.length !== expected.length) return false;
-      return actual.every((item, index) => 
+      return actual.every((item, index) =>
         SnapshotTestUtils.compareWithTolerance(item, expected[index], tolerance)
       );
     }
-    
-    if (typeof actual === 'object' && typeof expected === 'object' && actual !== null && expected !== null) {
+
+    if (
+      typeof actual === 'object' &&
+      typeof expected === 'object' &&
+      actual !== null &&
+      expected !== null
+    ) {
       const actualKeys = Object.keys(actual).sort();
       const expectedKeys = Object.keys(expected).sort();
-      
+
       if (actualKeys.length !== expectedKeys.length) return false;
       if (!actualKeys.every(key => expectedKeys.includes(key))) return false;
-      
-      return actualKeys.every(key => 
-        SnapshotTestUtils.compareWithTolerance(actual[key], expected[key], tolerance)
+
+      return actualKeys.every(key =>
+        SnapshotTestUtils.compareWithTolerance(
+          actual[key],
+          expected[key],
+          tolerance
+        )
       );
     }
-    
+
     return actual === expected;
   },
 
@@ -145,21 +173,25 @@ export const SnapshotTestUtils = {
     const validate = (obj: any, schemaObj: any, path = '') => {
       for (const [key, expectedType] of Object.entries(schemaObj)) {
         const fullPath = path ? `${path}.${key}` : key;
-        
+
         if (!(key in obj)) {
           throw new Error(`Missing field in snapshot: ${fullPath}`);
         }
-        
+
         const actualValue = obj[key];
-        
+
         if (typeof expectedType === 'string') {
           if (typeof actualValue !== expectedType) {
-            throw new Error(`Type mismatch in snapshot at ${fullPath}: expected ${expectedType}, got ${typeof actualValue}`);
+            throw new Error(
+              `Type mismatch in snapshot at ${fullPath}: expected ${expectedType}, got ${typeof actualValue}`
+            );
           }
         } else if (typeof expectedType === 'object' && expectedType !== null) {
           if (Array.isArray(expectedType)) {
             if (!Array.isArray(actualValue)) {
-              throw new Error(`Type mismatch in snapshot at ${fullPath}: expected array`);
+              throw new Error(
+                `Type mismatch in snapshot at ${fullPath}: expected array`
+              );
             }
             if (expectedType.length > 0 && actualValue.length > 0) {
               validate(actualValue[0], expectedType[0], `${fullPath}[0]`);
@@ -170,7 +202,7 @@ export const SnapshotTestUtils = {
         }
       }
     };
-    
+
     validate(data, schema);
   },
 };
@@ -185,12 +217,13 @@ interface SnapshotOptions {
 
 // Helper functions
 function getSnapshotPath(testName: string, directory?: string): string {
-  const snapshotDir = directory || join(process.cwd(), 'test', SNAPSHOT_CONFIG.snapshotDir);
-  
+  const snapshotDir =
+    directory || join(process.cwd(), 'test', SNAPSHOT_CONFIG.snapshotDir);
+
   if (!existsSync(snapshotDir)) {
     mkdirSync(snapshotDir, { recursive: true });
   }
-  
+
   return join(snapshotDir, `${testName}${SNAPSHOT_CONFIG.snapshotExtension}`);
 }
 
@@ -198,26 +231,28 @@ function normalizeSnapshotData(data: any, options: SnapshotOptions): any {
   if (options.normalizer) {
     return options.normalizer(data);
   }
-  
+
   // Default normalization
-  return JSON.parse(JSON.stringify(data, (key, value) => {
-    // Remove functions
-    if (typeof value === 'function') {
-      return '[Function]';
-    }
-    
-    // Normalize dates
-    if (value instanceof Date) {
-      return 'normalized-date';
-    }
-    
-    // Round numbers to avoid floating point issues
-    if (typeof value === 'number' && !Number.isInteger(value)) {
-      return Math.round(value * 1000) / 1000;
-    }
-    
-    return value;
-  }));
+  return JSON.parse(
+    JSON.stringify(data, (key, value) => {
+      // Remove functions
+      if (typeof value === 'function') {
+        return '[Function]';
+      }
+
+      // Normalize dates
+      if (value instanceof Date) {
+        return 'normalized-date';
+      }
+
+      // Round numbers to avoid floating point issues
+      if (typeof value === 'number' && !Number.isInteger(value)) {
+        return Math.round(value * 1000) / 1000;
+      }
+
+      return value;
+    })
+  );
 }
 
 function serializeSnapshotData(data: any, _options: SnapshotOptions): string {
@@ -229,7 +264,7 @@ function createSnapshot(path: string, data: string, testName: string): void {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  
+
   writeFileSync(path, data, 'utf8');
   console.log(`📸 Created snapshot: ${testName}`);
 }
@@ -241,18 +276,22 @@ function updateSnapshot(path: string, data: string, testName: string): void {
 
 function compareSnapshot(path: string, data: string, testName: string): void {
   const existingSnapshot = readFileSync(path, 'utf8');
-  
+
   if (data !== existingSnapshot) {
     // Try parsing and comparing with tolerance
     try {
       const actualData = JSON.parse(data);
       const expectedData = JSON.parse(existingSnapshot);
-      
+
       if (!SnapshotTestUtils.compareWithTolerance(actualData, expectedData)) {
-        throw new Error(`Snapshot mismatch for ${testName}. Run with UPDATE_SNAPSHOTS=true to update.`);
+        throw new Error(
+          `Snapshot mismatch for ${testName}. Run with UPDATE_SNAPSHOTS=true to update.`
+        );
       }
     } catch (parseError) {
-      throw new Error(`Snapshot mismatch for ${testName}. Run with UPDATE_SNAPSHOTS=true to update.`);
+      throw new Error(
+        `Snapshot mismatch for ${testName}. Run with UPDATE_SNAPSHOTS=true to update.`
+      );
     }
   }
 }
@@ -260,12 +299,14 @@ function compareSnapshot(path: string, data: string, testName: string): void {
 // Common snapshot schemas
 export const SnapshotSchemas = {
   playerDetection: {
-    players: [{
-      id: 'string',
-      teamId: 'string',
-      position: { x: 'number', y: 'number' },
-      confidence: 'number',
-    }],
+    players: [
+      {
+        id: 'string',
+        teamId: 'string',
+        position: { x: 'number', y: 'number' },
+        confidence: 'number',
+      },
+    ],
     metadata: {
       modelVersion: 'string',
       confidence: 'number',
@@ -285,11 +326,13 @@ export const SnapshotSchemas = {
   },
 
   eventDetection: {
-    events: [{
-      type: 'string',
-      confidence: 'number',
-      location: { x: 'number', y: 'number' },
-    }],
+    events: [
+      {
+        type: 'string',
+        confidence: 'number',
+        location: { x: 'number', y: 'number' },
+      },
+    ],
     metadata: {
       detectionQuality: 'string',
       modelVersion: 'string',

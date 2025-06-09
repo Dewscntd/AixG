@@ -117,11 +117,11 @@ const nextConfig = {
     appDir: true,
     serverComponentsExternalPackages: ['canvas'],
   },
-  
+
   // Performance optimizations
   swcMinify: true,
   compress: true,
-  
+
   // Image optimization
   images: {
     domains: ['localhost', 'footanalytics.com'],
@@ -129,14 +129,14 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  
+
   // Internationalization
   i18n: {
     locales: ['he', 'en', 'ar'],
     defaultLocale: 'he',
     localeDetection: true,
   },
-  
+
   // Security headers
   async headers() {
     return [
@@ -163,7 +163,7 @@ const nextConfig = {
       },
     ];
   },
-  
+
   // Webpack configuration for Module Federation
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     // Module Federation configuration
@@ -244,14 +244,16 @@ const nextConfig = {
 
     return config;
   },
-  
+
   // Environment variables
   env: {
-    GRAPHQL_ENDPOINT: process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql',
+    GRAPHQL_ENDPOINT:
+      process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql',
     WS_ENDPOINT: process.env.WS_ENDPOINT || 'ws://localhost:4000/graphql',
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    NEXT_PUBLIC_APP_URL:
+      process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   },
-  
+
   // Redirects and rewrites
   async redirects() {
     return [
@@ -262,12 +264,13 @@ const nextConfig = {
       },
     ];
   },
-  
+
   async rewrites() {
     return [
       {
         source: '/api/graphql',
-        destination: process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql',
+        destination:
+          process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql',
       },
     ];
   },

@@ -1,18 +1,28 @@
-import { IsString, IsNotEmpty, IsOptional, IsArray, IsNumber, Min, Max, Matches } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  IsNumber,
+  Min,
+  Max,
+  Matches,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class UploadVideoDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^[a-zA-Z0-9._-]+\.(mp4|avi|mov|mkv|webm|wmv|flv)$/i, {
-    message: 'Filename must have a valid video extension (mp4, avi, mov, mkv, webm, wmv, flv)'
+    message:
+      'Filename must have a valid video extension (mp4, avi, mov, mkv, webm, wmv, flv)',
   })
   filename: string;
 
   @IsString()
   @IsNotEmpty()
   @Matches(/^video\/(mp4|avi|quicktime|x-msvideo|webm|x-ms-wmv|x-flv)$/i, {
-    message: 'Invalid video MIME type'
+    message: 'Invalid video MIME type',
   })
   mimeType: string;
 

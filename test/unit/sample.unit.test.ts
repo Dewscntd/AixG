@@ -44,15 +44,15 @@ describe('Testing Setup Verification', () => {
   describe('Faker.js data generation', () => {
     it('should generate consistent test data', () => {
       faker.seed(123); // Set seed for reproducible tests
-      
+
       const name1 = faker.person.firstName();
       const email1 = faker.internet.email();
-      
+
       faker.seed(123); // Reset seed
-      
+
       const name2 = faker.person.firstName();
       const email2 = faker.internet.email();
-      
+
       expect(name1).toBe(name2);
       expect(email1).toBe(email2);
     });
@@ -62,7 +62,7 @@ describe('Testing Setup Verification', () => {
         x: faker.number.float({ min: 0, max: 100, fractionDigits: 2 }),
         y: faker.number.float({ min: 0, max: 100, fractionDigits: 2 }),
       };
-      
+
       expect(position.x).toBeGreaterThanOrEqual(0);
       expect(position.x).toBeLessThanOrEqual(100);
       expect(position.y).toBeGreaterThanOrEqual(0);
@@ -100,9 +100,9 @@ describe('Testing Setup Verification', () => {
     it('should create and use mocks', () => {
       const mockFunction = jest.fn();
       mockFunction.mockReturnValue('mocked result');
-      
+
       const result = mockFunction('test input');
-      
+
       expect(result).toBe('mocked result');
       expect(mockFunction).toHaveBeenCalledWith('test input');
       expect(mockFunction).toHaveBeenCalledTimes(1);
@@ -112,14 +112,14 @@ describe('Testing Setup Verification', () => {
       const testObject = {
         method: (x: number) => x * 2,
       };
-      
+
       const spy = jest.spyOn(testObject, 'method');
-      
+
       const result = testObject.method(5);
-      
+
       expect(result).toBe(10);
       expect(spy).toHaveBeenCalledWith(5);
-      
+
       spy.mockRestore();
     });
   });
@@ -129,7 +129,7 @@ describe('Testing Setup Verification', () => {
       const throwError = () => {
         throw new Error('Test error');
       };
-      
+
       expect(throwError).toThrow('Test error');
       expect(throwError).toThrow(Error);
     });
@@ -138,7 +138,7 @@ describe('Testing Setup Verification', () => {
       const asyncThrowError = async () => {
         throw new Error('Async test error');
       };
-      
+
       await expect(asyncThrowError()).rejects.toThrow('Async test error');
     });
   });
@@ -146,15 +146,15 @@ describe('Testing Setup Verification', () => {
   describe('Performance testing basics', () => {
     it('should complete within time limit', () => {
       const start = Date.now();
-      
+
       // Simulate some work
       let sum = 0;
       for (let i = 0; i < 1000; i++) {
         sum += i;
       }
-      
+
       const duration = Date.now() - start;
-      
+
       expect(duration).toBeLessThan(100); // Should complete in under 100ms
       expect(sum).toBe(499500); // Verify calculation is correct
     });

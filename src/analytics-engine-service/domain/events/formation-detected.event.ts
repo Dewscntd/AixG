@@ -34,20 +34,20 @@ export class FormationDetectedEvent extends BaseDomainEvent {
       correlationId,
       causationId
     );
-    
+
     this.teamId = teamId;
     this.formation = formation;
     this.confidence = confidence;
     this.playerPositions = playerPositions;
     this.detectionTimestamp = detectionTimestamp;
-    
+
     if (timestamp) {
       // Use Object.defineProperty to modify readonly timestamp
       Object.defineProperty(this, 'timestamp', {
         value: timestamp,
         writable: false,
         enumerable: true,
-        configurable: false
+        configurable: false,
       });
     }
   }
@@ -59,7 +59,7 @@ export class FormationDetectedEvent extends BaseDomainEvent {
       confidence: this.confidence,
       playerPositions: this.playerPositions,
       detectionTimestamp: this.detectionTimestamp,
-      playerCount: this.playerPositions.length
+      playerCount: this.playerPositions.length,
     };
   }
 }

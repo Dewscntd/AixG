@@ -44,7 +44,7 @@ export class VideoValidatedEvent implements DomainEvent {
     this.validationResults = {
       isValid: props.validationResults.isValid,
       errors: [...props.validationResults.errors],
-      warnings: [...props.validationResults.warnings]
+      warnings: [...props.validationResults.warnings],
     };
   }
 }

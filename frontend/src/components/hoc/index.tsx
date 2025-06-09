@@ -1,6 +1,6 @@
 /**
  * Higher-Order Components for Declarative Component Composition
- * 
+ *
  * Implements the composition pattern with reusable HOCs:
  * - Authentication wrapper
  * - Data loading wrapper
@@ -126,7 +126,9 @@ export function withMatchData<P extends object, T = any>(
       if (error) {
         return (
           <div className="flex min-h-64 flex-col items-center justify-center space-y-4">
-            <p className="text-destructive">Error loading data: {error.message}</p>
+            <p className="text-destructive">
+              Error loading data: {error.message}
+            </p>
             {refetch && (
               <button
                 onClick={refetch}
@@ -164,10 +166,7 @@ export function withRealTimeUpdates<P extends object>(
 ) {
   return function (WrappedComponent: ComponentType<P>) {
     const WithRealTimeComponent = (props: P) => {
-      const {
-        enableRealTime = true,
-        subscriptionKey = 'default',
-      } = options;
+      const { enableRealTime = true, subscriptionKey = 'default' } = options;
 
       const { isConnected, connectionStatus } = useRealTimeSync({
         enabled: enableRealTime,
@@ -200,15 +199,15 @@ export function withErrorBoundary<P extends object>(
 ) {
   return function (WrappedComponent: ComponentType<P>) {
     const WithErrorBoundaryComponent = (props: P) => {
-      const {
-        fallback: FallbackComponent = ErrorFallback,
-        onError,
-      } = options;
+      const { fallback: FallbackComponent = ErrorFallback, onError } = options;
 
-      const handleError = (error: Error, errorInfo: { componentStack: string }) => {
+      const handleError = (
+        error: Error,
+        errorInfo: { componentStack: string }
+      ) => {
         console.error('Component Error:', error);
         console.error('Component Stack:', errorInfo.componentStack);
-        
+
         if (onError) {
           onError(error, errorInfo);
         }
@@ -247,12 +246,13 @@ export function withPerformanceMonitoring<P extends object>(
 ) {
   return function (WrappedComponent: ComponentType<P>) {
     const WithPerformanceComponent = (props: P) => {
-      const {
-        trackPerformance = true,
-        performanceKey,
-      } = options;
+      const { trackPerformance = true, performanceKey } = options;
 
-      const componentName = performanceKey || WrappedComponent.displayName || WrappedComponent.name || 'Unknown';
+      const componentName =
+        performanceKey ||
+        WrappedComponent.displayName ||
+        WrappedComponent.name ||
+        'Unknown';
       const performanceMonitor = usePerformanceMonitor(componentName);
 
       useEffect(() => {
@@ -276,23 +276,24 @@ export function withPerformanceMonitoring<P extends object>(
  * Compose multiple HOCs together
  * Usage: compose(withAuth, withData, withErrorBoundary)(Component)
  */
-export function compose<P extends object>(...hocs: Array<(component: ComponentType<any>) => ComponentType<any>>) {
+export function compose<P extends object>(
+  ...hocs: Array<(component: ComponentType<any>) => ComponentType<any>>
+) {
   return function (WrappedComponent: ComponentType<P>) {
-    return hocs.reduceRight(
-      (acc, hoc) => hoc(acc),
-      WrappedComponent
-    );
+    return hocs.reduceRight((acc, hoc) => hoc(acc), WrappedComponent);
   };
 }
 
 /**
  * Pre-composed HOC for common patterns
  */
-export function withCommonEnhancements<P extends object>(options: {
-  requireAuth?: boolean;
-  enableRealTime?: boolean;
-  trackPerformance?: boolean;
-} = {}) {
+export function withCommonEnhancements<P extends object>(
+  options: {
+    requireAuth?: boolean;
+    enableRealTime?: boolean;
+    trackPerformance?: boolean;
+  } = {}
+) {
   const {
     requireAuth = true,
     enableRealTime = true,

@@ -4,8 +4,21 @@ import { VideoFrame } from '../value-objects/video-frame';
 import { RingBuffer } from '../value-objects/ring-buffer';
 import { DomainEvent } from '../events/domain-event';
 import { FrameAnalyzedEvent } from '../events/frame-analyzed.event';
-import { FramePreprocessingStage, PlayerDetectionStage, BallTrackingStage, TeamClassificationStage, EventDetectionStage, FormationAnalysisStage, MetricsCalculationStage } from '../stages';
-import { PlayerDetection, BallDetection, TeamClassification, EventDetection } from '../../infrastructure/ml/edge-ml-inference';
+import {
+  FramePreprocessingStage,
+  PlayerDetectionStage,
+  BallTrackingStage,
+  TeamClassificationStage,
+  EventDetectionStage,
+  FormationAnalysisStage,
+  MetricsCalculationStage,
+} from '../stages';
+import {
+  PlayerDetection,
+  BallDetection,
+  TeamClassification,
+  EventDetection,
+} from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Live Analysis Pipeline - Core component for real-time video analysis
@@ -61,7 +74,7 @@ export class LiveAnalysisPipeline {
       new TeamClassificationStage(this._mlInference),
       new EventDetectionStage(this._mlInference),
       new FormationAnalysisStage(this._mlInference),
-      new MetricsCalculationStage()
+      new MetricsCalculationStage(),
     ];
   }
 
@@ -74,7 +87,7 @@ export class LiveAnalysisPipeline {
     }
 
     this._isRunning = true;
-    
+
     // Start processing loop
     this.processFramesLoop();
   }
@@ -105,11 +118,11 @@ export class LiveAnalysisPipeline {
       try {
         const result = await stage.process(stageInput);
         stageResults.push(result);
-        
+
         // Update input for next stage
         stageInput = {
           frame: stageInput.frame,
-          context: { ...stageInput.context, ...result.output }
+          context: { ...stageInput.context, ...result.output },
         };
       } catch (error) {
         // Handle stage failure gracefully
@@ -119,7 +132,7 @@ export class LiveAnalysisPipeline {
           success: false,
           error: error.message,
           processingTimeMs: 0,
-          output: {}
+          output: {},
         });
       }
     }
@@ -132,27 +145,30 @@ export class LiveAnalysisPipeline {
     );
 
     // Emit analysis event
-    this._eventStream.emit(new FrameAnalyzedEvent(
-      this._streamId.value,
-      frame.frameNumber,
-      frame.timestamp,
-      {
-        frameNumber: analysisResult.frameNumber,
-        timestamp: analysisResult.timestamp,
-        processingTimeMs: analysisResult.completedAt - analysisResult.timestamp,
-        detections: [],
-        ballDetection: null,
-        teamClassification: {
+    this._eventStream.emit(
+      new FrameAnalyzedEvent(
+        this._streamId.value,
+        frame.frameNumber,
+        frame.timestamp,
+        {
+          frameNumber: analysisResult.frameNumber,
+          timestamp: analysisResult.timestamp,
+          processingTimeMs:
+            analysisResult.completedAt - analysisResult.timestamp,
+          detections: [],
+          ballDetection: null,
+          teamClassification: {
+            confidence: 0,
+            processingTimeMs: 0,
+            homeTeam: { color: 'unknown', players: [] },
+            awayTeam: { color: 'unknown', players: [] },
+          },
+          eventDetection: [],
           confidence: 0,
-          processingTimeMs: 0,
-          homeTeam: { color: 'unknown', players: [] },
-          awayTeam: { color: 'unknown', players: [] }
-        },
-        eventDetection: [],
-        confidence: 0,
-        metadata: {}
-      }
-    ));
+          metadata: {},
+        }
+      )
+    );
 
     this._processedFrameCount++;
     this._lastProcessedTimestamp = frame.timestamp;
@@ -166,7 +182,7 @@ export class LiveAnalysisPipeline {
   private async processFramesLoop(): Promise<void> {
     while (this._isRunning) {
       const frame = this._frameBuffer.pop();
-      
+
       if (frame) {
         try {
           await this.processFrame(frame);
@@ -185,8 +201,10 @@ export class LiveAnalysisPipeline {
    */
   getMetrics(): PipelineMetrics {
     const now = Date.now();
-    const uptime = this._isRunning ? now - (this._lastProcessedTimestamp || now) : 0;
-    
+    const uptime = this._isRunning
+      ? now - (this._lastProcessedTimestamp || now)
+      : 0;
+
     return {
       streamId: this._streamId.value,
       isRunning: this._isRunning,
@@ -195,7 +213,8 @@ export class LiveAnalysisPipeline {
       bufferSize: this._frameBuffer.size,
       bufferCapacity: this._frameBuffer.capacity,
       uptime,
-      averageProcessingRate: uptime > 0 ? (this._processedFrameCount / uptime) * 1000 : 0
+      averageProcessingRate:
+        uptime > 0 ? (this._processedFrameCount / uptime) * 1000 : 0,
     };
   }
 
@@ -212,9 +231,15 @@ export class LiveAnalysisPipeline {
   }
 
   // Getters
-  get streamId(): StreamId { return this._streamId; }
-  get isRunning(): boolean { return this._isRunning; }
-  get processedFrameCount(): number { return this._processedFrameCount; }
+  get streamId(): StreamId {
+    return this._streamId;
+  }
+  get isRunning(): boolean {
+    return this._isRunning;
+  }
+  get processedFrameCount(): number {
+    return this._processedFrameCount;
+  }
 }
 
 /**
@@ -305,7 +330,7 @@ export class FrameAnalysisResult {
       timestamp: this.timestamp,
       completedAt: this.completedAt,
       processingTimeMs: this.completedAt - this.timestamp,
-      stageResults: this.stageResults
+      stageResults: this.stageResults,
     };
   }
 }

@@ -32,6 +32,7 @@ A **highly scalable micro-frontend architecture** built with **Next.js 14**, opt
 ## ✨ Key Features
 
 ### 🚀 **Performance First**
+
 - **Sub-second page loads** with Next.js 14 App Router
 - **Virtual scrolling** for large datasets (10,000+ items)
 - **Canvas rendering** for complex visualizations
@@ -40,6 +41,7 @@ A **highly scalable micro-frontend architecture** built with **Next.js 14**, opt
 - **Incremental Static Regeneration** (ISR)
 
 ### 🌐 **Micro-Frontend Architecture**
+
 - **Module Federation** for independent deployments
 - **Composable components** with HOC patterns
 - **Isolated state management** per micro-frontend
@@ -47,6 +49,7 @@ A **highly scalable micro-frontend architecture** built with **Next.js 14**, opt
 - **Runtime integration** with fallback strategies
 
 ### 🔄 **Real-time Capabilities**
+
 - **GraphQL Subscriptions** over WebSocket
 - **Optimistic UI updates** for instant feedback
 - **Live match analytics** streaming
@@ -54,6 +57,7 @@ A **highly scalable micro-frontend architecture** built with **Next.js 14**, opt
 - **Background sync** for offline data
 
 ### 🌍 **Internationalization & RTL**
+
 - **Hebrew-first** design with RTL support
 - **Arabic and English** language support
 - **Cultural adaptations** for Israeli market
@@ -61,6 +65,7 @@ A **highly scalable micro-frontend architecture** built with **Next.js 14**, opt
 - **RTL-aware animations** and layouts
 
 ### 📱 **Progressive Web App**
+
 - **Offline-first** architecture
 - **App-like experience** on mobile
 - **Push notifications** for match updates
@@ -70,29 +75,34 @@ A **highly scalable micro-frontend architecture** built with **Next.js 14**, opt
 ## 🛠️ Tech Stack
 
 ### **Core Framework**
+
 - **Next.js 14** - App Router, Server Components, ISR
 - **React 18** - Concurrent features, Suspense
 - **TypeScript** - Strict mode, advanced types
 
 ### **State Management**
+
 - **Zustand** - Lightweight, event-driven state
 - **TanStack Query** - Server state management
 - **Apollo Client** - GraphQL with subscriptions
 - **Immer** - Immutable state updates
 
 ### **Styling & UI**
+
 - **Tailwind CSS** - Utility-first styling
 - **Framer Motion** - Smooth animations
 - **Headless UI** - Accessible components
 - **Recharts** - Data visualizations
 
 ### **Performance**
+
 - **React Window** - Virtual scrolling
 - **Canvas API** - High-performance graphics
 - **Web Workers** - Background processing
 - **Service Workers** - Caching and offline
 
 ### **Development**
+
 - **Storybook** - Component development
 - **Jest + Testing Library** - Unit testing
 - **Playwright** - E2E testing
@@ -101,6 +111,7 @@ A **highly scalable micro-frontend architecture** built with **Next.js 14**, opt
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - npm 9+
 - Docker (optional)
@@ -200,7 +211,7 @@ const useMatchAnalytics = (matchId: string) => {
   const query = useMatchQuery(matchId);
   const subscription = useMatchUpdates(matchId);
   const optimisticUpdate = useOptimisticUpdate();
-  
+
   return composeAnalytics(query, subscription, optimisticUpdate);
 };
 ```
@@ -236,9 +247,16 @@ const AnalyticsMF = lazy(() => import('analytics_mf/AnalyticsModule'));
 
 ```css
 /* Automatic RTL layout */
-[dir="rtl"] .ml-4 { margin-right: 1rem; margin-left: 0; }
-[dir="rtl"] .text-left { text-align: right; }
-[dir="rtl"] .rtl-flip { transform: scaleX(-1); }
+[dir='rtl'] .ml-4 {
+  margin-right: 1rem;
+  margin-left: 0;
+}
+[dir='rtl'] .text-left {
+  text-align: right;
+}
+[dir='rtl'] .rtl-flip {
+  transform: scaleX(-1);
+}
 ```
 
 ### **Language Configuration**
@@ -382,4 +400,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ---
 
 **Built with ❤️ for the future of football analytics** ⚽📊
+
 # contractLens

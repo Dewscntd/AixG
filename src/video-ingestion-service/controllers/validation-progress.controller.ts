@@ -1,9 +1,21 @@
-import { Controller, Get, Param, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { AsyncValidationService } from '../application/services/async-validation.service';
 
 export interface ValidationProgressResponse {
   videoId: string;
-  stage: 'downloading' | 'validating' | 'extracting_metadata' | 'completed' | 'failed';
+  stage:
+    | 'downloading'
+    | 'validating'
+    | 'extracting_metadata'
+    | 'completed'
+    | 'failed';
   progress: number;
   message: string;
   error?: string;
@@ -29,12 +41,15 @@ export class ValidationProgressController {
    * Get validation progress for a specific video
    */
   @Get('progress/:videoId')
-  async getValidationProgress(@Param('videoId') videoId: string): Promise<ValidationProgressResponse> {
+  async getValidationProgress(
+    @Param('videoId') videoId: string
+  ): Promise<ValidationProgressResponse> {
     try {
       this.logger.log(`Getting validation progress for video: ${videoId}`);
 
-      const progress = this.asyncValidationService.getValidationProgress(videoId);
-      
+      const progress =
+        this.asyncValidationService.getValidationProgress(videoId);
+
       if (!progress) {
         throw new HttpException(
           `No validation progress found for video ${videoId}`,
@@ -46,15 +61,17 @@ export class ValidationProgressController {
 
       return {
         ...progress,
-        queueStatus
+        queueStatus,
       };
-
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
       }
 
-      this.logger.error(`Failed to get validation progress for video ${videoId}:`, error);
+      this.logger.error(
+        `Failed to get validation progress for video ${videoId}:`,
+        error
+      );
       throw new HttpException(
         'Failed to get validation progress',
         HttpStatus.INTERNAL_SERVER_ERROR
@@ -74,9 +91,8 @@ export class ValidationProgressController {
 
       return {
         ...status,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-
     } catch (error) {
       this.logger.error('Failed to get queue status:', error);
       throw new HttpException(

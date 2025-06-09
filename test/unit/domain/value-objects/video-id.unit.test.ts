@@ -10,7 +10,7 @@ describe('VideoId Value Object', () => {
   describe('Construction', () => {
     it('should create a valid VideoId with generated UUID', () => {
       const videoId = new VideoId();
-      
+
       expect(videoId).toBeValidVideoId();
       expect(videoId.value).toBeValidUUID();
     });
@@ -18,7 +18,7 @@ describe('VideoId Value Object', () => {
     it('should create VideoId with provided valid UUID', () => {
       const uuid = '123e4567-e89b-12d3-a456-426614174000';
       const videoId = new VideoId(uuid);
-      
+
       expect(videoId.value).toBe(uuid);
       expect(videoId).toBeValidVideoId();
     });
@@ -30,11 +30,13 @@ describe('VideoId Value Object', () => {
         '',
         'not-a-uuid-at-all',
         '123e4567-e89b-12d3-a456-42661417400', // too short
-        '123e4567-e89b-12d3-a456-4266141740000' // too long
+        '123e4567-e89b-12d3-a456-4266141740000', // too long
       ];
 
       invalidUuids.forEach(invalidUuid => {
-        expect(() => new VideoId(invalidUuid)).toThrow('Invalid VideoId format');
+        expect(() => new VideoId(invalidUuid)).toThrow(
+          'Invalid VideoId format'
+        );
       });
     });
   });
@@ -44,14 +46,14 @@ describe('VideoId Value Object', () => {
       const uuid = '123e4567-e89b-12d3-a456-426614174000';
       const videoId1 = new VideoId(uuid);
       const videoId2 = new VideoId(uuid);
-      
+
       expect(videoId1.equals(videoId2)).toBe(true);
     });
 
     it('should not be equal when UUIDs are different', () => {
       const videoId1 = new VideoId('123e4567-e89b-12d3-a456-426614174000');
       const videoId2 = new VideoId('987fcdeb-51a2-43d1-9f12-123456789abc');
-      
+
       expect(videoId1.equals(videoId2)).toBe(false);
     });
 
@@ -64,7 +66,7 @@ describe('VideoId Value Object', () => {
       const uuid = '123e4567-e89b-12d3-a456-426614174000';
       const videoId1 = new VideoId(uuid);
       const videoId2 = new VideoId(uuid);
-      
+
       expect(videoId1.equals(videoId2)).toBe(videoId2.equals(videoId1));
     });
 
@@ -73,7 +75,7 @@ describe('VideoId Value Object', () => {
       const videoId1 = new VideoId(uuid);
       const videoId2 = new VideoId(uuid);
       const videoId3 = new VideoId(uuid);
-      
+
       expect(videoId1.equals(videoId2)).toBe(true);
       expect(videoId2.equals(videoId3)).toBe(true);
       expect(videoId1.equals(videoId3)).toBe(true);
@@ -89,14 +91,14 @@ describe('VideoId Value Object', () => {
     it('should not allow modification of value property', () => {
       const videoId = new VideoId();
       const originalValue = videoId.value;
-      
+
       // Attempt to modify should fail or be ignored
       try {
         (videoId as any).value = 'modified';
       } catch (error) {
         // Expected for immutable objects
       }
-      
+
       expect(videoId.value).toBe(originalValue);
     });
   });
@@ -105,7 +107,7 @@ describe('VideoId Value Object', () => {
     it('should return UUID as string representation', () => {
       const uuid = '123e4567-e89b-12d3-a456-426614174000';
       const videoId = new VideoId(uuid);
-      
+
       expect(videoId.toString()).toBe(uuid);
     });
   });
@@ -113,7 +115,7 @@ describe('VideoId Value Object', () => {
   describe('Static Factory Methods', () => {
     it('should generate new VideoId with generate()', () => {
       const videoId = VideoId.generate();
-      
+
       expect(videoId).toBeValidVideoId();
       expect(videoId.value).toBeValidUUID();
     });
@@ -121,20 +123,22 @@ describe('VideoId Value Object', () => {
     it('should create VideoId from string with fromString()', () => {
       const uuid = '123e4567-e89b-12d3-a456-426614174000';
       const videoId = VideoId.fromString(uuid);
-      
+
       expect(videoId.value).toBe(uuid);
       expect(videoId).toBeValidVideoId();
     });
 
     it('should throw error when fromString() receives invalid UUID', () => {
-      expect(() => VideoId.fromString('invalid-uuid')).toThrow('Invalid VideoId format');
+      expect(() => VideoId.fromString('invalid-uuid')).toThrow(
+        'Invalid VideoId format'
+      );
     });
   });
 
   describe('Property-Based Tests', () => {
     it('should always create valid VideoIds from valid UUIDs', () => {
       fc.assert(
-        fc.property(fc.uuid(), (uuid) => {
+        fc.property(fc.uuid(), uuid => {
           const videoId = new VideoId(uuid);
           expect(videoId.value).toBe(uuid);
           expect(videoId).toBeValidVideoId();
@@ -144,7 +148,7 @@ describe('VideoId Value Object', () => {
 
     it('should maintain equality reflexivity for all valid UUIDs', () => {
       fc.assert(
-        fc.property(fc.uuid(), (uuid) => {
+        fc.property(fc.uuid(), uuid => {
           const videoId = new VideoId(uuid);
           expect(videoId.equals(videoId)).toBe(true);
         })
@@ -153,7 +157,7 @@ describe('VideoId Value Object', () => {
 
     it('should maintain equality symmetry for all valid UUIDs', () => {
       fc.assert(
-        fc.property(fc.uuid(), (uuid) => {
+        fc.property(fc.uuid(), uuid => {
           const videoId1 = new VideoId(uuid);
           const videoId2 = new VideoId(uuid);
           expect(videoId1.equals(videoId2)).toBe(videoId2.equals(videoId1));
@@ -163,8 +167,10 @@ describe('VideoId Value Object', () => {
 
     it('should always produce different VideoIds when generating', () => {
       fc.assert(
-        fc.property(fc.integer({ min: 1, max: 100 }), (count) => {
-          const videoIds = Array.from({ length: count }, () => VideoId.generate());
+        fc.property(fc.integer({ min: 1, max: 100 }), count => {
+          const videoIds = Array.from({ length: count }, () =>
+            VideoId.generate()
+          );
           const uniqueValues = new Set(videoIds.map(id => id.value));
           expect(uniqueValues.size).toBe(count);
         })
@@ -184,7 +190,7 @@ describe('VideoId Value Object', () => {
     it('should perform equality checks quickly', () => {
       const videoId1 = new VideoId();
       const videoId2 = new VideoId();
-      
+
       expect(() => {
         for (let i = 0; i < 10000; i++) {
           videoId1.equals(videoId2);

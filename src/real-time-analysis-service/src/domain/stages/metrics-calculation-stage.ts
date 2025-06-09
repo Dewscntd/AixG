@@ -1,9 +1,17 @@
-import { AnalysisStage, StageInput, StageResult } from '../entities/live-analysis-pipeline';
+import {
+  AnalysisStage,
+  StageInput,
+  StageResult,
+} from '../entities/live-analysis-pipeline';
 import { Player } from './player-detection-stage';
 import { BallPosition } from './ball-tracking-stage';
 import { FootballEvent } from './event-detection-stage';
 import { TeamFormation } from './formation-analysis-stage';
-import { PlayerDetection, BallDetection, EventDetection } from '../../infrastructure/ml/edge-ml-inference';
+import {
+  PlayerDetection,
+  BallDetection,
+  EventDetection,
+} from '../../infrastructure/ml/edge-ml-inference';
 
 /**
  * Metrics Calculation Stage
@@ -14,27 +22,43 @@ export class MetricsCalculationStage implements AnalysisStage {
 
   async process(input: StageInput): Promise<StageResult> {
     const startTime = Date.now();
-    
+
     try {
       const { context } = input;
-      
+
       // Extract data from previous stages
-      const playerDetections = context.classifiedPlayers || context.players || [];
-      const players: Player[] = this.convertFromPlayerDetections(playerDetections);
+      const playerDetections =
+        context.classifiedPlayers || context.players || [];
+      const players: Player[] =
+        this.convertFromPlayerDetections(playerDetections);
       const ballDetection = context.ball;
-      const ball: BallPosition | null = ballDetection ? this.convertBallDetectionToBallPosition(ballDetection) : null;
+      const ball: BallPosition | null = ballDetection
+        ? this.convertBallDetectionToBallPosition(ballDetection)
+        : null;
       const eventDetections = context.events || [];
-      const events: FootballEvent[] = this.convertFromEventDetections(eventDetections);
+      const events: FootballEvent[] =
+        this.convertFromEventDetections(eventDetections);
 
       // Formation data is simplified for now
       const teamAFormation: TeamFormation | null = null;
       const teamBFormation: TeamFormation | null = null;
 
       // Calculate various metrics
-      const possessionMetrics = this.calculatePossessionMetrics(players, ball, events);
+      const possessionMetrics = this.calculatePossessionMetrics(
+        players,
+        ball,
+        events
+      );
       const movementMetrics = this.calculateMovementMetrics(players);
-      const spatialMetrics = this.calculateSpatialMetrics(players, teamAFormation, teamBFormation);
-      const performanceMetrics = this.calculatePerformanceMetrics(events, players);
+      const spatialMetrics = this.calculateSpatialMetrics(
+        players,
+        teamAFormation,
+        teamBFormation
+      );
+      const performanceMetrics = this.calculatePerformanceMetrics(
+        events,
+        players
+      );
 
       // Combine all metrics
       const allMetrics: RealTimeMetrics = {
@@ -43,7 +67,11 @@ export class MetricsCalculationStage implements AnalysisStage {
         movement: movementMetrics,
         spatial: spatialMetrics,
         performance: performanceMetrics,
-        summary: this.calculateSummaryMetrics(possessionMetrics, movementMetrics, spatialMetrics)
+        summary: this.calculateSummaryMetrics(
+          possessionMetrics,
+          movementMetrics,
+          spatialMetrics
+        ),
       };
 
       const processingTime = Date.now() - startTime;
@@ -55,14 +83,13 @@ export class MetricsCalculationStage implements AnalysisStage {
         output: {
           metrics: {
             possession: allMetrics.possession.teamAPossessionPercentage,
-            passAccuracy: allMetrics.performance.passAccuracy
-          }
-        }
+            passAccuracy: allMetrics.performance.passAccuracy,
+          },
+        },
       };
-
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      
+
       return {
         stageName: this.name,
         success: false,
@@ -71,9 +98,9 @@ export class MetricsCalculationStage implements AnalysisStage {
         output: {
           metrics: {
             possession: 50,
-            passAccuracy: 0
-          }
-        }
+            passAccuracy: 0,
+          },
+        },
       };
     }
   }
@@ -81,7 +108,9 @@ export class MetricsCalculationStage implements AnalysisStage {
   /**
    * Convert PlayerDetection[] to Player[] for internal processing
    */
-  private convertFromPlayerDetections(playerDetections: PlayerDetection[]): Player[] {
+  private convertFromPlayerDetections(
+    playerDetections: PlayerDetection[]
+  ): Player[] {
     return playerDetections.map(detection => ({
       id: detection.playerId,
       boundingBox: detection.boundingBox,
@@ -91,28 +120,32 @@ export class MetricsCalculationStage implements AnalysisStage {
       jersey: detection.jerseyNumber?.toString() || null,
       pose: null,
       velocity: { x: 0, y: 0 },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }));
   }
 
   /**
    * Convert BallDetection to BallPosition for internal processing
    */
-  private convertBallDetectionToBallPosition(ballDetection: BallDetection): BallPosition {
+  private convertBallDetectionToBallPosition(
+    ballDetection: BallDetection
+  ): BallPosition {
     return {
       position: ballDetection.position,
       velocity: ballDetection.velocity || { x: 0, y: 0 },
       confidence: ballDetection.confidence,
       radius: 0.5, // Default radius
       timestamp: Date.now(),
-      predicted: false
+      predicted: false,
     };
   }
 
   /**
    * Convert EventDetection[] to FootballEvent[] for internal processing
    */
-  private convertFromEventDetections(eventDetections: EventDetection[]): FootballEvent[] {
+  private convertFromEventDetections(
+    eventDetections: EventDetection[]
+  ): FootballEvent[] {
     return eventDetections.map(detection => ({
       type: detection.eventType,
       confidence: detection.confidence,
@@ -127,9 +160,9 @@ export class MetricsCalculationStage implements AnalysisStage {
         jersey: null,
         pose: null,
         velocity: { x: 0, y: 0 },
-        timestamp: detection.timestamp
+        timestamp: detection.timestamp,
       },
-      metadata: detection.metadata || {}
+      metadata: detection.metadata || {},
     }));
   }
 
@@ -154,16 +187,22 @@ export class MetricsCalculationStage implements AnalysisStage {
 
     // Calculate possession events
     const possessionEvents = events.filter(e => e.type === 'possession');
-    const teamAPossessions = possessionEvents.filter(e => e.player.team === 'teamA').length;
-    const teamBPossessions = possessionEvents.filter(e => e.player.team === 'teamB').length;
+    const teamAPossessions = possessionEvents.filter(
+      e => e.player.team === 'teamA'
+    ).length;
+    const teamBPossessions = possessionEvents.filter(
+      e => e.player.team === 'teamB'
+    ).length;
     const totalPossessions = teamAPossessions + teamBPossessions;
 
     return {
       currentPossession,
-      teamAPossessionPercentage: totalPossessions > 0 ? (teamAPossessions / totalPossessions) * 100 : 50,
-      teamBPossessionPercentage: totalPossessions > 0 ? (teamBPossessions / totalPossessions) * 100 : 50,
+      teamAPossessionPercentage:
+        totalPossessions > 0 ? (teamAPossessions / totalPossessions) * 100 : 50,
+      teamBPossessionPercentage:
+        totalPossessions > 0 ? (teamBPossessions / totalPossessions) * 100 : 50,
       totalPossessionChanges: totalPossessions,
-      ballInPlay: ball !== null && !ball.predicted
+      ballInPlay: ball !== null && !ball.predicted,
     };
   }
 
@@ -184,7 +223,7 @@ export class MetricsCalculationStage implements AnalysisStage {
       averageSpeed: (teamASpeed + teamBSpeed) / 2,
       totalDistance,
       highIntensityRuns: this.countHighIntensityRuns(players),
-      sprintCount: this.countSprints(players)
+      sprintCount: this.countSprints(players),
     };
   }
 
@@ -205,14 +244,17 @@ export class MetricsCalculationStage implements AnalysisStage {
       teamACompactness: teamAFormation?.metrics.compactness || 0,
       teamBCompactness: teamBFormation?.metrics.compactness || 0,
       teamAWidth: teamAFormation?.metrics.width || 0,
-      teamBWidth: teamBFormation?.metrics.width || 0
+      teamBWidth: teamBFormation?.metrics.width || 0,
     };
   }
 
   /**
    * Calculate performance metrics
    */
-  private calculatePerformanceMetrics(events: FootballEvent[], players: Player[]): PerformanceMetrics {
+  private calculatePerformanceMetrics(
+    events: FootballEvent[],
+    players: Player[]
+  ): PerformanceMetrics {
     const passes = events.filter(e => e.type === 'pass');
     const shots = events.filter(e => e.type === 'shot');
 
@@ -222,7 +264,7 @@ export class MetricsCalculationStage implements AnalysisStage {
       passAccuracy: this.calculatePassAccuracy(passes),
       shotAccuracy: this.calculateShotAccuracy(shots),
       eventsPerMinute: events.length, // Simplified - would need time tracking
-      playerEfficiency: this.calculatePlayerEfficiency(players, events)
+      playerEfficiency: this.calculatePlayerEfficiency(players, events),
     };
   }
 
@@ -236,14 +278,23 @@ export class MetricsCalculationStage implements AnalysisStage {
   ): SummaryMetrics {
     return {
       gameIntensity: (movement.averageSpeed + movement.sprintCount) / 2,
-      tacticalBalance: Math.abs(spatial.teamACompactness - spatial.teamBCompactness),
-      possessionBalance: Math.abs(possession.teamAPossessionPercentage - possession.teamBPossessionPercentage),
-      overallActivity: movement.totalDistance + possession.totalPossessionChanges
+      tacticalBalance: Math.abs(
+        spatial.teamACompactness - spatial.teamBCompactness
+      ),
+      possessionBalance: Math.abs(
+        possession.teamAPossessionPercentage -
+          possession.teamBPossessionPercentage
+      ),
+      overallActivity:
+        movement.totalDistance + possession.totalPossessionChanges,
     };
   }
 
   // Helper methods
-  private findPlayerNearBall(players: Player[], ball: BallPosition): Player | null {
+  private findPlayerNearBall(
+    players: Player[],
+    ball: BallPosition
+  ): Player | null {
     let closestPlayer: Player | null = null;
     let minDistance = Infinity;
     const maxDistance = 50;
@@ -251,9 +302,9 @@ export class MetricsCalculationStage implements AnalysisStage {
     for (const player of players) {
       const distance = Math.sqrt(
         Math.pow(player.position.x - ball.position.x, 2) +
-        Math.pow(player.position.y - ball.position.y, 2)
+          Math.pow(player.position.y - ball.position.y, 2)
       );
-      
+
       if (distance < minDistance && distance < maxDistance) {
         minDistance = distance;
         closestPlayer = player;
@@ -265,15 +316,23 @@ export class MetricsCalculationStage implements AnalysisStage {
 
   private calculateAverageSpeed(players: Player[]): number {
     if (players.length === 0) return 0;
-    
-    const totalSpeed = players.reduce((sum, player) => sum + Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2), 0);
-    
+
+    const totalSpeed = players.reduce(
+      (sum, player) =>
+        sum + Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2),
+      0
+    );
+
     return totalSpeed / players.length;
   }
 
   private calculateTotalDistance(players: Player[]): number {
     // Simplified - would need to track over time
-    return players.reduce((sum, player) => sum + Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2), 0);
+    return players.reduce(
+      (sum, player) =>
+        sum + Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2),
+      0
+    );
   }
 
   private countHighIntensityRuns(players: Player[]): number {
@@ -293,26 +352,30 @@ export class MetricsCalculationStage implements AnalysisStage {
   private calculateFieldCoverage(players: Player[]): number {
     // Simplified field coverage calculation
     if (players.length === 0) return 0;
-    
+
     const xPositions = players.map(p => p.position.x);
     const yPositions = players.map(p => p.position.y);
-    
+
     const xRange = Math.max(...xPositions) - Math.min(...xPositions);
     const yRange = Math.max(...yPositions) - Math.min(...yPositions);
-    
+
     return (xRange * yRange) / (1920 * 1080); // Normalized to field size
   }
 
   private calculateTeamSeparation(players: Player[]): number {
     const teamAPlayers = players.filter(p => p.team === 'teamA');
     const teamBPlayers = players.filter(p => p.team === 'teamB');
-    
+
     if (teamAPlayers.length === 0 || teamBPlayers.length === 0) return 0;
-    
+
     // Calculate center of mass for each team
-    const teamACenterX = teamAPlayers.reduce((sum, p) => sum + p.position.x, 0) / teamAPlayers.length;
-    const teamBCenterX = teamBPlayers.reduce((sum, p) => sum + p.position.x, 0) / teamBPlayers.length;
-    
+    const teamACenterX =
+      teamAPlayers.reduce((sum, p) => sum + p.position.x, 0) /
+      teamAPlayers.length;
+    const teamBCenterX =
+      teamBPlayers.reduce((sum, p) => sum + p.position.x, 0) /
+      teamBPlayers.length;
+
     return Math.abs(teamACenterX - teamBCenterX);
   }
 
@@ -326,7 +389,10 @@ export class MetricsCalculationStage implements AnalysisStage {
     return shots.length > 0 ? 30 : 0; // Mock accuracy
   }
 
-  private calculatePlayerEfficiency(players: Player[], events: FootballEvent[]): number {
+  private calculatePlayerEfficiency(
+    players: Player[],
+    events: FootballEvent[]
+  ): number {
     if (players.length === 0) return 0;
     return events.length / players.length;
   }
@@ -339,7 +405,7 @@ export class MetricsCalculationStage implements AnalysisStage {
         teamAPossessionPercentage: 50,
         teamBPossessionPercentage: 50,
         totalPossessionChanges: 0,
-        ballInPlay: false
+        ballInPlay: false,
       },
       movement: {
         teamASpeed: 0,
@@ -347,7 +413,7 @@ export class MetricsCalculationStage implements AnalysisStage {
         averageSpeed: 0,
         totalDistance: 0,
         highIntensityRuns: 0,
-        sprintCount: 0
+        sprintCount: 0,
       },
       spatial: {
         fieldCoverage: 0,
@@ -355,7 +421,7 @@ export class MetricsCalculationStage implements AnalysisStage {
         teamACompactness: 0,
         teamBCompactness: 0,
         teamAWidth: 0,
-        teamBWidth: 0
+        teamBWidth: 0,
       },
       performance: {
         totalPasses: 0,
@@ -363,14 +429,14 @@ export class MetricsCalculationStage implements AnalysisStage {
         passAccuracy: 0,
         shotAccuracy: 0,
         eventsPerMinute: 0,
-        playerEfficiency: 0
+        playerEfficiency: 0,
       },
       summary: {
         gameIntensity: 0,
         tacticalBalance: 0,
         possessionBalance: 0,
-        overallActivity: 0
-      }
+        overallActivity: 0,
+      },
     };
   }
 }

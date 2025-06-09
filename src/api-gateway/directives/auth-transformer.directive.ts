@@ -1,6 +1,6 @@
 /**
  * Auth Directive Transformer
- * 
+ *
  * Modern GraphQL directive implementation using mapSchema
  * Replaces deprecated SchemaDirectiveVisitor approach
  */
@@ -36,14 +36,20 @@ export class AuthDirectiveTransformer {
   constructor(private readonly authService: AuthService) {}
 
   createTransformer() {
-    return (schema: GraphQLSchema) => mapSchema(schema, {
+    return (schema: GraphQLSchema) =>
+      mapSchema(schema, {
         [MapperKind.OBJECT_FIELD]: (fieldConfig, _fieldName, _typeName) => {
           const authDirective = getDirective(schema, fieldConfig, 'auth')?.[0];
           if (authDirective) {
             const { resolve = defaultFieldResolver } = fieldConfig;
             const directiveArgs = authDirective as AuthDirectiveArgs;
 
-            fieldConfig.resolve = async (source: GraphQLResolverSource, args: GraphQLResolverArgs, context: GraphQLContext, info) => {
+            fieldConfig.resolve = async (
+              source: GraphQLResolverSource,
+              args: GraphQLResolverArgs,
+              context: GraphQLContext,
+              info
+            ) => {
               try {
                 // Check if user is authenticated
                 if (!context.user) {
@@ -56,38 +62,58 @@ export class AuthDirectiveTransformer {
                     context.user,
                     directiveArgs.requires
                   );
-                  
+
                   if (!hasRequiredLevel) {
-                    throw new Error(`Insufficient authentication level. Required: ${directiveArgs.requires}`);
+                    throw new Error(
+                      `Insufficient authentication level. Required: ${directiveArgs.requires}`
+                    );
                   }
                 }
 
                 // Check specific roles
                 if (directiveArgs.roles && directiveArgs.roles.length > 0) {
-                  const hasRequiredRoles = this.authService.hasRoles(context.user, directiveArgs.roles);
-                  
+                  const hasRequiredRoles = this.authService.hasRoles(
+                    context.user,
+                    directiveArgs.roles
+                  );
+
                   if (!hasRequiredRoles) {
-                    throw new Error(`Insufficient roles. Required: ${directiveArgs.roles.join(', ')}`);
+                    throw new Error(
+                      `Insufficient roles. Required: ${directiveArgs.roles.join(
+                        ', '
+                      )}`
+                    );
                   }
                 }
 
                 // Check specific permissions
-                if (directiveArgs.permissions && directiveArgs.permissions.length > 0) {
-                  const hasRequiredPermissions = this.authService.hasPermissions(
-                    context.user,
-                    directiveArgs.permissions
-                  );
-                  
+                if (
+                  directiveArgs.permissions &&
+                  directiveArgs.permissions.length > 0
+                ) {
+                  const hasRequiredPermissions =
+                    this.authService.hasPermissions(
+                      context.user,
+                      directiveArgs.permissions
+                    );
+
                   if (!hasRequiredPermissions) {
-                    throw new Error(`Insufficient permissions. Required: ${directiveArgs.permissions.join(', ')}`);
+                    throw new Error(
+                      `Insufficient permissions. Required: ${directiveArgs.permissions.join(
+                        ', '
+                      )}`
+                    );
                   }
                 }
 
                 // Check team access if required
                 if (directiveArgs.teamAccess) {
                   const teamId = this.extractTeamId(args, source);
-                  
-                  if (teamId && !this.authService.canAccessTeam(context.user, teamId)) {
+
+                  if (
+                    teamId &&
+                    !this.authService.canAccessTeam(context.user, teamId)
+                  ) {
                     throw new Error('Access denied to team resources');
                   }
                 }
@@ -129,9 +155,9 @@ export class AuthDirectiveTransformer {
    */
   private checkAuthenticationLevel(user: User, requiredLevel: string): boolean {
     const levels = {
-      'USER': 1,
-      'ADMIN': 2,
-      'SUPER_ADMIN': 3
+      USER: 1,
+      ADMIN: 2,
+      SUPER_ADMIN: 3,
     };
 
     const userLevel = levels[user.role as keyof typeof levels] || 0;
@@ -143,7 +169,10 @@ export class AuthDirectiveTransformer {
   /**
    * Extracts team ID from resolver arguments or source
    */
-  private extractTeamId(args: GraphQLResolverArgs, source: GraphQLResolverSource): string | undefined {
+  private extractTeamId(
+    args: GraphQLResolverArgs,
+    source: GraphQLResolverSource
+  ): string | undefined {
     // Check args first
     if (args.teamId && typeof args.teamId === 'string') {
       return args.teamId;
@@ -155,7 +184,11 @@ export class AuthDirectiveTransformer {
     }
 
     // Check nested team object
-    if (source?.team && typeof source.team === 'object' && source.team !== null) {
+    if (
+      source?.team &&
+      typeof source.team === 'object' &&
+      source.team !== null
+    ) {
       const team = source.team as { id?: string };
       if (team.id && typeof team.id === 'string') {
         return team.id;

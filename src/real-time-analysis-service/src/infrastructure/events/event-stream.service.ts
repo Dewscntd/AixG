@@ -10,7 +10,8 @@ import { EventStream } from '../../domain/entities/live-analysis-pipeline';
 @Injectable()
 export class EventStreamService implements EventStream {
   private readonly logger = new Logger(EventStreamService.name);
-  private subscribers: Map<string, Array<(event: DomainEvent) => void>> = new Map();
+  private subscribers: Map<string, Array<(event: DomainEvent) => void>> =
+    new Map();
 
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
@@ -21,14 +22,17 @@ export class EventStreamService implements EventStream {
     try {
       // Emit through NestJS event emitter for application-level handling
       this.eventEmitter.emit(`domain.${event.eventType}`, event.toJSON());
-      
+
       // Emit to direct subscribers
       const subscribers = this.subscribers.get(event.eventType) || [];
       for (const handler of subscribers) {
         try {
           handler(event);
         } catch (error) {
-          this.logger.error(`Error in event handler for ${event.eventType}:`, error);
+          this.logger.error(
+            `Error in event handler for ${event.eventType}:`,
+            error
+          );
         }
       }
 
@@ -41,7 +45,6 @@ export class EventStreamService implements EventStream {
           this.logger.error(`Error in wildcard event handler:`, error);
         }
       }
-
     } catch (error) {
       this.logger.error(`Failed to emit event ${event.eventType}:`, error);
     }
@@ -54,7 +57,7 @@ export class EventStreamService implements EventStream {
     if (!this.subscribers.has(eventType)) {
       this.subscribers.set(eventType, []);
     }
-    
+
     this.subscribers.get(eventType)!.push(handler);
   }
 

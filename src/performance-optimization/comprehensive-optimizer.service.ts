@@ -50,7 +50,10 @@ interface OptimizationReport {
  * Orchestrates all performance optimization components
  */
 @Injectable()
-export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit {
+export class ComprehensiveOptimizer
+  extends EventEmitter
+  implements OnModuleInit
+{
   private readonly logger = new Logger(ComprehensiveOptimizer.name);
   private readonly optimizationHistory: OptimizationReport[] = [];
   private isOptimizing = false;
@@ -68,13 +71,13 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
 
   async onModuleInit() {
     this.logger.log('Comprehensive Performance Optimizer initialized');
-    
+
     // Start performance monitoring
     this.performanceMonitor.startMonitoring(10000);
-    
+
     // Set up event listeners
     this.setupEventListeners();
-    
+
     // Run initial optimization if enabled
     if (this.config.enableAutoOptimization) {
       setTimeout(() => this.runOptimizationCycle(), 30000);
@@ -86,17 +89,17 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
    */
   private setupEventListeners(): void {
     // Listen for performance alerts
-    this.performanceMonitor.on('alert', (alert) => {
+    this.performanceMonitor.on('alert', alert => {
       this.handlePerformanceAlert(alert);
     });
 
     // Listen for database alerts
-    this.queryOptimizer.on('alert', (alert) => {
+    this.queryOptimizer.on('alert', alert => {
       this.handleDatabaseAlert(alert);
     });
 
     // Listen for benchmark completion
-    this.benchmarker.on('benchmarkComplete', (result) => {
+    this.benchmarker.on('benchmarkComplete', result => {
       this.handleBenchmarkResult(result);
     });
   }
@@ -113,39 +116,42 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
 
     this.isOptimizing = true;
     const startTime = Date.now();
-    
+
     this.logger.log('Starting comprehensive optimization cycle');
-    
+
     const optimizations: OptimizationReport['optimizations'] = [];
-    
+
     try {
       // Capture baseline metrics
       const beforeMetrics = await this.capturePerformanceSnapshot();
-      
+
       // 1. Database Optimization
       await this.optimizeDatabasePerformance(optimizations);
-      
+
       // 2. Cache Optimization
       await this.optimizeCaching(optimizations);
-      
+
       // 3. Memory Optimization
       await this.optimizeMemoryUsage(optimizations);
-      
+
       // 4. ML Model Optimization (if applicable)
       await this.optimizeMLPerformance(optimizations);
-      
+
       // 5. System-level Optimization
       await this.optimizeSystemPerformance(optimizations);
-      
+
       // Capture after metrics
       const afterMetrics = await this.capturePerformanceSnapshot();
-      
+
       // Calculate improvement
-      const improvement = this.calculateImprovement(beforeMetrics, afterMetrics);
-      
+      const improvement = this.calculateImprovement(
+        beforeMetrics,
+        afterMetrics
+      );
+
       // Generate recommendations
       const recommendations = await this.generateRecommendations();
-      
+
       const report: OptimizationReport = {
         timestamp: Date.now(),
         duration: Date.now() - startTime,
@@ -153,24 +159,25 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
         beforeMetrics,
         afterMetrics,
         improvement,
-        recommendations
+        recommendations,
       };
-      
+
       this.optimizationHistory.push(report);
-      
+
       // Keep only last 50 reports
       if (this.optimizationHistory.length > 50) {
         this.optimizationHistory.shift();
       }
-      
+
       this.emit('optimizationComplete', report);
-      
+
       this.logger.log(`Optimization cycle completed in ${report.duration}ms`);
-      this.logger.log(`Improvements: Latency -${improvement.latencyReduction.toFixed(2)}%, ` +
-                     `Throughput +${improvement.throughputIncrease.toFixed(2)}%`);
-      
+      this.logger.log(
+        `Improvements: Latency -${improvement.latencyReduction.toFixed(2)}%, ` +
+          `Throughput +${improvement.throughputIncrease.toFixed(2)}%`
+      );
+
       return report;
-      
     } catch (error) {
       this.logger.error(`Optimization cycle failed: ${error.message}`);
       throw error;
@@ -187,36 +194,35 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
   ): Promise<void> {
     try {
       this.logger.log('Running database optimization');
-      
+
       // Auto-optimize database configuration
       const autoOptResult = await this.queryOptimizer.autoOptimize();
-      
+
       if (autoOptResult.applied.length > 0) {
         optimizations.push({
           type: 'database_auto_optimization',
           description: `Applied ${autoOptResult.applied.length} database optimizations`,
           impact: 'Improved query performance',
-          status: 'completed'
+          status: 'completed',
         });
       }
-      
+
       if (autoOptResult.errors.length > 0) {
         optimizations.push({
           type: 'database_optimization_errors',
           description: `${autoOptResult.errors.length} database optimization errors`,
           impact: 'Some optimizations failed',
           status: 'failed',
-          error: autoOptResult.errors.join('; ')
+          error: autoOptResult.errors.join('; '),
         });
       }
-      
     } catch (error) {
       optimizations.push({
         type: 'database_optimization',
         description: 'Database optimization failed',
         impact: 'No database improvements applied',
         status: 'failed',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -229,41 +235,47 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
   ): Promise<void> {
     try {
       this.logger.log('Running cache optimization');
-      
+
       const metrics = this.cacheService.getCacheMetrics();
-      
+
       // Check if cache hit ratio is below threshold
-      if (metrics.hitRatio < this.config.performanceThresholds.minCacheHitRatio) {
+      if (
+        metrics.hitRatio < this.config.performanceThresholds.minCacheHitRatio
+      ) {
         // Trigger cache warming
         await this.cacheService.warmCache([
-          { key: 'popular_content', value: 'warmed_data', ttl: 3600, tags: ['popular'] }
+          {
+            key: 'popular_content',
+            value: 'warmed_data',
+            ttl: 3600,
+            tags: ['popular'],
+          },
         ]);
-        
+
         optimizations.push({
           type: 'cache_warming',
           description: 'Triggered cache warming for popular content',
           impact: 'Improved cache hit ratio by 10-15%',
-          status: 'completed'
+          status: 'completed',
         });
       }
-      
+
       // Optimize cache eviction
       if (metrics.l1Misses > metrics.l1Hits * 0.5) {
         optimizations.push({
           type: 'cache_eviction_optimization',
           description: 'High L1 cache miss ratio detected',
           impact: 'Consider increasing L1 cache size',
-          status: 'skipped'
+          status: 'skipped',
         });
       }
-      
     } catch (error) {
       optimizations.push({
         type: 'cache_optimization',
         description: 'Cache optimization failed',
         impact: 'No cache improvements applied',
         status: 'failed',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -276,40 +288,43 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
   ): Promise<void> {
     try {
       this.logger.log('Running memory optimization');
-      
+
       const summary = this.performanceMonitor.getPerformanceSummary();
-      
-      if (summary.current?.system.memoryUsage.percentage > this.config.performanceThresholds.maxMemoryUsage) {
+
+      if (
+        summary.current?.system.memoryUsage.percentage >
+        this.config.performanceThresholds.maxMemoryUsage
+      ) {
         // Trigger garbage collection
         if (global.gc) {
           global.gc();
-          
+
           optimizations.push({
             type: 'memory_cleanup',
-            description: 'Triggered garbage collection due to high memory usage',
+            description:
+              'Triggered garbage collection due to high memory usage',
             impact: 'Reduced memory usage by 10-20%',
-            status: 'completed'
+            status: 'completed',
           });
         }
-        
+
         // Clear old cache entries
         await this.cacheService.clearAll();
-        
+
         optimizations.push({
           type: 'cache_cleanup',
           description: 'Cleared cache to free memory',
           impact: 'Freed cache memory',
-          status: 'completed'
+          status: 'completed',
         });
       }
-      
     } catch (error) {
       optimizations.push({
         type: 'memory_optimization',
         description: 'Memory optimization failed',
         impact: 'No memory improvements applied',
         status: 'failed',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -322,23 +337,22 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
   ): Promise<void> {
     try {
       this.logger.log('Running ML performance optimization');
-      
+
       // This would integrate with the ML optimizer service
       // For now, we'll add a placeholder optimization
       optimizations.push({
         type: 'ml_optimization',
         description: 'ML model optimization check completed',
         impact: 'Models are running optimally',
-        status: 'completed'
+        status: 'completed',
       });
-      
     } catch (error) {
       optimizations.push({
         type: 'ml_optimization',
         description: 'ML optimization failed',
         impact: 'No ML improvements applied',
         status: 'failed',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -351,36 +365,38 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
   ): Promise<void> {
     try {
       this.logger.log('Running system optimization');
-      
+
       const summary = this.performanceMonitor.getPerformanceSummary();
-      
+
       // Check CPU usage
-      if (summary.current?.system.cpuUsage > this.config.performanceThresholds.maxCpuUsage) {
+      if (
+        summary.current?.system.cpuUsage >
+        this.config.performanceThresholds.maxCpuUsage
+      ) {
         optimizations.push({
           type: 'cpu_optimization',
           description: 'High CPU usage detected',
           impact: 'Consider scaling or optimization',
-          status: 'skipped'
+          status: 'skipped',
         });
       }
-      
+
       // Check load average
       if (summary.current?.system.loadAverage[0] > 2.0) {
         optimizations.push({
           type: 'load_optimization',
           description: 'High system load detected',
           impact: 'Consider load balancing',
-          status: 'skipped'
+          status: 'skipped',
         });
       }
-      
     } catch (error) {
       optimizations.push({
         type: 'system_optimization',
         description: 'System optimization failed',
         impact: 'No system improvements applied',
         status: 'failed',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -401,36 +417,51 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
       system: {
         uptime: process.uptime(),
         memoryUsage: process.memoryUsage(),
-        cpuUsage: process.cpuUsage()
-      }
+        cpuUsage: process.cpuUsage(),
+      },
     };
   }
 
   /**
    * Calculate improvement between before and after metrics
    */
-  private calculateImprovement(beforeMetrics: any, afterMetrics: any): OptimizationReport['improvement'] {
+  private calculateImprovement(
+    beforeMetrics: any,
+    afterMetrics: any
+  ): OptimizationReport['improvement'] {
     const latencyBefore = beforeMetrics.performance?.requestLatency?.p95 || 0;
     const latencyAfter = afterMetrics.performance?.requestLatency?.p95 || 0;
-    const latencyReduction = latencyBefore > 0 ? ((latencyBefore - latencyAfter) / latencyBefore) * 100 : 0;
+    const latencyReduction =
+      latencyBefore > 0
+        ? ((latencyBefore - latencyAfter) / latencyBefore) * 100
+        : 0;
 
-    const throughputBefore = beforeMetrics.performance?.requestLatency?.count || 0;
-    const throughputAfter = afterMetrics.performance?.requestLatency?.count || 0;
-    const throughputIncrease = throughputBefore > 0 ? ((throughputAfter - throughputBefore) / throughputBefore) * 100 : 0;
+    const throughputBefore =
+      beforeMetrics.performance?.requestLatency?.count || 0;
+    const throughputAfter =
+      afterMetrics.performance?.requestLatency?.count || 0;
+    const throughputIncrease =
+      throughputBefore > 0
+        ? ((throughputAfter - throughputBefore) / throughputBefore) * 100
+        : 0;
 
     const memoryBefore = beforeMetrics.system?.memoryUsage?.heapUsed || 0;
     const memoryAfter = afterMetrics.system?.memoryUsage?.heapUsed || 0;
-    const memoryReduction = memoryBefore > 0 ? ((memoryBefore - memoryAfter) / memoryBefore) * 100 : 0;
+    const memoryReduction =
+      memoryBefore > 0
+        ? ((memoryBefore - memoryAfter) / memoryBefore) * 100
+        : 0;
 
     const cacheHitBefore = beforeMetrics.cache?.hitRatio || 0;
     const cacheHitAfter = afterMetrics.cache?.hitRatio || 0;
-    const cacheHitRatioIncrease = ((cacheHitAfter - cacheHitBefore) / (cacheHitBefore || 1)) * 100;
+    const cacheHitRatioIncrease =
+      ((cacheHitAfter - cacheHitBefore) / (cacheHitBefore || 1)) * 100;
 
     return {
       latencyReduction,
       throughputIncrease,
       memoryReduction,
-      cacheHitRatioIncrease
+      cacheHitRatioIncrease,
     };
   }
 
@@ -444,29 +475,40 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
     const dbReport = await this.queryOptimizer.getOptimizationReport();
 
     // Performance-based recommendations
-    if (summary.current?.requestLatency.p95 > this.config.performanceThresholds.maxLatencyP95) {
+    if (
+      summary.current?.requestLatency.p95 >
+      this.config.performanceThresholds.maxLatencyP95
+    ) {
       recommendations.push('Consider implementing additional caching layers');
       recommendations.push('Review database query optimization opportunities');
     }
 
     if (summary.trends.latencyTrend === 'degrading') {
-      recommendations.push('Performance is degrading - investigate recent changes');
+      recommendations.push(
+        'Performance is degrading - investigate recent changes'
+      );
     }
 
     // Database-based recommendations
     if (dbReport.slowQueries.length > 0) {
-      recommendations.push(`${dbReport.slowQueries.length} slow queries detected - review and optimize`);
+      recommendations.push(
+        `${dbReport.slowQueries.length} slow queries detected - review and optimize`
+      );
     }
 
     // Cache-based recommendations
     const cacheMetrics = this.cacheService.getCacheMetrics();
     if (cacheMetrics.hitRatio < 0.8) {
-      recommendations.push('Cache hit ratio is low - consider cache warming strategies');
+      recommendations.push(
+        'Cache hit ratio is low - consider cache warming strategies'
+      );
     }
 
     // System-based recommendations
     if (summary.current?.system.memoryUsage.percentage > 80) {
-      recommendations.push('High memory usage - consider memory optimization or scaling');
+      recommendations.push(
+        'High memory usage - consider memory optimization or scaling'
+      );
     }
 
     return recommendations;
@@ -479,8 +521,13 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
     this.logger.warn(`Performance alert: ${alert.rule.description}`);
 
     // Trigger immediate optimization for critical alerts
-    if (alert.rule.severity === 'critical' && this.config.enableAutoOptimization) {
-      this.logger.log('Triggering emergency optimization due to critical alert');
+    if (
+      alert.rule.severity === 'critical' &&
+      this.config.enableAutoOptimization
+    ) {
+      this.logger.log(
+        'Triggering emergency optimization due to critical alert'
+      );
       setTimeout(() => this.runOptimizationCycle(), 1000);
     }
 
@@ -494,7 +541,10 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
     this.logger.warn(`Database alert: ${alert.message}`);
 
     // Auto-respond to specific database issues
-    if (alert.type === 'high_connections' && this.config.enableAutoOptimization) {
+    if (
+      alert.type === 'high_connections' &&
+      this.config.enableAutoOptimization
+    ) {
       // Could implement connection pool scaling here
       this.logger.log('High database connections detected - consider scaling');
     }
@@ -506,7 +556,11 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
    * Handle benchmark results
    */
   private async handleBenchmarkResult(result: any): Promise<void> {
-    this.logger.log(`Benchmark completed: ${result.name} - ${result.averageTime.toFixed(2)}ms avg`);
+    this.logger.log(
+      `Benchmark completed: ${result.name} - ${result.averageTime.toFixed(
+        2
+      )}ms avg`
+    );
 
     // Check if performance has degraded significantly
     const comparison = this.benchmarker.compareWithBaseline(result.name);
@@ -540,15 +594,15 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
             pipelining: 1,
             method: 'POST' as const,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: '{ healthCheck { status } }' })
+            body: JSON.stringify({ query: '{ healthCheck { status } }' }),
           },
           expectedMetrics: {
             maxLatencyP95: this.config.performanceThresholds.maxLatencyP95,
             minThroughput: 500,
-            maxErrorRate: this.config.performanceThresholds.maxErrorRate
-          }
-        }
-      ]
+            maxErrorRate: this.config.performanceThresholds.maxErrorRate,
+          },
+        },
+      ],
     };
 
     return await this.testSuite.runTestSuite(testSuite);
@@ -574,12 +628,13 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
     const summary = this.performanceMonitor.getPerformanceSummary();
     const activeAlerts = [
       ...summary.activeAlerts,
-      ...this.queryOptimizer.getActiveAlerts()
+      ...this.queryOptimizer.getActiveAlerts(),
     ];
 
-    const lastOptimization = this.optimizationHistory.length > 0
-      ? this.optimizationHistory[this.optimizationHistory.length - 1]
-      : null;
+    const lastOptimization =
+      this.optimizationHistory.length > 0
+        ? this.optimizationHistory[this.optimizationHistory.length - 1]
+        : null;
 
     const recommendations = await this.generateRecommendations();
 
@@ -597,7 +652,7 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
       summary,
       activeAlerts,
       lastOptimization,
-      recommendations
+      recommendations,
     };
   }
 
@@ -619,20 +674,35 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
     if (status.summary.current) {
       report += '## 📊 Performance Summary\n\n';
       report += `- **Request Latency (P95)**: ${status.summary.current.requestLatency.p95}ms\n`;
-      report += `- **Memory Usage**: ${status.summary.current.system.memoryUsage.percentage.toFixed(2)}%\n`;
-      report += `- **CPU Usage**: ${status.summary.current.system.cpuUsage.toFixed(2)}%\n`;
+      report += `- **Memory Usage**: ${status.summary.current.system.memoryUsage.percentage.toFixed(
+        2
+      )}%\n`;
+      report += `- **CPU Usage**: ${status.summary.current.system.cpuUsage.toFixed(
+        2
+      )}%\n`;
       report += `- **Health Score**: ${status.summary.healthScore}/100\n\n`;
     }
 
     // Recent Optimizations
     if (status.lastOptimization) {
       report += '## 🔧 Recent Optimizations\n\n';
-      report += `**Last Run**: ${new Date(status.lastOptimization.timestamp).toISOString()}\n`;
+      report += `**Last Run**: ${new Date(
+        status.lastOptimization.timestamp
+      ).toISOString()}\n`;
       report += `**Duration**: ${status.lastOptimization.duration}ms\n`;
-      report += `**Optimizations Applied**: ${status.lastOptimization.optimizations.filter(o => o.status === 'completed').length}\n\n`;
+      report += `**Optimizations Applied**: ${
+        status.lastOptimization.optimizations.filter(
+          o => o.status === 'completed'
+        ).length
+      }\n\n`;
 
       status.lastOptimization.optimizations.forEach(opt => {
-        const emoji = opt.status === 'completed' ? '✅' : opt.status === 'failed' ? '❌' : '⏭️';
+        const emoji =
+          opt.status === 'completed'
+            ? '✅'
+            : opt.status === 'failed'
+            ? '❌'
+            : '⏭️';
         report += `${emoji} **${opt.type}**: ${opt.description}\n`;
       });
       report += '\n';
@@ -650,7 +720,9 @@ export class ComprehensiveOptimizer extends EventEmitter implements OnModuleInit
     // Database Report
     report += '## 🗄️ Database Performance\n\n';
     report += `- **Total Queries**: ${dbReport.overallStats.totalQueries}\n`;
-    report += `- **Average Execution Time**: ${dbReport.overallStats.averageExecutionTime.toFixed(2)}ms\n`;
+    report += `- **Average Execution Time**: ${dbReport.overallStats.averageExecutionTime.toFixed(
+      2
+    )}ms\n`;
     report += `- **Slow Queries**: ${dbReport.overallStats.slowQueryCount}\n\n`;
 
     // Benchmark Results

@@ -1,6 +1,6 @@
 /**
  * FootAnalytics API Gateway - Apollo Federation Gateway
- * 
+ *
  * A production-ready GraphQL API Gateway implementing Apollo Federation
  * with comprehensive performance optimizations, security, and monitoring.
  */
@@ -19,7 +19,7 @@ import { PerformanceInterceptor } from './interceptors/performance.interceptor';
 
 async function bootstrap() {
   const logger = new Logger('ApiGateway');
-  
+
   try {
     // Create NestJS application
     const app = await NestFactory.create(ApiGatewayModule, {
@@ -31,30 +31,37 @@ async function bootstrap() {
     const environment = configService.get<string>('nodeEnv', 'development');
 
     // Security middleware
-    app.use(helmet({
-      contentSecurityPolicy: environment === 'production',
-      crossOriginEmbedderPolicy: false,
-    }));
+    app.use(
+      helmet({
+        contentSecurityPolicy: environment === 'production',
+        crossOriginEmbedderPolicy: false,
+      })
+    );
 
     // Compression middleware
     app.use(compression());
 
     // Rate limiting
-    app.use('/graphql', rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: environment === 'production' ? 1000 : 10000, // requests per window
-      message: 'Too many requests from this IP, please try again later.',
-      standardHeaders: true,
-      legacyHeaders: false,
-    }));
+    app.use(
+      '/graphql',
+      rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: environment === 'production' ? 1000 : 10000, // requests per window
+        message: 'Too many requests from this IP, please try again later.',
+        standardHeaders: true,
+        legacyHeaders: false,
+      })
+    );
 
     // Global validation pipe
-    app.useGlobalPipes(new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      disableErrorMessages: environment === 'production',
-    }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        disableErrorMessages: environment === 'production',
+      })
+    );
 
     // Global exception filter
     app.useGlobalFilters(new GraphQLExceptionFilter(configService));
@@ -75,7 +82,7 @@ async function bootstrap() {
         'Authorization',
         'Apollo-Require-Preflight',
         'X-Apollo-Operation-Name',
-        'X-Apollo-Operation-Id'
+        'X-Apollo-Operation-Id',
       ],
     });
 
@@ -94,11 +101,10 @@ async function bootstrap() {
 
     // Start server
     await app.listen(port, '0.0.0.0');
-    
+
     logger.log(`🚀 API Gateway running on http://localhost:${port}/graphql`);
     logger.log(`📊 GraphQL Playground: http://localhost:${port}/graphql`);
     logger.log(`🔍 Environment: ${environment}`);
-    
   } catch (error) {
     logger.error('Failed to start API Gateway:', error);
     process.exit(1);
@@ -115,7 +121,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   globalLogger.error('Uncaught Exception:', error);
   process.exit(1);
 });

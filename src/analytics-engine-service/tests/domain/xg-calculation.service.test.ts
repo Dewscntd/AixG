@@ -6,7 +6,7 @@ import {
   calculateXG,
   calculateXGComposed,
   calculateBatchXG,
-  XGCalculationFunctions
+  XGCalculationFunctions,
 } from '../../domain/services/xg-calculation.service';
 import { ShotData } from '../../domain/value-objects/analytics-metrics';
 
@@ -24,12 +24,12 @@ describe('XGCalculationService', () => {
         gameState: {
           minute: 45,
           scoreDifference: 0,
-          isHome: true
-        }
+          isHome: true,
+        },
       };
 
       const result = calculateXG(shotData);
-      
+
       expect(result.value).toBeGreaterThan(0.3);
       expect(result.value).toBeLessThan(1.0);
     });
@@ -46,12 +46,12 @@ describe('XGCalculationService', () => {
         gameState: {
           minute: 45,
           scoreDifference: 0,
-          isHome: true
-        }
+          isHome: true,
+        },
       };
 
       const result = calculateXG(shotData);
-      
+
       expect(result.value).toBeLessThan(0.2);
       expect(result.value).toBeGreaterThan(0.01);
     });
@@ -68,12 +68,12 @@ describe('XGCalculationService', () => {
         gameState: {
           minute: 45,
           scoreDifference: 0,
-          isHome: true
-        }
+          isHome: true,
+        },
       };
 
       const result = calculateXG(shotData);
-      
+
       expect(result.value).toBeCloseTo(0.76, 2); // Historical penalty conversion rate
     });
 
@@ -89,15 +89,15 @@ describe('XGCalculationService', () => {
         gameState: {
           minute: 45,
           scoreDifference: 0,
-          isHome: true
-        }
+          isHome: true,
+        },
       };
 
       const clearShot = calculateXG(baseShotData);
-      
+
       const crowdedShot = calculateXG({
         ...baseShotData,
-        defenderCount: 3
+        defenderCount: 3,
       });
 
       expect(clearShot.value).toBeGreaterThan(crowdedShot.value);
@@ -115,15 +115,15 @@ describe('XGCalculationService', () => {
         gameState: {
           minute: 45,
           scoreDifference: 0,
-          isHome: true
-        }
+          isHome: true,
+        },
       };
 
       const footShot = calculateXG(baseShotData);
-      
+
       const headerShot = calculateXG({
         ...baseShotData,
-        bodyPart: 'head'
+        bodyPart: 'head',
       });
 
       expect(footShot.value).toBeGreaterThan(headerShot.value);
@@ -143,8 +143,8 @@ describe('XGCalculationService', () => {
         gameState: {
           minute: 30,
           scoreDifference: 0,
-          isHome: false
-        }
+          isHome: false,
+        },
       };
 
       const result1 = calculateXG(shotData);
@@ -165,17 +165,26 @@ describe('XGCalculationService', () => {
         gameState: {
           minute: 30,
           scoreDifference: 0,
-          isHome: false
-        }
+          isHome: false,
+        },
       };
 
       // Test individual modifier functions
       const baseXG = XGCalculationFunctions.baseXGCalculation(shotData);
       expect(baseXG).toBeGreaterThan(0);
 
-      const withDistance = XGCalculationFunctions.applyDistanceModifier(baseXG, shotData);
-      const withAngle = XGCalculationFunctions.applyAngleModifier(withDistance, shotData);
-      const withDefenders = XGCalculationFunctions.applyDefenderModifier(withAngle, shotData);
+      const withDistance = XGCalculationFunctions.applyDistanceModifier(
+        baseXG,
+        shotData
+      );
+      const withAngle = XGCalculationFunctions.applyAngleModifier(
+        withDistance,
+        shotData
+      );
+      const withDefenders = XGCalculationFunctions.applyDefenderModifier(
+        withAngle,
+        shotData
+      );
 
       expect(withDistance).toBeDefined();
       expect(withAngle).toBeDefined();
@@ -194,7 +203,7 @@ describe('XGCalculationService', () => {
           bodyPart: 'foot',
           situation: 'open_play',
           defenderCount: 1,
-          gameState: { minute: 20, scoreDifference: 0, isHome: true }
+          gameState: { minute: 20, scoreDifference: 0, isHome: true },
         },
         {
           position: { x: 85, y: 45 },
@@ -204,15 +213,18 @@ describe('XGCalculationService', () => {
           bodyPart: 'foot',
           situation: 'open_play',
           defenderCount: 2,
-          gameState: { minute: 60, scoreDifference: 1, isHome: true }
-        }
+          gameState: { minute: 60, scoreDifference: 1, isHome: true },
+        },
       ];
 
       const totalXG = calculateBatchXG(shots);
       const individual1 = calculateXG(shots[0]);
       const individual2 = calculateXG(shots[1]);
 
-      expect(totalXG.value).toBeCloseTo(individual1.value + individual2.value, 4);
+      expect(totalXG.value).toBeCloseTo(
+        individual1.value + individual2.value,
+        4
+      );
     });
 
     it('should handle empty shot array', () => {
@@ -231,7 +243,7 @@ describe('XGCalculationService', () => {
         bodyPart: 'foot',
         situation: 'open_play',
         defenderCount: 0,
-        gameState: { minute: 45, scoreDifference: 0, isHome: true }
+        gameState: { minute: 45, scoreDifference: 0, isHome: true },
       };
 
       const veryFarShot: ShotData = {
@@ -242,7 +254,7 @@ describe('XGCalculationService', () => {
         bodyPart: 'foot',
         situation: 'open_play',
         defenderCount: 0,
-        gameState: { minute: 45, scoreDifference: 0, isHome: true }
+        gameState: { minute: 45, scoreDifference: 0, isHome: true },
       };
 
       const closeResult = calculateXG(veryCloseShot);
@@ -262,7 +274,7 @@ describe('XGCalculationService', () => {
         bodyPart: 'foot',
         situation: 'open_play',
         defenderCount: 1,
-        gameState: { minute: 45, scoreDifference: 0, isHome: true }
+        gameState: { minute: 45, scoreDifference: 0, isHome: true },
       };
 
       const wideShot: ShotData = {
@@ -273,7 +285,7 @@ describe('XGCalculationService', () => {
         bodyPart: 'foot',
         situation: 'open_play',
         defenderCount: 1,
-        gameState: { minute: 45, scoreDifference: 0, isHome: true }
+        gameState: { minute: 45, scoreDifference: 0, isHome: true },
       };
 
       const centralResult = calculateXG(centralShot);
@@ -296,12 +308,12 @@ describe('XGCalculationService', () => {
         gameState: {
           minute: 30,
           scoreDifference: 0,
-          isHome: false
-        }
+          isHome: false,
+        },
       };
 
       const results = Array.from({ length: 10 }, () => calculateXG(shotData));
-      
+
       // All results should be identical
       const firstResult = results[0];
       results.forEach(result => {
@@ -321,14 +333,14 @@ describe('XGCalculationService', () => {
         gameState: {
           minute: 30,
           scoreDifference: 0,
-          isHome: false
-        }
+          isHome: false,
+        },
       };
 
       const originalData = JSON.parse(JSON.stringify(shotData));
-      
+
       calculateXG(shotData);
-      
+
       // Input should not be modified
       expect(shotData).toEqual(originalData);
     });

@@ -15,7 +15,7 @@ describe('Video Entity', () => {
       uploadedBy: 'test-user',
       matchId: 'match-123',
       teamId: 'team-456',
-      tags: ['training', 'defense']
+      tags: ['training', 'defense'],
     });
   });
 
@@ -42,7 +42,7 @@ describe('Video Entity', () => {
         bucket: 'test-bucket',
         url: 'https://test-bucket.s3.amazonaws.com/videos/2023-12-01/abc123/video.mp4',
         size: uploadMetadata.size,
-        etag: 'test-etag'
+        etag: 'test-etag',
       });
 
       video.markAsUploaded(storageResult);
@@ -61,7 +61,7 @@ describe('Video Entity', () => {
         key: 'test-key',
         bucket: 'test-bucket',
         url: 'test-url',
-        size: 1000
+        size: 1000,
       });
 
       video.markAsUploaded(storageResult);
@@ -99,7 +99,7 @@ describe('Video Entity', () => {
         key: 'test-key',
         bucket: 'test-bucket',
         url: 'test-url',
-        size: 1000
+        size: 1000,
       });
 
       video.markAsUploaded(storageResult);
@@ -118,7 +118,7 @@ describe('Video Entity', () => {
         key: 'test-key',
         bucket: 'test-bucket',
         url: 'test-url',
-        size: 1000
+        size: 1000,
       });
 
       video.markAsUploaded(storageResult);
@@ -134,7 +134,7 @@ describe('Video Entity', () => {
         codec: 'h264',
         format: 'mp4',
         fileSize: uploadMetadata.size,
-        checksum: 'test-checksum'
+        checksum: 'test-checksum',
       });
 
       video.completeValidation(videoMetadata, [], ['Low bitrate detected']);
@@ -153,7 +153,7 @@ describe('Video Entity', () => {
         key: 'test-key',
         bucket: 'test-bucket',
         url: 'test-url',
-        size: 1000
+        size: 1000,
       });
 
       video.markAsUploaded(storageResult);
@@ -167,13 +167,20 @@ describe('Video Entity', () => {
         codec: 'h264',
         format: 'mp4',
         fileSize: uploadMetadata.size,
-        checksum: 'test-checksum'
+        checksum: 'test-checksum',
       });
 
-      video.completeValidation(videoMetadata, ['Video too short', 'Resolution too low'], []);
+      video.completeValidation(
+        videoMetadata,
+        ['Video too short', 'Resolution too low'],
+        []
+      );
 
       expect(video.status).toBe(VideoStatus.FAILED);
-      expect(video.validationErrors).toEqual(['Video too short', 'Resolution too low']);
+      expect(video.validationErrors).toEqual([
+        'Video too short',
+        'Resolution too low',
+      ]);
       expect(video.isReadyForProcessing()).toBe(false);
     });
   });
@@ -189,7 +196,7 @@ describe('Video Entity', () => {
         codec: 'h264',
         format: 'mp4',
         fileSize: uploadMetadata.size,
-        checksum: 'test-checksum'
+        checksum: 'test-checksum',
       });
 
       const storageResult = new StorageResult({
@@ -197,7 +204,7 @@ describe('Video Entity', () => {
         key: 'test-key',
         bucket: 'test-bucket',
         url: 'test-url',
-        size: 1000
+        size: 1000,
       });
 
       video.markAsUploaded(storageResult);
@@ -215,7 +222,7 @@ describe('Video Entity', () => {
         key: 'test-key',
         bucket: 'test-bucket',
         url: 'test-url',
-        size: 1000
+        size: 1000,
       });
 
       video.markAsUploaded(storageResult);

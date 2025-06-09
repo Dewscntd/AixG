@@ -1,6 +1,6 @@
 /**
  * DataLoader Plugin
- * 
+ *
  * Apollo Server plugin for managing DataLoader lifecycle and performance monitoring
  * Implements composition pattern for efficient data loading
  */
@@ -20,10 +20,10 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
       // Initialize DataLoaders for each request
       async didResolveOperation(requestContext) {
         const { context } = requestContext;
-        
+
         // DataLoaders are already created in the context factory
         // This is where we could add additional initialization if needed
-        
+
         this.logger.debug('DataLoaders initialized for request', {
           correlationId: context.correlationId,
           userId: context.user?.id,
@@ -33,17 +33,24 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
       // Monitor DataLoader performance
       async willSendResponse(requestContext) {
         const { context, response } = requestContext;
-        
+
         try {
           // Collect DataLoader statistics
           const stats = this.collectDataLoaderStats(context);
-          
+
           // Add performance headers
           if (stats.totalLoads > 0) {
-            response.http.headers.set('X-DataLoader-Loads', stats.totalLoads.toString());
-            response.http.headers.set('X-DataLoader-Cache-Hits', stats.cacheHits.toString());
-            response.http.headers.set('X-DataLoader-Cache-Hit-Rate', 
-              `${((stats.cacheHits / stats.totalLoads) * 100).toFixed(2)  }%`
+            response.http.headers.set(
+              'X-DataLoader-Loads',
+              stats.totalLoads.toString()
+            );
+            response.http.headers.set(
+              'X-DataLoader-Cache-Hits',
+              stats.cacheHits.toString()
+            );
+            response.http.headers.set(
+              'X-DataLoader-Cache-Hit-Rate',
+              `${((stats.cacheHits / stats.totalLoads) * 100).toFixed(2)}%`
             );
           }
 
@@ -62,14 +69,16 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
             });
           }
         } catch (error) {
-          this.logger.warn(`Failed to collect DataLoader stats: ${error.message}`);
+          this.logger.warn(
+            `Failed to collect DataLoader stats: ${error.message}`
+          );
         }
       },
 
       // Handle DataLoader errors
       async didEncounterErrors(requestContext) {
         const { errors, context } = requestContext;
-        
+
         for (const error of errors) {
           if (this.isDataLoaderError(error)) {
             this.logger.error('DataLoader error encountered', {
@@ -100,18 +109,24 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
 
     try {
       const { dataSources } = context;
-      
+
       // Iterate through all DataLoaders and collect stats
       Object.values(dataSources).forEach(dataLoader => {
-        if (dataLoader && typeof dataLoader === 'object' && 'stats' in dataLoader) {
-          const stats = (dataLoader as {
-            stats?: {
-              totalLoads?: number;
-              cacheHits?: number;
-              cacheMisses?: number;
-              batchLoads?: number;
+        if (
+          dataLoader &&
+          typeof dataLoader === 'object' &&
+          'stats' in dataLoader
+        ) {
+          const stats = (
+            dataLoader as {
+              stats?: {
+                totalLoads?: number;
+                cacheHits?: number;
+                cacheMisses?: number;
+                batchLoads?: number;
+              };
             }
-          }).stats;
+          ).stats;
           if (stats) {
             totalLoads += stats.totalLoads || 0;
             cacheHits += stats.cacheHits || 0;
@@ -144,9 +159,9 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
       'load function',
     ];
 
-    return dataLoaderErrorIndicators.some(indicator => 
-      error.message?.includes(indicator) || 
-      error.stack?.includes(indicator)
+    return dataLoaderErrorIndicators.some(
+      indicator =>
+        error.message?.includes(indicator) || error.stack?.includes(indicator)
     );
   }
 }

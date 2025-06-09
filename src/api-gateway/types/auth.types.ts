@@ -41,7 +41,12 @@ export interface DashboardSettings {
   showAdvancedMetrics: boolean;
 }
 
-export type UserRole = 'user' | 'admin' | 'super_admin' | 'team_admin' | 'analyst';
+export type UserRole =
+  | 'user'
+  | 'admin'
+  | 'super_admin'
+  | 'team_admin'
+  | 'analyst';
 
 export interface AuthContext {
   user?: User;
@@ -115,7 +120,7 @@ export interface AuthenticationError extends Error {
   details?: Record<string, unknown>;
 }
 
-export type AuthErrorCode = 
+export type AuthErrorCode =
   | 'AUTHENTICATION_REQUIRED'
   | 'INVALID_TOKEN'
   | 'TOKEN_EXPIRED'

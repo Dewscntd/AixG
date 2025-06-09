@@ -25,7 +25,7 @@ export class PulsarEventPublisher implements EventPublisher, OnModuleDestroy {
         useTls: process.env.PULSAR_USE_TLS === 'true',
         tlsTrustCertsFilePath: process.env.PULSAR_TLS_CERT_PATH,
         tlsValidateHostname: false,
-        tlsAllowInsecureConnection: process.env.NODE_ENV !== 'production'
+        tlsAllowInsecureConnection: process.env.NODE_ENV !== 'production',
       });
 
       this.producer = await this.client.createProducer({
@@ -37,14 +37,16 @@ export class PulsarEventPublisher implements EventPublisher, OnModuleDestroy {
         maxPendingMessages: 1000,
         blockIfQueueFull: true,
         compressionType: 'LZ4',
-        producerName: 'video-ingestion-service'
+        producerName: 'video-ingestion-service',
       });
 
       this.isInitialized = true;
       this.logger.log('Pulsar client and producer initialized successfully');
-
     } catch (error) {
-      this.logger.error(`Failed to initialize Pulsar client: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to initialize Pulsar client: ${error.message}`,
+        error.stack
+      );
       throw new Error(`Pulsar initialization failed: ${error.message}`);
     }
   }
@@ -62,18 +64,22 @@ export class PulsarEventPublisher implements EventPublisher, OnModuleDestroy {
           version: event.version.toString(),
           occurredOn: event.occurredOn.toISOString(),
           ...(event.correlationId && { correlationId: event.correlationId }),
-          ...(event.causationId && { causationId: event.causationId })
+          ...(event.causationId && { causationId: event.causationId }),
         },
         eventTimestamp: event.occurredOn.getTime(),
-        key: event.aggregateId
+        key: event.aggregateId,
       };
 
       await this.producer.send(message);
 
-      this.logger.debug(`Event published: ${event.eventType} for aggregate ${event.aggregateId}`);
-
+      this.logger.debug(
+        `Event published: ${event.eventType} for aggregate ${event.aggregateId}`
+      );
     } catch (error) {
-      this.logger.error(`Failed to publish event: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to publish event: ${error.message}`,
+        error.stack
+      );
       throw new Error(`Event publishing failed: ${error.message}`);
     }
   }
@@ -87,10 +93,14 @@ export class PulsarEventPublisher implements EventPublisher, OnModuleDestroy {
       const publishPromises = events.map(event => this.publish(event));
       await Promise.all(publishPromises);
 
-      this.logger.debug(`Batch of ${events.length} events published successfully`);
-
+      this.logger.debug(
+        `Batch of ${events.length} events published successfully`
+      );
     } catch (error) {
-      this.logger.error(`Failed to publish event batch: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to publish event batch: ${error.message}`,
+        error.stack
+      );
       throw new Error(`Batch event publishing failed: ${error.message}`);
     }
   }

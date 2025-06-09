@@ -1,6 +1,6 @@
 /**
  * Metrics Plugin
- * 
+ *
  * Apollo Server plugin for collecting comprehensive GraphQL operation metrics
  * Implements composition pattern for flexible metrics collection
  */
@@ -26,10 +26,10 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
       // Record operation start
       async didResolveOperation(requestContext) {
         const { request, context } = requestContext;
-        
+
         operationStartTime = Date.now();
         operationName = request.operationName || 'anonymous';
-        
+
         // Determine operation type
         const query = request.query || '';
         if (query.trim().startsWith('mutation')) {
@@ -57,11 +57,12 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
       // Record operation completion
       async willSendResponse(requestContext) {
         const { context, response } = requestContext;
-        
+
         if (operationStartTime) {
           const duration = Date.now() - operationStartTime;
-          const success = !response.body.kind === 'single' || 
-                         !(response.body as any).singleResult?.errors?.length;
+          const success =
+            !response.body.kind === 'single' ||
+            !(response.body as any).singleResult?.errors?.length;
 
           const metrics: OperationMetrics = {
             operationName,
@@ -79,7 +80,10 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
 
           // Add performance headers
           response.http.headers.set('X-Response-Time', `${duration}ms`);
-          response.http.headers.set('X-Query-Complexity', complexity.toString());
+          response.http.headers.set(
+            'X-Query-Complexity',
+            complexity.toString()
+          );
           response.http.headers.set('X-Query-Depth', depth.toString());
 
           this.logger.debug('Operation completed', {
@@ -94,7 +98,7 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
       // Record operation errors
       async didEncounterErrors(requestContext) {
         const { errors, context } = requestContext;
-        
+
         for (const error of errors) {
           this.metricsService.recordError(error, {
             operationName,
@@ -140,8 +144,8 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
     // Simple complexity calculation based on field count and nesting
     const fieldMatches = query.match(/\w+\s*{/g) || [];
     const nestedFields = query.match(/{[^{}]*{/g) || [];
-    
-    return fieldMatches.length + (nestedFields.length * 2);
+
+    return fieldMatches.length + nestedFields.length * 2;
   }
 
   /**
@@ -152,7 +156,7 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
 
     let depth = 0;
     let currentDepth = 0;
-    
+
     for (const char of query) {
       if (char === '{') {
         currentDepth++;
@@ -161,7 +165,7 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
         currentDepth--;
       }
     }
-    
+
     return depth;
   }
 
@@ -170,22 +174,23 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
    */
   private extractErrorCode(error: Error): string | undefined {
     if (!error) return undefined;
-    
+
     // Check extensions for error code
     if (error.extensions?.code) {
       return error.extensions.code;
     }
-    
+
     // Check error message for common patterns
     const message = error.message?.toLowerCase() || '';
-    
+
     if (message.includes('authentication')) return 'AUTHENTICATION_ERROR';
-    if (message.includes('authorization') || message.includes('permission')) return 'AUTHORIZATION_ERROR';
+    if (message.includes('authorization') || message.includes('permission'))
+      return 'AUTHORIZATION_ERROR';
     if (message.includes('validation')) return 'VALIDATION_ERROR';
     if (message.includes('not found')) return 'NOT_FOUND';
     if (message.includes('timeout')) return 'TIMEOUT_ERROR';
     if (message.includes('rate limit')) return 'RATE_LIMIT_ERROR';
-    
+
     return 'INTERNAL_ERROR';
   }
 }

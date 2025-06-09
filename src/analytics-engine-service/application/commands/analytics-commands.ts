@@ -65,7 +65,9 @@ export class CreateMatchAnalyticsCommand implements AnalyticsCommand {
     public readonly matchDuration: number = 0,
     correlationId?: string
   ) {
-    this.commandId = `create-match-analytics-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    this.commandId = `create-match-analytics-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -83,7 +85,9 @@ export class UpdateXGCommand implements AnalyticsCommand {
     public readonly shotData?: ShotDataCommand,
     correlationId?: string
   ) {
-    this.commandId = `update-xg-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    this.commandId = `update-xg-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -101,7 +105,9 @@ export class UpdatePossessionCommand implements AnalyticsCommand {
     public readonly calculationMethod: string = 'time_based',
     correlationId?: string
   ) {
-    this.commandId = `update-possession-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    this.commandId = `update-possession-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -121,7 +127,9 @@ export class UpdateFormationCommand implements AnalyticsCommand {
     public readonly detectionTimestamp: number,
     correlationId?: string
   ) {
-    this.commandId = `update-formation-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    this.commandId = `update-formation-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -137,7 +145,9 @@ export class ProcessMLPipelineOutputCommand implements AnalyticsCommand {
     public readonly pipelineOutput: ProcessMLPipelineOutputData,
     correlationId?: string
   ) {
-    this.commandId = `process-ml-output-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    this.commandId = `process-ml-output-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -155,7 +165,9 @@ export class RecalculateAnalyticsCommand implements AnalyticsCommand {
     public readonly recalculateFormations: boolean = true,
     correlationId?: string
   ) {
-    this.commandId = `recalculate-analytics-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    this.commandId = `recalculate-analytics-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }
@@ -166,11 +178,10 @@ export class CreateSnapshotCommand implements AnalyticsCommand {
   readonly timestamp: Date;
   readonly correlationId?: string | undefined;
 
-  constructor(
-    public readonly matchId: string,
-    correlationId?: string
-  ) {
-    this.commandId = `create-snapshot-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+  constructor(public readonly matchId: string, correlationId?: string) {
+    this.commandId = `create-snapshot-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 11)}`;
     this.timestamp = new Date();
     this.correlationId = correlationId;
   }

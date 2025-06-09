@@ -13,11 +13,14 @@ import {
   BallTrackingStage,
   EventDetectionStage,
   FormationAnalysisStage,
-  MetricsCalculationStage
+  MetricsCalculationStage,
 } from '../../src/real-time-analysis-service/src/domain/stages';
 
 // Import required types and classes
-import { VideoFrame, VideoFrameFormat } from '../../src/real-time-analysis-service/src/domain/value-objects/video-frame';
+import {
+  VideoFrame,
+  VideoFrameFormat,
+} from '../../src/real-time-analysis-service/src/domain/value-objects/video-frame';
 import { EdgeMLInference } from '../../src/real-time-analysis-service/src/domain/entities/live-analysis-pipeline';
 
 // Mock EdgeMLInference for testing
@@ -28,18 +31,22 @@ const mockMLInference: EdgeMLInference = {
     processingTimeMs: 10,
     detections: [],
     ballDetection: null,
-    teamClassification: { homeTeam: 'Team A', awayTeam: 'Team B', confidence: 0.9 },
+    teamClassification: {
+      homeTeam: 'Team A',
+      awayTeam: 'Team B',
+      confidence: 0.9,
+    },
     eventDetection: [],
     confidence: 0.85,
-    metadata: {}
+    metadata: {},
   }),
   isReady: jest.fn().mockReturnValue(true),
-  getModelVersion: jest.fn().mockReturnValue('v1.0.0')
+  getModelVersion: jest.fn().mockReturnValue('v1.0.0'),
 };
 
 describe('ML Pipeline Output Snapshots', () => {
   const snapshotDir = join(__dirname, '__snapshots__');
-  
+
   beforeAll(() => {
     // Ensure snapshot directory exists
     if (!existsSync(snapshotDir)) {
@@ -217,7 +224,9 @@ describe('ML Pipeline Output Snapshots', () => {
       const result = await formationStage.process({
         frame: formation442Frame,
         context: {
-          classifiedPlayers: playerData.homeTeam.players.concat(playerData.awayTeam.players)
+          classifiedPlayers: playerData.homeTeam.players.concat(
+            playerData.awayTeam.players
+          ),
         },
       });
 
@@ -235,7 +244,9 @@ describe('ML Pipeline Output Snapshots', () => {
       const result = await formationStage.process({
         frame: formation433Frame,
         context: {
-          classifiedPlayers: playerData.homeTeam.players.concat(playerData.awayTeam.players)
+          classifiedPlayers: playerData.homeTeam.players.concat(
+            playerData.awayTeam.players
+          ),
         },
       });
 
@@ -248,41 +259,41 @@ describe('ML Pipeline Output Snapshots', () => {
   describe('Metrics Calculation Snapshots', () => {
     it('should consistently calculate xG metrics', async () => {
       const metricsStage = new MetricsCalculationStage();
-      
+
       const metricsFrame = createMetricsFrame();
       const allPreviousResults = createCompleteAnalysisResults();
-      
+
       const result = await metricsStage.process({
         frame: metricsFrame,
         context: {
           classifiedPlayers: allPreviousResults.playerDetection.players,
           ball: allPreviousResults.ballTracking.ball,
-          events: allPreviousResults.eventDetection.events
+          events: allPreviousResults.eventDetection.events,
         },
       });
-      
+
       const normalizedResult = normalizeMetricsResult(result);
-      
+
       expectMatchSnapshot('metrics-calculation-xg', normalizedResult);
     });
 
     it('should consistently calculate possession metrics', async () => {
       const metricsStage = new MetricsCalculationStage();
-      
+
       const possessionFrame = createPossessionFrame();
       const possessionResults = createPossessionAnalysisResults();
-      
+
       const result = await metricsStage.process({
         frame: possessionFrame,
         context: {
           classifiedPlayers: possessionResults.playerDetection.players,
           ball: possessionResults.ballTracking.ball,
-          events: []
+          events: [],
         },
       });
-      
+
       const normalizedResult = normalizeMetricsResult(result);
-      
+
       expectMatchSnapshot('metrics-calculation-possession', normalizedResult);
     });
   });
@@ -291,21 +302,23 @@ describe('ML Pipeline Output Snapshots', () => {
 // Snapshot utility functions
 function expectMatchSnapshot(snapshotName: string, data: any) {
   const snapshotPath = join(__dirname, '__snapshots__', `${snapshotName}.json`);
-  
+
   // Serialize data with consistent formatting
   const serializedData = JSON.stringify(data, null, 2);
-  
+
   if (existsSync(snapshotPath)) {
     // Compare with existing snapshot
     const existingSnapshot = readFileSync(snapshotPath, 'utf8');
-    
+
     if (serializedData !== existingSnapshot) {
       // Check if we're in update mode
       if (process.env.UPDATE_SNAPSHOTS === 'true') {
         writeFileSync(snapshotPath, serializedData);
         console.log(`Updated snapshot: ${snapshotName}`);
       } else {
-        throw new Error(`Snapshot mismatch for ${snapshotName}. Run with UPDATE_SNAPSHOTS=true to update.`);
+        throw new Error(
+          `Snapshot mismatch for ${snapshotName}. Run with UPDATE_SNAPSHOTS=true to update.`
+        );
       }
     }
   } else {
@@ -329,17 +342,20 @@ function normalizePlayerDetectionResult(result: any) {
         y: Math.round(player.position.y * 100) / 100,
       },
       confidence: Math.round(player.confidence * 1000) / 1000, // Round to 3 decimal places
-      boundingBox: player.boundingBox ? {
-        x: Math.round(player.boundingBox.x),
-        y: Math.round(player.boundingBox.y),
-        width: Math.round(player.boundingBox.width),
-        height: Math.round(player.boundingBox.height),
-      } : null,
+      boundingBox: player.boundingBox
+        ? {
+            x: Math.round(player.boundingBox.x),
+            y: Math.round(player.boundingBox.y),
+            width: Math.round(player.boundingBox.width),
+            height: Math.round(player.boundingBox.height),
+          }
+        : null,
     })),
     metadata: {
       processingTime: 'normalized', // Remove timing variations
       modelVersion: result.metadata?.modelVersion || 'test-version',
-      confidence: Math.round((result.metadata?.confidence || 0.9) * 1000) / 1000,
+      confidence:
+        Math.round((result.metadata?.confidence || 0.9) * 1000) / 1000,
     },
   };
 }
@@ -371,11 +387,13 @@ function normalizeBallTrackingResult(result: any) {
       },
       confidence: Math.round(ball.confidence * 1000) / 1000,
     },
-    trajectory: result.trajectory ? result.trajectory.map((point: any) => ({
-      x: Math.round(point.x * 100) / 100,
-      y: Math.round(point.y * 100) / 100,
-      timestamp: 'normalized',
-    })) : [],
+    trajectory: result.trajectory
+      ? result.trajectory.map((point: any) => ({
+          x: Math.round(point.x * 100) / 100,
+          y: Math.round(point.y * 100) / 100,
+          timestamp: 'normalized',
+        }))
+      : [],
     metadata: {
       trackingQuality: result.metadata?.trackingQuality || 'good',
       modelVersion: result.metadata?.modelVersion || 'test-version',
@@ -396,7 +414,7 @@ function normalizeEventDetectionResult(result: any) {
         y: Math.round(event.position.y * 100) / 100,
       },
       timestamp: 'normalized',
-      metadata: event.metadata || {}
+      metadata: event.metadata || {},
     })),
     metadata: {
       detectionQuality: result.metadata?.detectionQuality || 'high',
@@ -517,7 +535,7 @@ function createPreviousBallData() {
     position: { x: 50, y: 50 },
     visible: true,
     confidence: 0.9,
-    processingTimeMs: 10
+    processingTimeMs: 10,
   };
 }
 
@@ -553,7 +571,7 @@ function createFastMovingBallData() {
     visible: true,
     confidence: 0.85,
     processingTimeMs: 12,
-    velocity: { x: 15.5, y: -8.2 }
+    velocity: { x: 15.5, y: -8.2 },
   };
 }
 
@@ -577,15 +595,15 @@ function createPlayerDataForPass() {
       boundingBox: { x: 25, y: 35, width: 10, height: 20 },
       position: { x: 30, y: 40 },
       confidence: 0.95,
-      processingTimeMs: 8
+      processingTimeMs: 8,
     },
     {
       playerId: 'player-2',
       boundingBox: { x: 55, y: 40, width: 10, height: 20 },
       position: { x: 60, y: 45 },
       confidence: 0.92,
-      processingTimeMs: 8
-    }
+      processingTimeMs: 8,
+    },
   ];
 }
 
@@ -594,7 +612,7 @@ function createBallDataForPass() {
     position: { x: 45, y: 42 },
     visible: true,
     confidence: 0.88,
-    processingTimeMs: 9
+    processingTimeMs: 9,
   };
 }
 
@@ -620,7 +638,7 @@ function createPlayerDataForShot() {
       confidence: 0.96,
       processingTimeMs: 7,
       teamId: 'home-team',
-      action: 'shooting'
+      action: 'shooting',
     },
     {
       playerId: 'defender-1',
@@ -629,7 +647,7 @@ function createPlayerDataForShot() {
       confidence: 0.91,
       processingTimeMs: 7,
       teamId: 'away-team',
-      action: 'defending'
+      action: 'defending',
     },
     {
       playerId: 'goalkeeper-1',
@@ -638,8 +656,8 @@ function createPlayerDataForShot() {
       confidence: 0.98,
       processingTimeMs: 6,
       teamId: 'away-team',
-      action: 'goalkeeping'
-    }
+      action: 'goalkeeping',
+    },
   ];
 }
 
@@ -653,9 +671,9 @@ function createBallDataForShot() {
     trajectory: [
       { x: 85, y: 37, timestamp: 'normalized' },
       { x: 87, y: 36, timestamp: 'normalized' },
-      { x: 90, y: 35, timestamp: 'normalized' }
+      { x: 90, y: 35, timestamp: 'normalized' },
     ],
-    expectedTarget: { x: 95, y: 50 }
+    expectedTarget: { x: 95, y: 50 },
   };
 }
 
@@ -681,7 +699,7 @@ function createPlayerDataForTackle() {
       confidence: 0.93,
       processingTimeMs: 9,
       teamId: 'away-team',
-      action: 'tackling'
+      action: 'tackling',
     },
     {
       playerId: 'ball-carrier-1',
@@ -690,7 +708,7 @@ function createPlayerDataForTackle() {
       confidence: 0.95,
       processingTimeMs: 8,
       teamId: 'home-team',
-      action: 'dribbling'
+      action: 'dribbling',
     },
     {
       playerId: 'support-1',
@@ -699,8 +717,8 @@ function createPlayerDataForTackle() {
       confidence: 0.89,
       processingTimeMs: 9,
       teamId: 'home-team',
-      action: 'supporting'
-    }
+      action: 'supporting',
+    },
   ];
 }
 
@@ -713,9 +731,9 @@ function createBallDataForTackle() {
     processingTimeMs: 10,
     trajectory: [
       { x: 48, y: 51, timestamp: 'normalized' },
-      { x: 49, y: 52, timestamp: 'normalized' }
+      { x: 49, y: 52, timestamp: 'normalized' },
     ],
-    possession: 'contested'
+    possession: 'contested',
   };
 }
 
@@ -743,7 +761,7 @@ function createPlayerDataFor442() {
           confidence: 0.95,
           processingTimeMs: 8,
           boundingBox: { x: 192, y: 540, width: 50, height: 100 },
-          teamId: 'home'
+          teamId: 'home',
         },
         {
           playerId: 'lb-1',
@@ -751,7 +769,7 @@ function createPlayerDataFor442() {
           confidence: 0.92,
           processingTimeMs: 7,
           boundingBox: { x: 480, y: 216, width: 45, height: 95 },
-          teamId: 'home'
+          teamId: 'home',
         },
         {
           playerId: 'cb-1',
@@ -759,7 +777,7 @@ function createPlayerDataFor442() {
           confidence: 0.94,
           processingTimeMs: 8,
           boundingBox: { x: 480, y: 378, width: 48, height: 98 },
-          teamId: 'home'
+          teamId: 'home',
         },
         {
           playerId: 'cb-2',
@@ -767,7 +785,7 @@ function createPlayerDataFor442() {
           confidence: 0.93,
           processingTimeMs: 9,
           boundingBox: { x: 480, y: 702, width: 47, height: 97 },
-          teamId: 'home'
+          teamId: 'home',
         },
         {
           playerId: 'rb-1',
@@ -775,9 +793,9 @@ function createPlayerDataFor442() {
           confidence: 0.91,
           processingTimeMs: 8,
           boundingBox: { x: 480, y: 864, width: 46, height: 96 },
-          teamId: 'home'
-        }
-      ]
+          teamId: 'home',
+        },
+      ],
     },
     awayTeam: {
       formation: '4-3-3',
@@ -788,7 +806,7 @@ function createPlayerDataFor442() {
           confidence: 0.96,
           processingTimeMs: 7,
           boundingBox: { x: 1728, y: 540, width: 52, height: 102 },
-          teamId: 'away'
+          teamId: 'away',
         },
         {
           playerId: 'lb-2',
@@ -796,7 +814,7 @@ function createPlayerDataFor442() {
           confidence: 0.89,
           processingTimeMs: 9,
           boundingBox: { x: 1440, y: 216, width: 44, height: 94 },
-          teamId: 'away'
+          teamId: 'away',
         },
         {
           playerId: 'cb-3',
@@ -804,10 +822,10 @@ function createPlayerDataFor442() {
           confidence: 0.92,
           processingTimeMs: 8,
           boundingBox: { x: 1440, y: 378, width: 46, height: 96 },
-          teamId: 'away'
-        }
-      ]
-    }
+          teamId: 'away',
+        },
+      ],
+    },
   };
 }
 
@@ -835,7 +853,7 @@ function createPlayerDataFor433() {
           confidence: 0.95,
           processingTimeMs: 8,
           boundingBox: { x: 192, y: 540, width: 50, height: 100 },
-          teamId: 'home'
+          teamId: 'home',
         },
         {
           playerId: 'lb-1',
@@ -843,7 +861,7 @@ function createPlayerDataFor433() {
           confidence: 0.92,
           processingTimeMs: 7,
           boundingBox: { x: 480, y: 216, width: 45, height: 95 },
-          teamId: 'home'
+          teamId: 'home',
         },
         {
           playerId: 'cb-1',
@@ -851,9 +869,9 @@ function createPlayerDataFor433() {
           confidence: 0.94,
           processingTimeMs: 8,
           boundingBox: { x: 480, y: 378, width: 48, height: 98 },
-          teamId: 'home'
-        }
-      ]
+          teamId: 'home',
+        },
+      ],
     },
     awayTeam: {
       formation: '4-4-2',
@@ -864,7 +882,7 @@ function createPlayerDataFor433() {
           confidence: 0.96,
           processingTimeMs: 7,
           boundingBox: { x: 1728, y: 540, width: 52, height: 102 },
-          teamId: 'away'
+          teamId: 'away',
         },
         {
           playerId: 'lb-2',
@@ -872,10 +890,10 @@ function createPlayerDataFor433() {
           confidence: 0.89,
           processingTimeMs: 9,
           boundingBox: { x: 1440, y: 216, width: 44, height: 94 },
-          teamId: 'away'
-        }
-      ]
-    }
+          teamId: 'away',
+        },
+      ],
+    },
   };
 }
 
@@ -902,7 +920,7 @@ function createCompleteAnalysisResults() {
           position: { x: 30, y: 40 },
           confidence: 0.95,
           processingTimeMs: 8,
-          boundingBox: { x: 25, y: 35, width: 10, height: 20 }
+          boundingBox: { x: 25, y: 35, width: 10, height: 20 },
         },
         {
           playerId: 'player-2',
@@ -910,14 +928,14 @@ function createCompleteAnalysisResults() {
           position: { x: 70, y: 60 },
           confidence: 0.92,
           processingTimeMs: 9,
-          boundingBox: { x: 65, y: 55, width: 10, height: 20 }
-        }
+          boundingBox: { x: 65, y: 55, width: 10, height: 20 },
+        },
       ],
       metadata: {
         processingTime: 'normalized',
         modelVersion: 'v2.1.0',
-        confidence: 0.94
-      }
+        confidence: 0.94,
+      },
     },
     ballTracking: {
       ball: {
@@ -925,16 +943,16 @@ function createCompleteAnalysisResults() {
         velocity: { x: 5.2, y: -2.1 },
         confidence: 0.89,
         processingTimeMs: 7,
-        visible: true
+        visible: true,
       },
       trajectory: [
         { x: 48, y: 52, timestamp: 'normalized' },
-        { x: 50, y: 50, timestamp: 'normalized' }
+        { x: 50, y: 50, timestamp: 'normalized' },
       ],
       metadata: {
         trackingQuality: 'good',
-        modelVersion: 'v1.8.0'
-      }
+        modelVersion: 'v1.8.0',
+      },
     },
     eventDetection: {
       events: [
@@ -944,15 +962,15 @@ function createCompleteAnalysisResults() {
           processingTimeMs: 6,
           timestamp: Date.now(),
           position: { x: 50, y: 50 },
-          metadata: { quality: 'high' }
-        }
+          metadata: { quality: 'high' },
+        },
       ],
       metadata: {
         detectionQuality: 'high',
-        modelVersion: 'v3.2.0'
-      }
+        modelVersion: 'v3.2.0',
+      },
     },
-    formationAnalysis: createPlayerDataFor442()
+    formationAnalysis: createPlayerDataFor442(),
   };
 }
 
@@ -979,7 +997,7 @@ function createPossessionAnalysisResults() {
           position: { x: 45, y: 50 },
           confidence: 0.96,
           processingTimeMs: 8,
-          boundingBox: { x: 40, y: 45, width: 10, height: 20 }
+          boundingBox: { x: 40, y: 45, width: 10, height: 20 },
         },
         {
           playerId: 'defender-1',
@@ -987,7 +1005,7 @@ function createPossessionAnalysisResults() {
           position: { x: 55, y: 45 },
           confidence: 0.93,
           processingTimeMs: 9,
-          boundingBox: { x: 50, y: 40, width: 10, height: 20 }
+          boundingBox: { x: 50, y: 40, width: 10, height: 20 },
         },
         {
           playerId: 'winger-1',
@@ -995,14 +1013,14 @@ function createPossessionAnalysisResults() {
           position: { x: 65, y: 25 },
           confidence: 0.91,
           processingTimeMs: 7,
-          boundingBox: { x: 60, y: 20, width: 10, height: 20 }
-        }
+          boundingBox: { x: 60, y: 20, width: 10, height: 20 },
+        },
       ],
       metadata: {
         processingTime: 'normalized',
         modelVersion: 'v2.1.0',
-        confidence: 0.93
-      }
+        confidence: 0.93,
+      },
     },
     ballTracking: {
       ball: {
@@ -1010,12 +1028,12 @@ function createPossessionAnalysisResults() {
         velocity: { x: 2.1, y: 0.8 },
         confidence: 0.94,
         processingTimeMs: 6,
-        visible: true
+        visible: true,
       },
       metadata: {
         trackingQuality: 'excellent',
-        modelVersion: 'v1.8.0'
-      }
+        modelVersion: 'v1.8.0',
+      },
     },
     possessionMetrics: {
       currentPossession: 'home-team',
@@ -1023,7 +1041,7 @@ function createPossessionAnalysisResults() {
       passCount: 3,
       touchCount: 8,
       possessionZone: 'midfield',
-      pressure: 'medium'
-    }
+      pressure: 'medium',
+    },
   };
 }

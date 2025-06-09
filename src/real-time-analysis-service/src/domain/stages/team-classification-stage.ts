@@ -1,4 +1,9 @@
-import { AnalysisStage, StageInput, StageResult, EdgeMLInference } from '../entities/live-analysis-pipeline';
+import {
+  AnalysisStage,
+  StageInput,
+  StageResult,
+  EdgeMLInference,
+} from '../entities/live-analysis-pipeline';
 import { Player } from './player-detection-stage';
 import { PlayerDetection } from '../../infrastructure/ml/edge-ml-inference';
 
@@ -13,11 +18,12 @@ export class TeamClassificationStage implements AnalysisStage {
 
   async process(input: StageInput): Promise<StageResult> {
     const startTime = Date.now();
-    
+
     try {
       const { context } = input;
       const playerDetections = context.players || [];
-      const players: Player[] = this.convertFromPlayerDetections(playerDetections);
+      const players: Player[] =
+        this.convertFromPlayerDetections(playerDetections);
 
       if (players.length === 0) {
         return {
@@ -25,14 +31,14 @@ export class TeamClassificationStage implements AnalysisStage {
           success: true,
           processingTimeMs: Date.now() - startTime,
           output: {
-            classifiedPlayers: []
-          }
+            classifiedPlayers: [],
+          },
         };
       }
 
       // Classify players into teams
       const classifiedPlayers = await this.classifyPlayers(players);
-      
+
       // Calculate team statistics
       const teamStats = this.calculateTeamStats(classifiedPlayers);
 
@@ -44,21 +50,20 @@ export class TeamClassificationStage implements AnalysisStage {
         processingTimeMs: processingTime,
         output: {
           classifiedPlayers: this.convertToPlayerDetections(classifiedPlayers),
-          stats: teamStats
-        }
+          stats: teamStats,
+        },
       };
-
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      
+
       return {
         stageName: this.name,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
         processingTimeMs: processingTime,
         output: {
-          classifiedPlayers: input.context.players || []
-        }
+          classifiedPlayers: input.context.players || [],
+        },
       };
     }
   }
@@ -66,7 +71,9 @@ export class TeamClassificationStage implements AnalysisStage {
   /**
    * Convert PlayerDetection[] to Player[] for internal processing
    */
-  private convertFromPlayerDetections(playerDetections: PlayerDetection[]): Player[] {
+  private convertFromPlayerDetections(
+    playerDetections: PlayerDetection[]
+  ): Player[] {
     return playerDetections.map(detection => ({
       id: detection.playerId,
       boundingBox: detection.boundingBox,
@@ -76,7 +83,7 @@ export class TeamClassificationStage implements AnalysisStage {
       jersey: detection.jerseyNumber?.toString() || null,
       pose: null,
       velocity: { x: 0, y: 0 },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }));
   }
 
@@ -91,7 +98,7 @@ export class TeamClassificationStage implements AnalysisStage {
       position: player.position,
       ...(player.team && { teamId: player.team }),
       ...(player.jersey && { jerseyNumber: parseInt(player.jersey) }),
-      processingTimeMs: 10 // Mock processing time
+      processingTimeMs: 10, // Mock processing time
     }));
   }
 
@@ -106,11 +113,11 @@ export class TeamClassificationStage implements AnalysisStage {
         // In a real implementation, this would extract jersey color/features
         // and use ML to classify the team
         const teamClassification = await this.classifyPlayerTeam(player);
-        
+
         classifiedPlayers.push({
           ...player,
           team: teamClassification.team,
-          jersey: teamClassification.jersey
+          jersey: teamClassification.jersey,
         });
       } catch (error) {
         // Keep original player if classification fails
@@ -124,17 +131,19 @@ export class TeamClassificationStage implements AnalysisStage {
   /**
    * Classify individual player team
    */
-  private async classifyPlayerTeam(player: Player): Promise<TeamClassification> {
+  private async classifyPlayerTeam(
+    player: Player
+  ): Promise<TeamClassification> {
     // Simplified team classification logic
     // In reality, this would use ML to analyze jersey colors, patterns, etc.
-    
+
     // For demo purposes, randomly assign teams based on position
     const isLeftSide = player.position.x < 960; // Assuming 1920px width
-    
+
     return {
       team: isLeftSide ? 'teamA' : 'teamB',
       jersey: isLeftSide ? 'blue' : 'red',
-      confidence: 0.8
+      confidence: 0.8,
     };
   }
 
@@ -145,7 +154,7 @@ export class TeamClassificationStage implements AnalysisStage {
     const stats = {
       teamA: 0,
       teamB: 0,
-      unclassified: 0
+      unclassified: 0,
     };
 
     for (const player of players) {

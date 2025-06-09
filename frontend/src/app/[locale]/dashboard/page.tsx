@@ -1,6 +1,6 @@
 /**
  * Dashboard Page
- * 
+ *
  * Main dashboard implementing:
  * - Server-side rendering with Next.js 14 App Router
  * - Real-time analytics updates
@@ -25,10 +25,18 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 // Lazy-loaded components for performance
-const VideoProcessingQueue = lazy(() => import('@/components/dashboard/video-processing-queue'));
-const TeamPerformance = lazy(() => import('@/components/dashboard/team-performance'));
-const UpcomingMatches = lazy(() => import('@/components/dashboard/upcoming-matches'));
-const RecentActivity = lazy(() => import('@/components/dashboard/recent-activity'));
+const VideoProcessingQueue = lazy(
+  () => import('@/components/dashboard/video-processing-queue')
+);
+const TeamPerformance = lazy(
+  () => import('@/components/dashboard/team-performance')
+);
+const UpcomingMatches = lazy(
+  () => import('@/components/dashboard/upcoming-matches')
+);
+const RecentActivity = lazy(
+  () => import('@/components/dashboard/recent-activity')
+);
 
 interface DashboardPageProps {
   params: {
@@ -79,11 +87,7 @@ export default async function DashboardPage({
   const t = await getTranslations({ locale, namespace: 'dashboard' });
 
   // Extract search params
-  const {
-    tab = 'overview',
-    timeRange = '7d',
-    teamId,
-  } = searchParams;
+  const { tab = 'overview', timeRange = '7d', teamId } = searchParams;
 
   return (
     <DashboardLayout locale={locale}>
@@ -92,7 +96,7 @@ export default async function DashboardPage({
         title={t('title')}
         subtitle={t('subtitle')}
         timeRange={timeRange}
-        onTimeRangeChange={(range) => {
+        onTimeRangeChange={range => {
           // Handle time range change
           const url = new URL(window.location.href);
           url.searchParams.set('timeRange', range);
@@ -105,10 +109,7 @@ export default async function DashboardPage({
         {/* Quick Stats */}
         <ErrorBoundary fallback={<div>Failed to load dashboard stats</div>}>
           <Suspense fallback={<LoadingSpinner />}>
-            <DashboardStats
-              timeRange={timeRange}
-              teamId={teamId}
-            />
+            <DashboardStats timeRange={timeRange} teamId={teamId} />
           </Suspense>
         </ErrorBoundary>
 
@@ -124,12 +125,11 @@ export default async function DashboardPage({
             </ErrorBoundary>
 
             {/* Analytics Overview */}
-            <ErrorBoundary fallback={<div>Failed to load analytics overview</div>}>
+            <ErrorBoundary
+              fallback={<div>Failed to load analytics overview</div>}
+            >
               <Suspense fallback={<LoadingSpinner />}>
-                <AnalyticsOverview
-                  timeRange={timeRange}
-                  teamId={teamId}
-                />
+                <AnalyticsOverview timeRange={timeRange} teamId={teamId} />
               </Suspense>
             </ErrorBoundary>
 
@@ -145,12 +145,11 @@ export default async function DashboardPage({
             </ErrorBoundary>
 
             {/* Team Performance (Lazy Loaded) */}
-            <ErrorBoundary fallback={<div>Failed to load team performance</div>}>
+            <ErrorBoundary
+              fallback={<div>Failed to load team performance</div>}
+            >
               <Suspense fallback={<LoadingSpinner />}>
-                <TeamPerformance
-                  timeRange={timeRange}
-                  teamId={teamId}
-                />
+                <TeamPerformance timeRange={timeRange} teamId={teamId} />
               </Suspense>
             </ErrorBoundary>
           </div>
@@ -161,29 +160,27 @@ export default async function DashboardPage({
             <QuickActions />
 
             {/* Video Processing Queue (Lazy Loaded) */}
-            <ErrorBoundary fallback={<div>Failed to load video processing queue</div>}>
+            <ErrorBoundary
+              fallback={<div>Failed to load video processing queue</div>}
+            >
               <Suspense fallback={<LoadingSpinner />}>
                 <VideoProcessingQueue />
               </Suspense>
             </ErrorBoundary>
 
             {/* Upcoming Matches (Lazy Loaded) */}
-            <ErrorBoundary fallback={<div>Failed to load upcoming matches</div>}>
+            <ErrorBoundary
+              fallback={<div>Failed to load upcoming matches</div>}
+            >
               <Suspense fallback={<LoadingSpinner />}>
-                <UpcomingMatches
-                  teamId={teamId}
-                  limit={3}
-                />
+                <UpcomingMatches teamId={teamId} limit={3} />
               </Suspense>
             </ErrorBoundary>
 
             {/* Recent Activity (Lazy Loaded) */}
             <ErrorBoundary fallback={<div>Failed to load recent activity</div>}>
               <Suspense fallback={<LoadingSpinner />}>
-                <RecentActivity
-                  teamId={teamId}
-                  limit={10}
-                />
+                <RecentActivity teamId={teamId} limit={10} />
               </Suspense>
             </ErrorBoundary>
           </div>
@@ -192,12 +189,18 @@ export default async function DashboardPage({
         {/* Tab-based Content */}
         {tab === 'analytics' && (
           <div className="mt-8">
-            <ErrorBoundary fallback={<div>Failed to load detailed analytics</div>}>
+            <ErrorBoundary
+              fallback={<div>Failed to load detailed analytics</div>}
+            >
               <Suspense fallback={<LoadingSpinner />}>
                 {/* Detailed Analytics Component */}
                 <div className="rounded-lg border bg-card p-6">
-                  <h2 className="text-2xl font-bold">{t('detailedAnalytics')}</h2>
-                  <p className="text-muted-foreground">{t('detailedAnalyticsDescription')}</p>
+                  <h2 className="text-2xl font-bold">
+                    {t('detailedAnalytics')}
+                  </h2>
+                  <p className="text-muted-foreground">
+                    {t('detailedAnalyticsDescription')}
+                  </p>
                   {/* Add detailed analytics components here */}
                 </div>
               </Suspense>
@@ -207,12 +210,16 @@ export default async function DashboardPage({
 
         {tab === 'videos' && (
           <div className="mt-8">
-            <ErrorBoundary fallback={<div>Failed to load video management</div>}>
+            <ErrorBoundary
+              fallback={<div>Failed to load video management</div>}
+            >
               <Suspense fallback={<LoadingSpinner />}>
                 {/* Video Management Component */}
                 <div className="rounded-lg border bg-card p-6">
                   <h2 className="text-2xl font-bold">{t('videoManagement')}</h2>
-                  <p className="text-muted-foreground">{t('videoManagementDescription')}</p>
+                  <p className="text-muted-foreground">
+                    {t('videoManagementDescription')}
+                  </p>
                   {/* Add video management components here */}
                 </div>
               </Suspense>
@@ -227,7 +234,9 @@ export default async function DashboardPage({
                 {/* Team Management Component */}
                 <div className="rounded-lg border bg-card p-6">
                   <h2 className="text-2xl font-bold">{t('teamManagement')}</h2>
-                  <p className="text-muted-foreground">{t('teamManagementDescription')}</p>
+                  <p className="text-muted-foreground">
+                    {t('teamManagementDescription')}
+                  </p>
                   {/* Add team management components here */}
                 </div>
               </Suspense>
@@ -241,11 +250,7 @@ export default async function DashboardPage({
 
 // Static generation for supported locales
 export function generateStaticParams() {
-  return [
-    { locale: 'he' },
-    { locale: 'en' },
-    { locale: 'ar' },
-  ];
+  return [{ locale: 'he' }, { locale: 'en' }, { locale: 'ar' }];
 }
 
 // Enable ISR (Incremental Static Regeneration)

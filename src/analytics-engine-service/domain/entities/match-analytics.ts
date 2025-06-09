@@ -3,12 +3,15 @@
  */
 
 import { MatchId } from '../value-objects/match-id';
-import { TeamAnalytics, XGValue, PossessionPercentage } from '../value-objects/analytics-metrics';
+import {
+  TeamAnalytics,
+  XGValue,
+  PossessionPercentage,
+} from '../value-objects/analytics-metrics';
 import { DomainEvent } from '../events/domain-event';
 import { MatchAnalyticsCreatedEvent } from '../events/match-analytics-created.event';
 import { XGCalculatedEvent } from '../events/xg-calculated.event';
 import { PossessionCalculatedEvent } from '../events/possession-calculated.event';
-
 
 export interface MatchAnalyticsSnapshot {
   readonly matchId: string;
@@ -42,12 +45,14 @@ export class MatchAnalytics {
     this._version = 0;
     this._uncommittedEvents = [];
 
-    this.addEvent(new MatchAnalyticsCreatedEvent(
-      this._matchId.value,
-      homeTeamId,
-      awayTeamId,
-      this._lastUpdated
-    ));
+    this.addEvent(
+      new MatchAnalyticsCreatedEvent(
+        this._matchId.value,
+        homeTeamId,
+        awayTeamId,
+        this._lastUpdated
+      )
+    );
   }
 
   // Getters
@@ -86,13 +91,15 @@ export class MatchAnalytics {
     this._lastUpdated = new Date();
     this._version++;
 
-    this.addEvent(new XGCalculatedEvent(
-      this._matchId.value,
-      this._homeTeam.teamId,
-      newXG.value,
-      previousXG.value,
-      this._lastUpdated
-    ));
+    this.addEvent(
+      new XGCalculatedEvent(
+        this._matchId.value,
+        this._homeTeam.teamId,
+        newXG.value,
+        previousXG.value,
+        this._lastUpdated
+      )
+    );
   }
 
   updateAwayTeamXG(newXG: XGValue): void {
@@ -101,13 +108,15 @@ export class MatchAnalytics {
     this._lastUpdated = new Date();
     this._version++;
 
-    this.addEvent(new XGCalculatedEvent(
-      this._matchId.value,
-      this._awayTeam.teamId,
-      newXG.value,
-      previousXG.value,
-      this._lastUpdated
-    ));
+    this.addEvent(
+      new XGCalculatedEvent(
+        this._matchId.value,
+        this._awayTeam.teamId,
+        newXG.value,
+        previousXG.value,
+        this._lastUpdated
+      )
+    );
   }
 
   updateTeamXG(teamId: string, newXG: XGValue): void {
@@ -116,11 +125,16 @@ export class MatchAnalytics {
     } else if (teamId === this._awayTeam.teamId) {
       this.updateAwayTeamXG(newXG);
     } else {
-      throw new Error(`Team ${teamId} not found in match ${this._matchId.value}`);
+      throw new Error(
+        `Team ${teamId} not found in match ${this._matchId.value}`
+      );
     }
   }
 
-  updatePossession(homeTeamPossession: PossessionPercentage, awayTeamPossession: PossessionPercentage): void {
+  updatePossession(
+    homeTeamPossession: PossessionPercentage,
+    awayTeamPossession: PossessionPercentage
+  ): void {
     // Validate that percentages add up to approximately 100%
     const total = homeTeamPossession.value + awayTeamPossession.value;
     if (Math.abs(total - 100) > 1) {
@@ -132,14 +146,16 @@ export class MatchAnalytics {
     this._lastUpdated = new Date();
     this._version++;
 
-    this.addEvent(new PossessionCalculatedEvent(
-      this._matchId.value,
-      this._homeTeam.teamId,
-      homeTeamPossession.value,
-      this._awayTeam.teamId,
-      awayTeamPossession.value,
-      this._lastUpdated
-    ));
+    this.addEvent(
+      new PossessionCalculatedEvent(
+        this._matchId.value,
+        this._homeTeam.teamId,
+        homeTeamPossession.value,
+        this._awayTeam.teamId,
+        awayTeamPossession.value,
+        this._lastUpdated
+      )
+    );
   }
 
   updateMatchDuration(duration: number): void {
@@ -167,7 +183,9 @@ export class MatchAnalytics {
 
   static fromEvents(matchId: MatchId, events: DomainEvent[]): MatchAnalytics {
     // Find the creation event
-    const creationEvent = events.find(e => e.eventType === 'MatchAnalyticsCreated') as MatchAnalyticsCreatedEvent;
+    const creationEvent = events.find(
+      e => e.eventType === 'MatchAnalyticsCreated'
+    ) as MatchAnalyticsCreatedEvent;
     if (!creationEvent) {
       throw new Error('MatchAnalyticsCreated event not found');
     }
@@ -196,7 +214,7 @@ export class MatchAnalytics {
       case 'XGCalculated': {
         const xgEvent = event as XGCalculatedEvent;
         const newXG = XGValue.fromNumber(xgEvent.newXG);
-        
+
         if (xgEvent.teamId === this._homeTeam.teamId) {
           this._homeTeam = this._homeTeam.updateXG(newXG);
         } else if (xgEvent.teamId === this._awayTeam.teamId) {
@@ -207,8 +225,12 @@ export class MatchAnalytics {
 
       case 'PossessionCalculated': {
         const possessionEvent = event as PossessionCalculatedEvent;
-        const homePossession = PossessionPercentage.fromNumber(possessionEvent.homeTeamPossession);
-        const awayPossession = PossessionPercentage.fromNumber(possessionEvent.awayTeamPossession);
+        const homePossession = PossessionPercentage.fromNumber(
+          possessionEvent.homeTeamPossession
+        );
+        const awayPossession = PossessionPercentage.fromNumber(
+          possessionEvent.awayTeamPossession
+        );
 
         this._homeTeam = this._homeTeam.updatePossession(homePossession);
         this._awayTeam = this._awayTeam.updatePossession(awayPossession);
@@ -221,7 +243,7 @@ export class MatchAnalytics {
       }
 
       default:
-        // Unknown event type - ignore but don't fail
+      // Unknown event type - ignore but don't fail
     }
 
     this._lastUpdated = event.timestamp;
@@ -239,7 +261,7 @@ export class MatchAnalytics {
       awayTeam: this._awayTeam,
       matchDuration: this._matchDuration,
       lastUpdated: this._lastUpdated,
-      version: this._version
+      version: this._version,
     };
   }
 
@@ -283,7 +305,8 @@ export class MatchAnalytics {
       throw new Error('Match duration cannot be negative');
     }
 
-    const totalPossession = this._homeTeam.possession.value + this._awayTeam.possession.value;
+    const totalPossession =
+      this._homeTeam.possession.value + this._awayTeam.possession.value;
     if (totalPossession > 0 && Math.abs(totalPossession - 100) > 1) {
       throw new Error('Possession percentages must add up to 100%');
     }
@@ -294,14 +317,18 @@ export class MatchAnalytics {
   }
 
   // Factory methods
-  static create(matchId: MatchId, homeTeamId: string, awayTeamId: string): MatchAnalytics {
+  static create(
+    matchId: MatchId,
+    homeTeamId: string,
+    awayTeamId: string
+  ): MatchAnalytics {
     return new MatchAnalytics(matchId, homeTeamId, awayTeamId);
   }
 
   static createWithDuration(
-    matchId: MatchId, 
-    homeTeamId: string, 
-    awayTeamId: string, 
+    matchId: MatchId,
+    homeTeamId: string,
+    awayTeamId: string,
     duration: number
   ): MatchAnalytics {
     return new MatchAnalytics(matchId, homeTeamId, awayTeamId, duration);

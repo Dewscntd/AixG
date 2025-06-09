@@ -16,7 +16,7 @@ describe('UploadVideoUseCase', () => {
 
   beforeEach(() => {
     videoRepository = new InMemoryVideoRepository();
-    
+
     storageService = {
       upload: jest.fn(),
       resumeUpload: jest.fn(),
@@ -50,7 +50,7 @@ describe('UploadVideoUseCase', () => {
         start(controller) {
           controller.enqueue(new Uint8Array([1, 2, 3, 4]));
           controller.close();
-        }
+        },
       });
 
       const command = {
@@ -61,7 +61,7 @@ describe('UploadVideoUseCase', () => {
         uploadedBy: 'test-user',
         matchId: 'match-123',
         teamId: 'team-456',
-        tags: ['training', 'defense']
+        tags: ['training', 'defense'],
       };
 
       const expectedStorageResult = new StorageResult({
@@ -70,7 +70,7 @@ describe('UploadVideoUseCase', () => {
         bucket: 'test-bucket',
         url: 'https://test-bucket.s3.amazonaws.com/videos/2023-12-01/abc123/video.mp4',
         size: command.size,
-        etag: 'test-etag'
+        etag: 'test-etag',
       });
 
       storageService.upload.mockResolvedValue(expectedStorageResult);
@@ -83,7 +83,7 @@ describe('UploadVideoUseCase', () => {
       expect(result).toEqual({
         videoId: expect.any(String),
         uploadId: expect.any(String),
-        uploadUrl: expectedStorageResult.url
+        uploadUrl: expectedStorageResult.url,
       });
 
       expect(storageService.upload).toHaveBeenCalledWith(
@@ -95,14 +95,12 @@ describe('UploadVideoUseCase', () => {
           uploadedBy: command.uploadedBy,
           matchId: command.matchId,
           teamId: command.teamId,
-          tags: command.tags
+          tags: command.tags,
         })
       );
 
       expect(eventPublisher.publishBatch).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.any(VideoUploadedEvent)
-        ])
+        expect.arrayContaining([expect.any(VideoUploadedEvent)])
       );
 
       // Verify video was saved to repository
@@ -118,7 +116,7 @@ describe('UploadVideoUseCase', () => {
         start(controller) {
           controller.enqueue(new Uint8Array([1, 2, 3, 4]));
           controller.close();
-        }
+        },
       });
 
       const command = {
@@ -126,10 +124,12 @@ describe('UploadVideoUseCase', () => {
         filename: 'test-match.mp4',
         mimeType: 'video/mp4',
         size: 1024 * 1024 * 100,
-        uploadedBy: 'test-user'
+        uploadedBy: 'test-user',
       };
 
-      storageService.upload.mockRejectedValue(new Error('Storage service unavailable'));
+      storageService.upload.mockRejectedValue(
+        new Error('Storage service unavailable')
+      );
 
       // Act & Assert
       await expect(useCase.execute(command)).rejects.toThrow(
@@ -144,7 +144,7 @@ describe('UploadVideoUseCase', () => {
       const stream = new ReadableStream({
         start(controller) {
           controller.close();
-        }
+        },
       });
 
       const invalidCommand = {
@@ -152,7 +152,7 @@ describe('UploadVideoUseCase', () => {
         filename: '', // Invalid filename
         mimeType: 'video/mp4',
         size: 1024 * 1024 * 100,
-        uploadedBy: 'test-user'
+        uploadedBy: 'test-user',
       };
 
       // Act & Assert
@@ -167,11 +167,12 @@ describe('UploadVideoUseCase', () => {
         start(controller) {
           // Simulate large file
           const chunk = new Uint8Array(1024 * 1024); // 1MB chunk
-          for (let i = 0; i < 100; i++) { // 100MB total
+          for (let i = 0; i < 100; i++) {
+            // 100MB total
             controller.enqueue(chunk);
           }
           controller.close();
-        }
+        },
       });
 
       const command = {
@@ -179,7 +180,7 @@ describe('UploadVideoUseCase', () => {
         filename: 'large-match.mp4',
         mimeType: 'video/mp4',
         size: 1024 * 1024 * 100, // 100MB
-        uploadedBy: 'test-user'
+        uploadedBy: 'test-user',
       };
 
       const expectedStorageResult = new StorageResult({
@@ -187,7 +188,7 @@ describe('UploadVideoUseCase', () => {
         key: 'videos/large/video.mp4',
         bucket: 'test-bucket',
         url: 'https://test-bucket.s3.amazonaws.com/videos/large/video.mp4',
-        size: command.size
+        size: command.size,
       });
 
       storageService.upload.mockResolvedValue(expectedStorageResult);
@@ -209,28 +210,35 @@ describe('UploadVideoUseCase', () => {
           start(controller) {
             controller.enqueue(new Uint8Array([index]));
             controller.close();
-          }
+          },
         }),
         filename: `test-match-${index}.mp4`,
         mimeType: 'video/mp4',
         size: 1024 * 1024,
-        uploadedBy: `user-${index}`
+        uploadedBy: `user-${index}`,
       });
 
-      const commands = Array.from({ length: 5 }, (_, i) => createUploadCommand(i));
+      const commands = Array.from({ length: 5 }, (_, i) =>
+        createUploadCommand(i)
+      );
 
-      storageService.upload.mockImplementation(async (stream, metadata) => new StorageResult({
-          uploadId: metadata.uploadId,
-          key: `videos/${metadata.filename}`,
-          bucket: 'test-bucket',
-          url: `https://test-bucket.s3.amazonaws.com/videos/${metadata.filename}`,
-          size: metadata.size
-        }));
+      storageService.upload.mockImplementation(
+        async (stream, metadata) =>
+          new StorageResult({
+            uploadId: metadata.uploadId,
+            key: `videos/${metadata.filename}`,
+            bucket: 'test-bucket',
+            url: `https://test-bucket.s3.amazonaws.com/videos/${metadata.filename}`,
+            size: metadata.size,
+          })
+      );
 
       eventPublisher.publishBatch.mockResolvedValue();
 
       // Act
-      const results = await Promise.all(commands.map(cmd => useCase.execute(cmd)));
+      const results = await Promise.all(
+        commands.map(cmd => useCase.execute(cmd))
+      );
 
       // Assert
       expect(results).toHaveLength(5);

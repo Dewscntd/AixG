@@ -12,16 +12,20 @@ async function bootstrap() {
     });
 
     // Global validation pipe
-    app.useGlobalPipes(new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      disableErrorMessages: process.env.NODE_ENV === 'production',
-    }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        disableErrorMessages: process.env.NODE_ENV === 'production',
+      })
+    );
 
     // CORS configuration
     app.enableCors({
-      origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+      origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+        'http://localhost:3000',
+      ],
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
       credentials: true,
@@ -56,9 +60,10 @@ async function bootstrap() {
     await app.listen(port);
 
     logger.log(`🚀 Video Ingestion Service is running on port ${port}`);
-    logger.log(`📚 API Documentation available at http://localhost:${port}/api/docs`);
+    logger.log(
+      `📚 API Documentation available at http://localhost:${port}/api/docs`
+    );
     logger.log(`💚 Health check available at http://localhost:${port}/health`);
-
   } catch (error) {
     logger.error('Failed to start Video Ingestion Service', error);
     process.exit(1);
@@ -66,7 +71,7 @@ async function bootstrap() {
 }
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   const logger = new Logger('UncaughtException');
   logger.error('Uncaught Exception:', error);
   process.exit(1);

@@ -1,6 +1,6 @@
 /**
  * GraphQL Exception Filter
- * 
+ *
  * Global exception filter for handling GraphQL errors with proper formatting
  * Implements composition pattern for flexible error handling strategies
  */
@@ -40,11 +40,13 @@ export interface ErrorExtensions {
   operationName?: string | undefined;
   userId?: string | undefined;
   userMessage?: string | undefined;
-  originalError?: {
-    name: string;
-    message: string;
-    stack?: string | undefined;
-  } | undefined;
+  originalError?:
+    | {
+        name: string;
+        message: string;
+        stack?: string | undefined;
+      }
+    | undefined;
   [key: string]: unknown;
 }
 
@@ -54,7 +56,8 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
   private readonly isProduction: boolean;
 
   constructor(private readonly configService: ConfigService) {
-    this.isProduction = this.configService.get<string>('nodeEnv') === 'production';
+    this.isProduction =
+      this.configService.get<string>('nodeEnv') === 'production';
   }
 
   catch(exception: GraphQLException, host: ArgumentsHost): GraphQLError {
@@ -111,7 +114,10 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
   /**
    * Formats the error for the GraphQL response
    */
-  private formatError(exception: GraphQLException, context: ErrorContext): GraphQLError {
+  private formatError(
+    exception: GraphQLException,
+    context: ErrorContext
+  ): GraphQLError {
     const errorCode = this.getErrorCode(exception);
     const message = this.sanitizeErrorMessage(exception.message, errorCode);
 
@@ -129,7 +135,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
         ...(exception.stack && { stack: exception.stack }),
       };
       extensions.originalError = originalError;
-      
+
       if (context.operationName) {
         extensions.operationName = context.operationName;
       }
@@ -160,28 +166,47 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     const exceptionName = exception.constructor.name;
 
     // Authentication and authorization errors
-    if (message.includes('authentication') || message.includes('unauthenticated')) {
+    if (
+      message.includes('authentication') ||
+      message.includes('unauthenticated')
+    ) {
       return 'UNAUTHENTICATED';
     }
-    if (message.includes('authorization') || message.includes('forbidden') || message.includes('access denied')) {
+    if (
+      message.includes('authorization') ||
+      message.includes('forbidden') ||
+      message.includes('access denied')
+    ) {
       return 'FORBIDDEN';
     }
-    if (message.includes('invalid token') || message.includes('token expired')) {
+    if (
+      message.includes('invalid token') ||
+      message.includes('token expired')
+    ) {
       return 'INVALID_TOKEN';
     }
 
     // Validation errors
-    if (message.includes('validation') || exceptionName.includes('Validation')) {
+    if (
+      message.includes('validation') ||
+      exceptionName.includes('Validation')
+    ) {
       return 'VALIDATION_ERROR';
     }
 
     // Rate limiting
-    if (message.includes('rate limit') || message.includes('too many requests')) {
+    if (
+      message.includes('rate limit') ||
+      message.includes('too many requests')
+    ) {
       return 'RATE_LIMITED';
     }
 
     // Query complexity
-    if (message.includes('complexity') || message.includes('query too complex')) {
+    if (
+      message.includes('complexity') ||
+      message.includes('query too complex')
+    ) {
       return 'QUERY_TOO_COMPLEX';
     }
 
@@ -196,7 +221,11 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     }
 
     // Network/service errors
-    if (message.includes('network') || message.includes('connection') || message.includes('service unavailable')) {
+    if (
+      message.includes('network') ||
+      message.includes('connection') ||
+      message.includes('service unavailable')
+    ) {
       return 'SERVICE_UNAVAILABLE';
     }
 
@@ -207,7 +236,9 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
   /**
    * Determines the appropriate log level for the error
    */
-  private getErrorLevel(exception: GraphQLException): 'error' | 'warn' | 'debug' | 'log' {
+  private getErrorLevel(
+    exception: GraphQLException
+  ): 'error' | 'warn' | 'debug' | 'log' {
     const errorCode = this.getErrorCode(exception);
 
     switch (errorCode) {
@@ -217,16 +248,16 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       case 'VALIDATION_ERROR':
       case 'NOT_FOUND':
         return 'warn';
-      
+
       case 'RATE_LIMITED':
       case 'QUERY_TOO_COMPLEX':
         return 'debug';
-      
+
       case 'TIMEOUT':
       case 'SERVICE_UNAVAILABLE':
       case 'INTERNAL_ERROR':
         return 'error';
-      
+
       default:
         return 'log';
     }
@@ -244,13 +275,13 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     switch (errorCode) {
       case 'INTERNAL_ERROR':
         return 'An internal error occurred. Please try again later.';
-      
+
       case 'SERVICE_UNAVAILABLE':
         return 'Service temporarily unavailable. Please try again later.';
-      
+
       case 'TIMEOUT':
         return 'Request timed out. Please try again.';
-      
+
       default:
         return message;
     }
@@ -278,15 +309,17 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
    */
   private getUserFriendlyMessage(errorCode: string): string {
     const messages: Record<string, string> = {
-      'UNAUTHENTICATED': 'Please log in to access this resource.',
-      'FORBIDDEN': 'You do not have permission to access this resource.',
-      'VALIDATION_ERROR': 'Please check your input and try again.',
-      'NOT_FOUND': 'The requested resource was not found.',
-      'RATE_LIMITED': 'Too many requests. Please wait a moment and try again.',
-      'QUERY_TOO_COMPLEX': 'Your query is too complex. Please simplify it and try again.',
-      'TIMEOUT': 'The request took too long to complete. Please try again.',
-      'SERVICE_UNAVAILABLE': 'The service is temporarily unavailable. Please try again later.',
-      'INTERNAL_ERROR': 'An unexpected error occurred. Please try again later.',
+      UNAUTHENTICATED: 'Please log in to access this resource.',
+      FORBIDDEN: 'You do not have permission to access this resource.',
+      VALIDATION_ERROR: 'Please check your input and try again.',
+      NOT_FOUND: 'The requested resource was not found.',
+      RATE_LIMITED: 'Too many requests. Please wait a moment and try again.',
+      QUERY_TOO_COMPLEX:
+        'Your query is too complex. Please simplify it and try again.',
+      TIMEOUT: 'The request took too long to complete. Please try again.',
+      SERVICE_UNAVAILABLE:
+        'The service is temporarily unavailable. Please try again later.',
+      INTERNAL_ERROR: 'An unexpected error occurred. Please try again later.',
     };
 
     return messages[errorCode] || 'An error occurred. Please try again.';

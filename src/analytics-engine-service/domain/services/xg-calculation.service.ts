@@ -2,7 +2,11 @@
  * Pure functional xG calculation service using composition
  */
 
-import { ShotData, XGValue, Position } from '../value-objects/analytics-metrics';
+import {
+  ShotData,
+  XGValue,
+  Position,
+} from '../value-objects/analytics-metrics';
 
 // Type definitions for functional composition
 type XGModifier = (baseXG: number, shotData: ShotData) => number;
@@ -11,18 +15,21 @@ type XGCalculator = (shotData: ShotData) => XGValue;
 // Pure function for base xG calculation
 const baseXGCalculation = (shotData: ShotData): number => {
   const { distanceToGoal, angle } = shotData;
-  
+
   // Base model using distance and angle (simplified Poisson regression model)
   const distanceFactor = Math.exp(-0.1 * distanceToGoal);
-  const angleFactor = Math.cos(angle * Math.PI / 180);
-  
+  const angleFactor = Math.cos((angle * Math.PI) / 180);
+
   return Math.min(0.95, Math.max(0.01, distanceFactor * angleFactor * 0.3));
 };
 
 // Distance modifier function
-const applyDistanceModifier: XGModifier = (baseXG: number, shotData: ShotData): number => {
+const applyDistanceModifier: XGModifier = (
+  baseXG: number,
+  shotData: ShotData
+): number => {
   const { distanceToGoal } = shotData;
-  
+
   if (distanceToGoal <= 6) {
     return baseXG * 1.8; // Close range shots
   } else if (distanceToGoal <= 12) {
@@ -35,9 +42,12 @@ const applyDistanceModifier: XGModifier = (baseXG: number, shotData: ShotData): 
 };
 
 // Angle modifier function
-const applyAngleModifier: XGModifier = (baseXG: number, shotData: ShotData): number => {
+const applyAngleModifier: XGModifier = (
+  baseXG: number,
+  shotData: ShotData
+): number => {
   const { angle } = shotData;
-  
+
   if (angle <= 15) {
     return baseXG * 1.6; // Central shots
   } else if (angle <= 30) {
@@ -50,9 +60,12 @@ const applyAngleModifier: XGModifier = (baseXG: number, shotData: ShotData): num
 };
 
 // Defender modifier function
-const applyDefenderModifier: XGModifier = (baseXG: number, shotData: ShotData): number => {
+const applyDefenderModifier: XGModifier = (
+  baseXG: number,
+  shotData: ShotData
+): number => {
   const { defenderCount } = shotData;
-  
+
   switch (defenderCount) {
     case 0:
       return baseXG * 1.8; // Clear shot
@@ -68,32 +81,38 @@ const applyDefenderModifier: XGModifier = (baseXG: number, shotData: ShotData): 
 };
 
 // Game state modifier function
-const applyGameStateModifier: XGModifier = (baseXG: number, shotData: ShotData): number => {
+const applyGameStateModifier: XGModifier = (
+  baseXG: number,
+  shotData: ShotData
+): number => {
   const { gameState } = shotData;
   let modifier = 1.0;
-  
+
   // Time pressure modifier
   if (gameState.minute > 85) {
     modifier *= 1.1; // Late game urgency
   }
-  
+
   // Score difference modifier
   if (Math.abs(gameState.scoreDifference) >= 2) {
     modifier *= 0.9; // Less pressure when game is decided
   }
-  
+
   // Home advantage
   if (gameState.isHome) {
     modifier *= 1.05;
   }
-  
+
   return baseXG * modifier;
 };
 
 // Body part modifier function
-const applyBodyPartModifier: XGModifier = (baseXG: number, shotData: ShotData): number => {
+const applyBodyPartModifier: XGModifier = (
+  baseXG: number,
+  shotData: ShotData
+): number => {
   const { bodyPart } = shotData;
-  
+
   switch (bodyPart) {
     case 'foot':
       return baseXG * 1.0; // Base case
@@ -107,9 +126,12 @@ const applyBodyPartModifier: XGModifier = (baseXG: number, shotData: ShotData): 
 };
 
 // Situation modifier function
-const applySituationModifier: XGModifier = (baseXG: number, shotData: ShotData): number => {
+const applySituationModifier: XGModifier = (
+  baseXG: number,
+  shotData: ShotData
+): number => {
   const { situation } = shotData;
-  
+
   switch (situation) {
     case 'penalty':
       return 0.76; // Historical penalty conversion rate
@@ -125,17 +147,22 @@ const applySituationModifier: XGModifier = (baseXG: number, shotData: ShotData):
 };
 
 // Functional composition utility
-const compose = <T>(...functions: Array<(arg: T) => T>) => (arg: T): T =>
-  functions.reduceRight((acc, fn) => fn(acc), arg);
+const compose =
+  <T>(...functions: Array<(arg: T) => T>) =>
+  (arg: T): T =>
+    functions.reduceRight((acc, fn) => fn(acc), arg);
 
 // Pipe utility for left-to-right composition
-const pipe = <T>(...functions: Array<(arg: T) => T>) => (arg: T): T =>
-  functions.reduce((acc, fn) => fn(acc), arg);
+const pipe =
+  <T>(...functions: Array<(arg: T) => T>) =>
+  (arg: T): T =>
+    functions.reduce((acc, fn) => fn(acc), arg);
 
 // Main xG calculation using functional composition
 export const calculateXG: XGCalculator = (shotData: ShotData): XGValue => {
   // Create a pipeline of modifiers
-  const modifierPipeline = (baseXG: number): number => pipe(
+  const modifierPipeline = (baseXG: number): number =>
+    pipe(
       (xg: number) => applyDistanceModifier(xg, shotData),
       (xg: number) => applyAngleModifier(xg, shotData),
       (xg: number) => applyDefenderModifier(xg, shotData),
@@ -143,17 +170,19 @@ export const calculateXG: XGCalculator = (shotData: ShotData): XGValue => {
       (xg: number) => applyBodyPartModifier(xg, shotData),
       (xg: number) => applySituationModifier(xg, shotData)
     )(baseXG);
-  
+
   const baseXG = baseXGCalculation(shotData);
   const finalXG = modifierPipeline(baseXG);
-  
+
   return XGValue.fromNumberClamped(finalXG);
 };
 
 // Alternative composition using compose (right-to-left)
-export const calculateXGComposed: XGCalculator = (shotData: ShotData): XGValue => {
+export const calculateXGComposed: XGCalculator = (
+  shotData: ShotData
+): XGValue => {
   const baseXG = baseXGCalculation(shotData);
-  
+
   const finalXG = compose(
     (xg: number) => applySituationModifier(xg, shotData),
     (xg: number) => applyBodyPartModifier(xg, shotData),
@@ -162,7 +191,7 @@ export const calculateXGComposed: XGCalculator = (shotData: ShotData): XGValue =
     (xg: number) => applyAngleModifier(xg, shotData),
     (xg: number) => applyDistanceModifier(xg, shotData)
   )(baseXG);
-  
+
   return XGValue.fromNumberClamped(finalXG);
 };
 
@@ -173,21 +202,36 @@ export const calculateDistance = (from: Position, to: Position): number => {
   return Math.sqrt(dx * dx + dy * dy);
 };
 
-export const calculateAngle = (shotPosition: Position, goalPosition: Position): number => {
+export const calculateAngle = (
+  shotPosition: Position,
+  goalPosition: Position
+): number => {
   const goalWidth = 7.32; // Standard goal width in meters
   const goalLeft = { x: goalPosition.x - goalWidth / 2, y: goalPosition.y };
   const goalRight = { x: goalPosition.x + goalWidth / 2, y: goalPosition.y };
-  
-  const angleLeft = Math.atan2(goalLeft.y - shotPosition.y, goalLeft.x - shotPosition.x);
-  const angleRight = Math.atan2(goalRight.y - shotPosition.y, goalRight.x - shotPosition.x);
-  
+
+  const angleLeft = Math.atan2(
+    goalLeft.y - shotPosition.y,
+    goalLeft.x - shotPosition.x
+  );
+  const angleRight = Math.atan2(
+    goalRight.y - shotPosition.y,
+    goalRight.x - shotPosition.x
+  );
+
   return Math.abs(angleLeft - angleRight) * (180 / Math.PI);
 };
 
 // Pass data interface for xA calculations
 export interface PassData {
   successful: boolean;
-  type: 'through_ball' | 'cross' | 'regular' | 'long_ball' | 'corner' | 'free_kick';
+  type:
+    | 'through_ball'
+    | 'cross'
+    | 'regular'
+    | 'long_ball'
+    | 'corner'
+    | 'free_kick';
   position: { x: number; y: number };
   targetPosition: { x: number; y: number };
   playerId: string;
@@ -197,28 +241,40 @@ export interface PassData {
 }
 
 // Expected Assists (xA) calculation
-export const calculateXA = (passData: PassData, subsequentShot: ShotData): XGValue => {
+export const calculateXA = (
+  passData: PassData,
+  subsequentShot: ShotData
+): XGValue => {
   // xA is the xG value of the shot that resulted from the pass
   const shotXG = calculateXG(subsequentShot);
-  
+
   // Apply pass quality modifier
   const passQualityModifier = passData.successful ? 1.0 : 0.0;
-  const passTypeModifier = passData.type === 'through_ball' ? 1.2 : 
-                          passData.type === 'cross' ? 1.1 : 1.0;
-  
-  return XGValue.fromNumber(shotXG.value * passQualityModifier * passTypeModifier);
+  const passTypeModifier =
+    passData.type === 'through_ball'
+      ? 1.2
+      : passData.type === 'cross'
+      ? 1.1
+      : 1.0;
+
+  return XGValue.fromNumber(
+    shotXG.value * passQualityModifier * passTypeModifier
+  );
 };
 
 // Batch xG calculation for multiple shots
-export const calculateBatchXG = (shots: ShotData[]): XGValue[] => shots.map(calculateXG);
+export const calculateBatchXG = (shots: ShotData[]): XGValue[] =>
+  shots.map(calculateXG);
 
 // Total xG calculation for multiple shots (uncapped for team totals)
-export const calculateTotalXG = (shots: ShotData[]): number => shots
-    .map(calculateXG)
-    .reduce((total, xg) => total + xg.value, 0);
+export const calculateTotalXG = (shots: ShotData[]): number =>
+  shots.map(calculateXG).reduce((total, xg) => total + xg.value, 0);
 
 // xG per minute calculation
-export const calculateXGPerMinute = (shots: ShotData[], matchDuration: number): number => {
+export const calculateXGPerMinute = (
+  shots: ShotData[],
+  matchDuration: number
+): number => {
   const totalXG = calculateTotalXG(shots);
   return matchDuration > 0 ? totalXG / matchDuration : 0;
 };
@@ -237,5 +293,5 @@ export const XGCalculationFunctions = {
   calculateXA,
   calculateBatchXG,
   calculateTotalXG,
-  calculateXGPerMinute
+  calculateXGPerMinute,
 };

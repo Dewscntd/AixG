@@ -1,6 +1,6 @@
 /**
  * DataLoader Service
- * 
+ *
  * Implements efficient data loading with batching and caching to prevent N+1 queries
  * Uses composition pattern for maximum flexibility and testability
  */
@@ -19,7 +19,7 @@ import {
   MatchAnalytics,
   MatchEvent,
   BatchLoadFn,
-  CacheKeyGenerators
+  CacheKeyGenerators,
 } from '../types/datasources';
 import { User } from '../types/context';
 
@@ -43,23 +43,23 @@ export class DataLoaderService {
       // Match loaders
       matchLoader: this.createMatchLoader(),
       matchesByTeamLoader: this.createMatchesByTeamLoader(),
-      
+
       // Video loaders
       videoLoader: this.createVideoLoader(),
       videosByMatchLoader: this.createVideosByMatchLoader(),
-      
+
       // Team loaders
       teamLoader: this.createTeamLoader(),
       teamsLoader: this.createTeamsLoader(),
-      
+
       // Player loaders
       playerLoader: this.createPlayerLoader(),
       playersByTeamLoader: this.createPlayersByTeamLoader(),
-      
+
       // Analytics loaders
       matchAnalyticsLoader: this.createMatchAnalyticsLoader(),
       matchEventsLoader: this.createMatchEventsLoader(),
-      
+
       // User loaders
       userLoader: this.createUserLoader(),
       usersByTeamLoader: this.createUsersByTeamLoader(),
@@ -69,9 +69,8 @@ export class DataLoaderService {
   // Match loaders
   private createMatchLoader(): DataLoader<string, Match> {
     return new DataLoader<string, Match>(
-      this.createBatchLoader<string, Match>(
-        'matches',
-        async (ids) => this.batchLoadMatches(ids)
+      this.createBatchLoader<string, Match>('matches', async ids =>
+        this.batchLoadMatches(ids)
       ),
       {
         cacheKeyFn: this.cacheKeyGenerators.match,
@@ -82,9 +81,9 @@ export class DataLoaderService {
 
   private createMatchesByTeamLoader(): DataLoader<string, Match[]> {
     return new DataLoader<string, Match[]>(
-      async (teamIds) => this.batchLoadMatchesByTeam(teamIds),
+      async teamIds => this.batchLoadMatchesByTeam(teamIds),
       {
-        cacheKeyFn: (teamId) => `matches_by_team:${teamId}`,
+        cacheKeyFn: teamId => `matches_by_team:${teamId}`,
         maxBatchSize: 50,
       }
     );
@@ -93,9 +92,8 @@ export class DataLoaderService {
   // Video loaders
   private createVideoLoader(): DataLoader<string, Video> {
     return new DataLoader<string, Video>(
-      this.createBatchLoader<string, Video>(
-        'videos',
-        async (ids) => this.batchLoadVideos(ids)
+      this.createBatchLoader<string, Video>('videos', async ids =>
+        this.batchLoadVideos(ids)
       ),
       {
         cacheKeyFn: this.cacheKeyGenerators.video,
@@ -106,9 +104,9 @@ export class DataLoaderService {
 
   private createVideosByMatchLoader(): DataLoader<string, Video[]> {
     return new DataLoader<string, Video[]>(
-      async (matchIds) => this.batchLoadVideosByMatch(matchIds),
+      async matchIds => this.batchLoadVideosByMatch(matchIds),
       {
-        cacheKeyFn: (matchId) => `videos_by_match:${matchId}`,
+        cacheKeyFn: matchId => `videos_by_match:${matchId}`,
         maxBatchSize: 50,
       }
     );
@@ -117,9 +115,8 @@ export class DataLoaderService {
   // Team loaders
   private createTeamLoader(): DataLoader<string, Team> {
     return new DataLoader<string, Team>(
-      this.createBatchLoader<string, Team>(
-        'teams',
-        async (ids) => this.batchLoadTeams(ids)
+      this.createBatchLoader<string, Team>('teams', async ids =>
+        this.batchLoadTeams(ids)
       ),
       {
         cacheKeyFn: this.cacheKeyGenerators.team,
@@ -141,9 +138,8 @@ export class DataLoaderService {
   // Player loaders
   private createPlayerLoader(): DataLoader<string, Player> {
     return new DataLoader<string, Player>(
-      this.createBatchLoader<string, Player>(
-        'players',
-        async (ids) => this.batchLoadPlayers(ids)
+      this.createBatchLoader<string, Player>('players', async ids =>
+        this.batchLoadPlayers(ids)
       ),
       {
         cacheKeyFn: this.cacheKeyGenerators.player,
@@ -154,9 +150,9 @@ export class DataLoaderService {
 
   private createPlayersByTeamLoader(): DataLoader<string, Player[]> {
     return new DataLoader<string, Player[]>(
-      async (teamIds) => this.batchLoadPlayersByTeam(teamIds),
+      async teamIds => this.batchLoadPlayersByTeam(teamIds),
       {
-        cacheKeyFn: (teamId) => `players_by_team:${teamId}`,
+        cacheKeyFn: teamId => `players_by_team:${teamId}`,
         maxBatchSize: 50,
       }
     );
@@ -167,7 +163,7 @@ export class DataLoaderService {
     return new DataLoader<string, MatchAnalytics>(
       this.createBatchLoader<string, MatchAnalytics>(
         'match_analytics',
-        async (matchIds) => this.batchLoadMatchAnalytics(matchIds)
+        async matchIds => this.batchLoadMatchAnalytics(matchIds)
       ),
       {
         cacheKeyFn: this.cacheKeyGenerators.analytics,
@@ -178,9 +174,9 @@ export class DataLoaderService {
 
   private createMatchEventsLoader(): DataLoader<string, MatchEvent[]> {
     return new DataLoader<string, MatchEvent[]>(
-      async (matchIds) => this.batchLoadMatchEvents(matchIds),
+      async matchIds => this.batchLoadMatchEvents(matchIds),
       {
-        cacheKeyFn: (matchId) => `match_events:${matchId}`,
+        cacheKeyFn: matchId => `match_events:${matchId}`,
         maxBatchSize: 50,
       }
     );
@@ -189,9 +185,8 @@ export class DataLoaderService {
   // User loaders
   private createUserLoader(): DataLoader<string, User> {
     return new DataLoader<string, User>(
-      this.createBatchLoader<string, User>(
-        'users',
-        async (ids) => this.batchLoadUsers(ids)
+      this.createBatchLoader<string, User>('users', async ids =>
+        this.batchLoadUsers(ids)
       ),
       {
         cacheKeyFn: this.cacheKeyGenerators.user,
@@ -202,9 +197,9 @@ export class DataLoaderService {
 
   private createUsersByTeamLoader(): DataLoader<string, User[]> {
     return new DataLoader<string, User[]>(
-      async (teamIds) => this.batchLoadUsersByTeam(teamIds),
+      async teamIds => this.batchLoadUsersByTeam(teamIds),
       {
-        cacheKeyFn: (teamId) => `users_by_team:${teamId}`,
+        cacheKeyFn: teamId => `users_by_team:${teamId}`,
         maxBatchSize: 50,
       }
     );
@@ -222,7 +217,7 @@ export class DataLoaderService {
         // Try to get from cache first
         const cacheKeys = keys.map(key => `${entityType}:${key}`);
         const cachedResults = await this.redis.mget(...cacheKeys);
-        
+
         const results: (V | Error)[] = [];
         const uncachedKeys: K[] = [];
         const uncachedIndices: number[] = [];
@@ -233,7 +228,9 @@ export class DataLoaderService {
             try {
               results[index] = JSON.parse(cached);
             } catch (error) {
-              this.logger.warn(`Failed to parse cached result for ${cacheKeys[index]}: ${error.message}`);
+              this.logger.warn(
+                `Failed to parse cached result for ${cacheKeys[index]}: ${error.message}`
+              );
               uncachedKeys.push(keys[index]);
               uncachedIndices.push(index);
             }
@@ -246,13 +243,13 @@ export class DataLoaderService {
         // Load uncached data
         if (uncachedKeys.length > 0) {
           const freshResults = await batchLoadFn(uncachedKeys);
-          
+
           // Cache fresh results and add to final results
           const cachePromises: Promise<string>[] = [];
           freshResults.forEach((result, index) => {
             const originalIndex = uncachedIndices[index];
             results[originalIndex] = result;
-            
+
             // Cache successful results
             if (!(result instanceof Error)) {
               const cacheKey = `${entityType}:${uncachedKeys[index]}`;
@@ -261,7 +258,7 @@ export class DataLoaderService {
               );
             }
           });
-          
+
           // Execute cache operations in background
           Promise.all(cachePromises).catch(error => {
             this.logger.warn(`Failed to cache results: ${error.message}`);
@@ -271,7 +268,9 @@ export class DataLoaderService {
         return results;
       } catch (error) {
         this.logger.error(`Batch loading failed for ${entityType}:`, error);
-        return keys.map(() => error instanceof Error ? error : new Error(String(error)));
+        return keys.map(() =>
+          error instanceof Error ? error : new Error(String(error))
+        );
       }
     };
   }
@@ -298,7 +297,9 @@ export class DataLoaderService {
     return [];
   }
 
-  private async batchLoadMatchesByTeam(teamIds: readonly string[]): Promise<Match[][]> {
+  private async batchLoadMatchesByTeam(
+    teamIds: readonly string[]
+  ): Promise<Match[][]> {
     this.logger.warn('batchLoadMatchesByTeam not yet implemented');
     return teamIds.map(() => []);
   }
@@ -308,7 +309,9 @@ export class DataLoaderService {
     return [];
   }
 
-  private async batchLoadVideosByMatch(matchIds: readonly string[]): Promise<Video[][]> {
+  private async batchLoadVideosByMatch(
+    matchIds: readonly string[]
+  ): Promise<Video[][]> {
     this.logger.warn('batchLoadVideosByMatch not yet implemented');
     return matchIds.map(() => []);
   }
@@ -328,17 +331,23 @@ export class DataLoaderService {
     return [];
   }
 
-  private async batchLoadPlayersByTeam(teamIds: readonly string[]): Promise<Player[][]> {
+  private async batchLoadPlayersByTeam(
+    teamIds: readonly string[]
+  ): Promise<Player[][]> {
     this.logger.warn('batchLoadPlayersByTeam not yet implemented');
     return teamIds.map(() => []);
   }
 
-  private async batchLoadMatchAnalytics(_matchIds: readonly string[]): Promise<MatchAnalytics[]> {
+  private async batchLoadMatchAnalytics(
+    _matchIds: readonly string[]
+  ): Promise<MatchAnalytics[]> {
     this.logger.warn('batchLoadMatchAnalytics not yet implemented');
     return [];
   }
 
-  private async batchLoadMatchEvents(matchIds: readonly string[]): Promise<MatchEvent[][]> {
+  private async batchLoadMatchEvents(
+    matchIds: readonly string[]
+  ): Promise<MatchEvent[][]> {
     this.logger.warn('batchLoadMatchEvents not yet implemented');
     return matchIds.map(() => []);
   }
@@ -348,7 +357,9 @@ export class DataLoaderService {
     return [];
   }
 
-  private async batchLoadUsersByTeam(teamIds: readonly string[]): Promise<User[][]> {
+  private async batchLoadUsersByTeam(
+    teamIds: readonly string[]
+  ): Promise<User[][]> {
     this.logger.warn('batchLoadUsersByTeam not yet implemented');
     return teamIds.map(() => []);
   }

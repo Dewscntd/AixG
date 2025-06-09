@@ -45,7 +45,7 @@ export class XGCalculatedEvent extends BaseDomainEvent {
         value: timestamp,
         writable: false,
         enumerable: true,
-        configurable: false
+        configurable: false,
       });
     }
   }
@@ -56,7 +56,7 @@ export class XGCalculatedEvent extends BaseDomainEvent {
       newXG: this.newXG,
       previousXG: this.previousXG,
       xgDifference: this.newXG - this.previousXG,
-      shotData: this.shotData
+      shotData: this.shotData,
     };
   }
 }

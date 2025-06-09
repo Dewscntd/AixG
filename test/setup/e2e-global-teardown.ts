@@ -17,7 +17,10 @@ export default async function globalTeardown() {
 
     console.log('✅ E2E test environment cleaned up!');
   } catch (error) {
-    console.error('⚠️  Warning: Failed to cleanup E2E test environment:', error);
+    console.error(
+      '⚠️  Warning: Failed to cleanup E2E test environment:',
+      error
+    );
     // Don't throw error in teardown to avoid masking test failures
   }
 }

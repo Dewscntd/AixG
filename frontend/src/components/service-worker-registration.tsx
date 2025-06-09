@@ -1,6 +1,6 @@
 /**
  * Service Worker Registration Component
- * 
+ *
  * Handles PWA service worker registration with:
  * - Offline-first caching strategy
  * - Background sync for data updates
@@ -26,7 +26,8 @@ export function ServiceWorkerRegistration({
   onSuccess,
   onError,
 }: ServiceWorkerRegistrationProps = {}) {
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [registration, setRegistration] =
+    useState<ServiceWorkerRegistration | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const { addNotification } = useAppActions();
 
@@ -60,11 +61,12 @@ export function ServiceWorkerRegistration({
             if (navigator.serviceWorker.controller) {
               // New content is available
               setUpdateAvailable(true);
-              
+
               addNotification({
                 type: 'info',
                 title: 'Update Available',
-                message: 'A new version of FootAnalytics is available. Refresh to update.',
+                message:
+                  'A new version of FootAnalytics is available. Refresh to update.',
                 actions: [
                   {
                     label: 'Update Now',
@@ -88,7 +90,7 @@ export function ServiceWorkerRegistration({
             } else {
               // Content is cached for offline use
               toast.success('FootAnalytics is ready for offline use');
-              
+
               if (onSuccess) {
                 onSuccess(registration);
               }
@@ -98,28 +100,28 @@ export function ServiceWorkerRegistration({
       });
 
       // Handle service worker messages
-      navigator.serviceWorker.addEventListener('message', (event) => {
+      navigator.serviceWorker.addEventListener('message', event => {
         const { type, payload } = event.data;
 
         switch (type) {
           case 'CACHE_UPDATED':
             console.log('Cache updated:', payload);
             break;
-          
+
           case 'BACKGROUND_SYNC':
             console.log('Background sync completed:', payload);
             toast.success('Data synchronized');
             break;
-          
+
           case 'PUSH_NOTIFICATION':
             // Handle push notifications
             showNotification(payload);
             break;
-          
+
           case 'OFFLINE_FALLBACK':
             toast.error('You are offline. Some features may be limited.');
             break;
-          
+
           default:
             console.log('Unknown service worker message:', event.data);
         }
@@ -131,10 +133,9 @@ export function ServiceWorkerRegistration({
       }, 60000); // Check every minute
 
       console.log('Service Worker registered successfully');
-
     } catch (error) {
       console.error('Service Worker registration failed:', error);
-      
+
       if (onError) {
         onError(error as Error);
       }
@@ -160,14 +161,14 @@ export function ServiceWorkerRegistration({
         vibrate: payload.vibrate || [200, 100, 200],
       });
 
-      notification.onclick = (event) => {
+      notification.onclick = event => {
         event.preventDefault();
         window.focus();
-        
+
         if (payload.url) {
           window.location.href = payload.url;
         }
-        
+
         notification.close();
       };
 
@@ -234,7 +235,7 @@ export function ServiceWorkerRegistration({
 
     try {
       await registration.sync.register(tag);
-      
+
       // Store data for background sync
       if (data) {
         const cache = await caches.open('background-sync-data');
@@ -302,7 +303,10 @@ export function useServiceWorker() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener(
+        'beforeinstallprompt',
+        handleBeforeInstallPrompt
+      );
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
@@ -313,7 +317,7 @@ export function useServiceWorker() {
     try {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      
+
       if (outcome === 'accepted') {
         console.log('User accepted the install prompt');
         return true;
@@ -334,7 +338,8 @@ export function useServiceWorker() {
     isOnline,
     isInstallable,
     installApp,
-    serviceWorker: typeof window !== 'undefined' ? (window as any).footAnalyticsSW : null,
+    serviceWorker:
+      typeof window !== 'undefined' ? (window as any).footAnalyticsSW : null,
   };
 }
 

@@ -35,7 +35,7 @@ describe('Video Ingestion to Analytics Integration', () => {
         teamId: 'team-456',
         uploadedBy: 'test-user',
         size: 1024 * 1024 * 100, // 100MB
-        mimeType: 'video/mp4'
+        mimeType: 'video/mp4',
       };
 
       // Validate upload data structure
@@ -57,7 +57,7 @@ describe('Video Ingestion to Analytics Integration', () => {
           xG: 1.5,
           possession: 65.2,
           shots: 12,
-          shotsOnTarget: 5
+          shotsOnTarget: 5,
         },
         awayTeam: {
           id: 'team-away',
@@ -65,7 +65,7 @@ describe('Video Ingestion to Analytics Integration', () => {
           xG: 0.8,
           possession: 34.8,
           shots: 8,
-          shotsOnTarget: 3
+          shotsOnTarget: 3,
         },
         events: [
           {
@@ -73,16 +73,18 @@ describe('Video Ingestion to Analytics Integration', () => {
             minute: 23,
             player: 'player-123',
             team: 'team-home',
-            xG: 0.3
-          }
-        ]
+            xG: 0.3,
+          },
+        ],
       };
 
       // Validate analytics structure
       expect(analyticsData.matchId).toBe('match-123');
       expect(analyticsData.homeTeam.xG).toBeGreaterThan(0);
       expect(analyticsData.awayTeam.xG).toBeGreaterThan(0);
-      expect(analyticsData.homeTeam.possession + analyticsData.awayTeam.possession).toBeCloseTo(100, 1);
+      expect(
+        analyticsData.homeTeam.possession + analyticsData.awayTeam.possession
+      ).toBeCloseTo(100, 1);
       expect(analyticsData.events).toHaveLength(1);
       expect(analyticsData.events[0]?.type).toBe('shot');
     });
@@ -92,7 +94,7 @@ describe('Video Ingestion to Analytics Integration', () => {
         status: 'FAILED',
         videoId: 'video-123',
         validationErrors: ['Invalid video format', 'File too large'],
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // Validate error structure
@@ -100,17 +102,39 @@ describe('Video Ingestion to Analytics Integration', () => {
       expect(errorResponse.videoId).toBe('video-123');
       expect(errorResponse.validationErrors).toHaveLength(2);
       expect(errorResponse.validationErrors).toContain('Invalid video format');
-      expect(errorResponse.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      expect(errorResponse.timestamp).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+      );
     });
   });
 
   describe('Event Structure Validation', () => {
     it('should validate event data structure', () => {
       const events = [
-        { type: 'uploaded', videoId: 'video-123', timestamp: new Date(), correlationId: 'corr-123' },
-        { type: 'validated', videoId: 'video-123', timestamp: new Date(), correlationId: 'corr-123' },
-        { type: 'processed', videoId: 'video-123', timestamp: new Date(), correlationId: 'corr-123' },
-        { type: 'analytics', videoId: 'video-123', timestamp: new Date(), correlationId: 'corr-123' }
+        {
+          type: 'uploaded',
+          videoId: 'video-123',
+          timestamp: new Date(),
+          correlationId: 'corr-123',
+        },
+        {
+          type: 'validated',
+          videoId: 'video-123',
+          timestamp: new Date(),
+          correlationId: 'corr-123',
+        },
+        {
+          type: 'processed',
+          videoId: 'video-123',
+          timestamp: new Date(),
+          correlationId: 'corr-123',
+        },
+        {
+          type: 'analytics',
+          videoId: 'video-123',
+          timestamp: new Date(),
+          correlationId: 'corr-123',
+        },
       ];
 
       // Validate event sequence
@@ -129,8 +153,16 @@ describe('Video Ingestion to Analytics Integration', () => {
     });
 
     it('should validate data consistency structure', () => {
-      const videoData = { matchId: 'match-123', videoId: 'video-456', status: 'PROCESSED' };
-      const analyticsData = { matchId: 'match-123', videoId: 'video-456', homeTeam: { xG: 1.5 } };
+      const videoData = {
+        matchId: 'match-123',
+        videoId: 'video-456',
+        status: 'PROCESSED',
+      };
+      const analyticsData = {
+        matchId: 'match-123',
+        videoId: 'video-456',
+        homeTeam: { xG: 1.5 },
+      };
 
       // Validate consistency
       expect(videoData.matchId).toBe(analyticsData.matchId);
@@ -146,7 +178,7 @@ describe('Video Ingestion to Analytics Integration', () => {
         uploadTime: 1500, // milliseconds
         processingTime: 45000, // milliseconds
         throughput: 10, // uploads per minute
-        responseTime: 250 // milliseconds
+        responseTime: 250, // milliseconds
       };
 
       // Validate performance expectations

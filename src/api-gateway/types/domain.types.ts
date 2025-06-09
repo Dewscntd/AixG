@@ -124,11 +124,22 @@ export interface Player {
   photo?: string;
 }
 
-export type PlayerPosition = 
-  | 'GK' 
-  | 'CB' | 'LB' | 'RB' | 'LWB' | 'RWB'
-  | 'CDM' | 'CM' | 'CAM' | 'LM' | 'RM'
-  | 'LW' | 'RW' | 'CF' | 'ST';
+export type PlayerPosition =
+  | 'GK'
+  | 'CB'
+  | 'LB'
+  | 'RB'
+  | 'LWB'
+  | 'RWB'
+  | 'CDM'
+  | 'CM'
+  | 'CAM'
+  | 'LM'
+  | 'RM'
+  | 'LW'
+  | 'RW'
+  | 'CF'
+  | 'ST';
 
 export interface TeamFilters {
   league?: string;
@@ -148,13 +159,28 @@ export interface MatchEvent {
   metadata: EventMetadata;
 }
 
-export type EventType = 
-  | 'goal' | 'assist' | 'shot' | 'shot_on_target' | 'shot_off_target'
-  | 'pass' | 'pass_completed' | 'pass_failed'
-  | 'tackle' | 'interception' | 'clearance'
-  | 'foul' | 'yellow_card' | 'red_card'
-  | 'substitution' | 'corner' | 'throw_in' | 'free_kick'
-  | 'offside' | 'penalty' | 'save';
+export type EventType =
+  | 'goal'
+  | 'assist'
+  | 'shot'
+  | 'shot_on_target'
+  | 'shot_off_target'
+  | 'pass'
+  | 'pass_completed'
+  | 'pass_failed'
+  | 'tackle'
+  | 'interception'
+  | 'clearance'
+  | 'foul'
+  | 'yellow_card'
+  | 'red_card'
+  | 'substitution'
+  | 'corner'
+  | 'throw_in'
+  | 'free_kick'
+  | 'offside'
+  | 'penalty'
+  | 'save';
 
 export interface Position {
   x: number;

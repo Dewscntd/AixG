@@ -44,7 +44,7 @@ export class UploadVideoUseCase {
         uploadedBy: command.uploadedBy,
         matchId: command.matchId,
         teamId: command.teamId,
-        tags: command.tags
+        tags: command.tags,
       });
 
       // Create video entity
@@ -54,7 +54,10 @@ export class UploadVideoUseCase {
       await this.videoRepository.save(video);
 
       // Upload to storage
-      const storageResult = await this.storageService.upload(command.stream, uploadMetadata);
+      const storageResult = await this.storageService.upload(
+        command.stream,
+        uploadMetadata
+      );
 
       // Mark video as uploaded
       video.markAsUploaded(storageResult);
@@ -75,23 +78,21 @@ export class UploadVideoUseCase {
       return {
         videoId: video.id.value,
         uploadId: uploadMetadata.uploadId,
-        uploadUrl: storageResult.url
+        uploadUrl: storageResult.url,
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to upload video: ${errorMessage}`);
     }
   }
 
   private async publishDomainEvents(video: Video): Promise<void> {
     const events = video.domainEvents;
-    
+
     if (events.length > 0) {
       await this.eventPublisher.publishBatch(events);
       video.clearDomainEvents();
     }
   }
-
-
 }

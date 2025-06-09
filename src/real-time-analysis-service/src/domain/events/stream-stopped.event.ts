@@ -33,7 +33,7 @@ export class StreamStoppedEvent extends DomainEvent {
       causationId: this.causationId,
       stoppedAt: this.stoppedAt.toISOString(),
       totalFrames: this.totalFrames,
-      durationMs: this.durationMs
+      durationMs: this.durationMs,
     };
   }
 
@@ -42,7 +42,8 @@ export class StreamStoppedEvent extends DomainEvent {
       stoppedAt: this.stoppedAt.toISOString(),
       totalFrames: this.totalFrames,
       durationMs: this.durationMs,
-      averageFrameRate: this.durationMs > 0 ? (this.totalFrames / this.durationMs) * 1000 : 0
+      averageFrameRate:
+        this.durationMs > 0 ? (this.totalFrames / this.durationMs) * 1000 : 0,
     };
   }
 
@@ -55,11 +56,11 @@ export class StreamStoppedEvent extends DomainEvent {
       data.correlationId,
       data.causationId
     );
-    
+
     // Override generated values with persisted ones
     (event as any).eventId = data.eventId;
     (event as any).occurredOn = new Date(data.occurredOn);
-    
+
     return event;
   }
 }

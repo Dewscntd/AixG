@@ -37,14 +37,18 @@ export class GetUploadProgressUseCase {
       // Get current progress from storage service
       let storageProgress = 0;
       try {
-        storageProgress = await this.storageService.getUploadProgress(query.uploadId);
+        storageProgress = await this.storageService.getUploadProgress(
+          query.uploadId
+        );
       } catch (error) {
         // If storage service fails, use video entity progress
         storageProgress = video.uploadProgress;
       }
 
       // Calculate uploaded bytes
-      const uploadedBytes = Math.floor((storageProgress / 100) * video.uploadMetadata.size);
+      const uploadedBytes = Math.floor(
+        (storageProgress / 100) * video.uploadMetadata.size
+      );
 
       // Estimate time remaining (simple calculation)
       let estimatedTimeRemaining: number | undefined;
@@ -65,9 +69,8 @@ export class GetUploadProgressUseCase {
         uploadedBytes,
         estimatedTimeRemaining,
         errors: video.validationErrors,
-        warnings: video.validationWarnings
+        warnings: video.validationWarnings,
       };
-
     } catch (error) {
       throw new Error(`Failed to get upload progress: ${error.message}`);
     }

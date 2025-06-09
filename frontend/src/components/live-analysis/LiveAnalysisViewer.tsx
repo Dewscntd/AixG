@@ -35,14 +35,18 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
   streamId: initialStreamId,
   onStreamStarted,
   onStreamStopped,
-  onError
+  onError,
 }) => {
   // State
   const [isConnected, setIsConnected] = useState(false);
-  const [streamId, setStreamId] = useState<string | null>(initialStreamId || null);
+  const [streamId, setStreamId] = useState<string | null>(
+    initialStreamId || null
+  );
   const [peerId, setPeerId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<StreamMetrics | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
+    null
+  );
   const [isStreaming, setIsStreaming] = useState(false);
 
   // Refs
@@ -66,14 +70,14 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
       console.log('Disconnected from real-time analysis service');
     });
 
-    socket.on('stream_started', (data) => {
+    socket.on('stream_started', data => {
       console.log('Stream started:', data);
       setStreamId(data.streamId);
       setPeerId(data.peerId);
       onStreamStarted?.(data.streamId);
     });
 
-    socket.on('stream_stopped', (data) => {
+    socket.on('stream_stopped', data => {
       console.log('Stream stopped:', data);
       setStreamId(null);
       setPeerId(null);
@@ -81,15 +85,15 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
       onStreamStopped?.();
     });
 
-    socket.on('stream_metrics', (data) => {
+    socket.on('stream_metrics', data => {
       setMetrics(data.metrics);
     });
 
-    socket.on('domain_FrameAnalyzed', (event) => {
+    socket.on('domain_FrameAnalyzed', event => {
       setAnalysisResult(event.payload.analysisResult);
     });
 
-    socket.on('error', (error) => {
+    socket.on('error', error => {
       console.error('WebSocket error:', error);
       onError?.(error.message);
     });
@@ -118,17 +122,17 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
           metadata: {
             cameraId: 'camera_001',
             quality: 'HD',
-            resolution: '1920x1080'
-          }
+            resolution: '1920x1080',
+          },
         }),
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         setStreamId(result.data.streamId);
         setPeerId(result.data.peerId);
-        
+
         // Start WebRTC connection
         await initializeWebRTC(result.data.peerId);
       } else {
@@ -172,9 +176,9 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
         video: {
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          frameRate: { ideal: 30 }
+          frameRate: { ideal: 30 },
         },
-        audio: false
+        audio: false,
       });
 
       // Display local video
@@ -186,17 +190,17 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
       const peer = new SimplePeer({
         initiator: true,
         trickle: true,
-        stream: stream
+        stream: stream,
       });
 
       peerRef.current = peer;
 
       // Handle signaling
-      peer.on('signal', (data) => {
+      peer.on('signal', data => {
         if (socketRef.current) {
           socketRef.current.emit('webrtc_signal', {
             peerId,
-            signalData: data
+            signalData: data,
           });
         }
       });
@@ -206,20 +210,19 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
         setIsStreaming(true);
       });
 
-      peer.on('error', (error) => {
+      peer.on('error', error => {
         console.error('WebRTC error:', error);
         onError?.('WebRTC connection failed');
       });
 
       // Listen for signaling responses
       if (socketRef.current) {
-        socketRef.current.on('webrtc_signal_response', (data) => {
+        socketRef.current.on('webrtc_signal_response', data => {
           if (data.peerId === peerId) {
             peer.signal(data.signalData);
           }
         });
       }
-
     } catch (error) {
       console.error('Error initializing WebRTC:', error);
       onError?.('Failed to access camera');
@@ -233,7 +236,7 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
     const canvas = canvasRef.current;
     const video = videoRef.current;
     const ctx = canvas.getContext('2d');
-    
+
     if (!ctx) return;
 
     // Set canvas size to match video
@@ -247,8 +250,8 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
     if (analysisResult.players) {
       ctx.strokeStyle = '#00ff00';
       ctx.lineWidth = 2;
-      
-      analysisResult.players.forEach((player) => {
+
+      analysisResult.players.forEach(player => {
         if (player.boundingBox) {
           ctx.strokeRect(
             player.boundingBox.x,
@@ -256,7 +259,7 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
             player.boundingBox.width,
             player.boundingBox.height
           );
-          
+
           // Draw player ID
           ctx.fillStyle = '#00ff00';
           ctx.font = '16px Arial';
@@ -282,7 +285,6 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
       );
       ctx.fill();
     }
-
   }, [analysisResult]);
 
   return (
@@ -295,9 +297,11 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
         >
           {isStreaming ? 'Stop Stream' : 'Start Stream'}
         </button>
-        
+
         <div className="status">
-          <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
+          <span
+            className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}
+          >
             {isConnected ? 'Connected' : 'Disconnected'}
           </span>
           {streamId && (
@@ -314,10 +318,7 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
           playsInline
           className="video-stream"
         />
-        <canvas
-          ref={canvasRef}
-          className="analysis-overlay"
-        />
+        <canvas ref={canvasRef} className="analysis-overlay" />
       </div>
 
       {metrics && (
@@ -326,7 +327,9 @@ export const LiveAnalysisViewer: React.FC<LiveAnalysisViewerProps> = ({
           <div className="metrics-grid">
             <div className="metric">
               <label>Status:</label>
-              <span className={`status ${metrics.status}`}>{metrics.status}</span>
+              <span className={`status ${metrics.status}`}>
+                {metrics.status}
+              </span>
             </div>
             <div className="metric">
               <label>Frame Rate:</label>

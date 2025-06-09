@@ -1,10 +1,18 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StreamId } from '../../domain/value-objects/stream-id';
 import { LiveStream, StreamStatus } from '../../domain/entities/live-stream';
 import { LiveAnalysisPipeline } from '../../domain/entities/live-analysis-pipeline';
 import { VideoFrame } from '../../domain/value-objects/video-frame';
-import { WebRTCStreamManager, WebRTCSignalData } from '../../infrastructure/webrtc/webrtc-stream-manager';
+import {
+  WebRTCStreamManager,
+  WebRTCSignalData,
+} from '../../infrastructure/webrtc/webrtc-stream-manager';
 import { EdgeMLInferenceService } from '../../infrastructure/ml/edge-ml-inference';
 import { EventStreamService } from '../../infrastructure/events/event-stream.service';
 
@@ -65,9 +73,7 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
   private mlInference: EdgeMLInferenceService;
   private eventStream: EventStreamService;
 
-  constructor(
-    private readonly eventEmitter: EventEmitter2
-  ) {
+  constructor(private readonly eventEmitter: EventEmitter2) {
     this.webrtcManager = new WebRTCStreamManager();
     this.mlInference = new EdgeMLInferenceService();
     this.eventStream = new EventStreamService(this.eventEmitter);
@@ -80,16 +86,19 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
     try {
       // Initialize WebRTC manager
       await this.webrtcManager.initialize();
-      
+
       // Initialize ML inference
       await this.mlInference.initialize();
-      
+
       // Setup event handlers
       this.setupEventHandlers();
 
       this.logger.log('Real-time Analysis Service initialized successfully');
     } catch (error) {
-      this.logger.error('Failed to initialize Real-time Analysis Service:', error);
+      this.logger.error(
+        'Failed to initialize Real-time Analysis Service:',
+        error
+      );
       throw error;
     }
   }
@@ -118,7 +127,7 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
     try {
       // Create new live stream
       const stream = LiveStream.create(300, metadata);
-      
+
       // Create WebRTC peer connection
       const peerId = await this.webrtcManager.createPeerConnection(
         stream.id,
@@ -133,9 +142,8 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       );
 
       // Register frame callback
-      this.webrtcManager.registerFrameCallback(
-        stream.id,
-        (frame: VideoFrame) => this.handleIncomingFrame(stream.id, frame)
+      this.webrtcManager.registerFrameCallback(stream.id, (frame: VideoFrame) =>
+        this.handleIncomingFrame(stream.id, frame)
       );
 
       // Start stream and pipeline
@@ -152,16 +160,16 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       this.eventEmitter.emit('stream.started', {
         streamId: stream.id.value,
         peerId,
-        metadata
+        metadata,
       });
 
       return {
         streamId: stream.id.value,
-        peerId
+        peerId,
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to start stream: ${errorMessage}`);
     }
   }
@@ -204,11 +212,11 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       await this.publishDomainEvents(stream);
 
       this.eventEmitter.emit('stream.stopped', {
-        streamId: streamId.value
+        streamId: streamId.value,
       });
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to stop stream: ${errorMessage}`);
     }
   }
@@ -216,11 +224,15 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Signal WebRTC peer connection
    */
-  async signalPeer(peerId: string, signalData: WebRTCSignalData): Promise<void> {
+  async signalPeer(
+    peerId: string,
+    signalData: WebRTCSignalData
+  ): Promise<void> {
     try {
       await this.webrtcManager.signal(peerId, signalData);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to signal peer: ${errorMessage}`);
     }
   }
@@ -250,7 +262,7 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       processingRate: stream.getCurrentFrameRate(),
       averageLatency: 0, // TODO: Implement in pipeline
       errorCount: 0, // TODO: Implement error tracking
-      uptime: stream.getDuration()
+      uptime: stream.getDuration(),
       // lastFrameTimestamp is optional and undefined, so we omit it
     };
   }
@@ -279,15 +291,18 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
       memoryUsage: {
         used: memoryUsage.heapUsed,
         total: memoryUsage.heapTotal,
-        percentage: (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100
-      }
+        percentage: (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100,
+      },
     };
   }
 
   /**
    * Handle incoming video frame
    */
-  private async handleIncomingFrame(streamId: StreamId, frame: VideoFrame): Promise<void> {
+  private async handleIncomingFrame(
+    streamId: StreamId,
+    frame: VideoFrame
+  ): Promise<void> {
     const stream = this.activeStreams.get(streamId.value);
     const pipeline = this.activePipelines.get(streamId.value);
 
@@ -304,15 +319,18 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
 
       // Publish domain events
       await this.publishDomainEvents(stream);
-
     } catch (error) {
-      this.logger.error(`Error processing frame for stream ${streamId.value}:`, error);
+      this.logger.error(
+        `Error processing frame for stream ${streamId.value}:`,
+        error
+      );
 
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.eventEmitter.emit('frame.processing.error', {
         streamId: streamId.value,
         frameNumber: frame.frameNumber,
-        error: errorMessage
+        error: errorMessage,
       });
     }
   }
@@ -322,19 +340,19 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
    */
   private setupEventHandlers(): void {
     // WebRTC event handlers
-    this.webrtcManager.on('connected', (data) => {
+    this.webrtcManager.on('connected', data => {
       this.eventEmitter.emit('webrtc.connected', data);
     });
 
-    this.webrtcManager.on('disconnected', (data) => {
+    this.webrtcManager.on('disconnected', data => {
       this.eventEmitter.emit('webrtc.disconnected', data);
     });
 
-    this.webrtcManager.on('error', (error) => {
+    this.webrtcManager.on('error', error => {
       this.eventEmitter.emit('webrtc.error', { error: error.message });
     });
 
-    this.webrtcManager.on('frameExtracted', (data) => {
+    this.webrtcManager.on('frameExtracted', data => {
       this.eventEmitter.emit('frame.extracted', data);
     });
   }
@@ -344,7 +362,7 @@ export class RealTimeAnalysisService implements OnModuleInit, OnModuleDestroy {
    */
   private async publishDomainEvents(stream: LiveStream): Promise<void> {
     const events = stream.getUncommittedEvents();
-    
+
     for (const event of events) {
       this.eventEmitter.emit(`domain.${event.eventType}`, event.toJSON());
     }

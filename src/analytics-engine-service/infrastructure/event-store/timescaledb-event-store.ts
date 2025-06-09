@@ -3,7 +3,7 @@ import { DomainEvent } from '../../domain/events/domain-event';
 import {
   EventStore,
   EventStoreOptions,
-  OptimisticConcurrencyError
+  OptimisticConcurrencyError,
 } from './event-store.interface';
 
 export class TimescaleDBEventStore implements EventStore {
@@ -16,7 +16,7 @@ export class TimescaleDBEventStore implements EventStore {
       retryDelay: 1000,
       snapshotFrequency: 100,
       batchSize: 1000,
-      ...options
+      ...options,
     };
 
     this.pool = new Pool({
@@ -87,13 +87,16 @@ export class TimescaleDBEventStore implements EventStore {
           is_deleted BOOLEAN DEFAULT FALSE
         );
       `);
-
     } finally {
       client.release();
     }
   }
 
-  async append(streamId: string, events: DomainEvent[], expectedVersion?: number): Promise<void> {
+  async append(
+    streamId: string,
+    events: DomainEvent[],
+    expectedVersion?: number
+  ): Promise<void> {
     if (events.length === 0) return;
 
     const client = await this.pool.connect();
@@ -109,7 +112,11 @@ export class TimescaleDBEventStore implements EventStore {
 
         const currentVersion = versionResult.rows[0]?.version || 0;
         if (currentVersion !== expectedVersion) {
-          throw new OptimisticConcurrencyError(streamId, expectedVersion, currentVersion);
+          throw new OptimisticConcurrencyError(
+            streamId,
+            expectedVersion,
+            currentVersion
+          );
         }
       }
 
@@ -123,39 +130,44 @@ export class TimescaleDBEventStore implements EventStore {
       // Insert events
       for (const event of events) {
         currentVersion++;
-        
-        await client.query(`
+
+        await client.query(
+          `
           INSERT INTO events (
             stream_id, event_id, event_type, aggregate_id, aggregate_type,
             version, timestamp, correlation_id, causation_id, metadata, event_data
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        `, [
-          streamId,
-          event.eventId,
-          event.eventType,
-          event.aggregateId,
-          event.aggregateType,
-          currentVersion,
-          event.timestamp,
-          event.correlationId,
-          event.causationId,
-          event.metadata ? JSON.stringify(event.metadata) : null,
-          JSON.stringify(event.toJSON ? event.toJSON() : event)
-        ]);
+        `,
+          [
+            streamId,
+            event.eventId,
+            event.eventType,
+            event.aggregateId,
+            event.aggregateType,
+            currentVersion,
+            event.timestamp,
+            event.correlationId,
+            event.causationId,
+            event.metadata ? JSON.stringify(event.metadata) : null,
+            JSON.stringify(event.toJSON ? event.toJSON() : event),
+          ]
+        );
       }
 
       // Update stream metadata
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO stream_metadata (stream_id, version, event_count, last_modified)
         VALUES ($1, $2, $3, NOW())
         ON CONFLICT (stream_id) DO UPDATE SET
           version = $2,
           event_count = stream_metadata.event_count + $4,
           last_modified = NOW()
-      `, [streamId, currentVersion, events.length, events.length]);
+      `,
+        [streamId, currentVersion, events.length, events.length]
+      );
 
       await client.query('COMMIT');
-
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -164,38 +176,48 @@ export class TimescaleDBEventStore implements EventStore {
     }
   }
 
-  async read(streamId: string, fromVersion: number = 0): Promise<DomainEvent[]> {
+  async read(
+    streamId: string,
+    fromVersion: number = 0
+  ): Promise<DomainEvent[]> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query(`
+      const result = await client.query(
+        `
         SELECT event_data, timestamp
         FROM events 
         WHERE stream_id = $1 AND version > $2
         ORDER BY version ASC
-      `, [streamId, fromVersion]);
+      `,
+        [streamId, fromVersion]
+      );
 
-      return result.rows.map(row => this.deserializeEvent(row.event_data, row.timestamp));
-
+      return result.rows.map(row =>
+        this.deserializeEvent(row.event_data, row.timestamp)
+      );
     } finally {
       client.release();
     }
   }
 
   async readPaginated(
-    streamId: string, 
-    fromVersion: number = 0, 
+    streamId: string,
+    fromVersion: number = 0,
     maxCount: number = 1000
   ): Promise<{ events: DomainEvent[]; hasMore: boolean }> {
     const client = await this.pool.connect();
     try {
       // Get one more than requested to check if there are more
-      const result = await client.query(`
+      const result = await client.query(
+        `
         SELECT event_data, timestamp
         FROM events 
         WHERE stream_id = $1 AND version > $2
         ORDER BY version ASC
         LIMIT $3
-      `, [streamId, fromVersion, maxCount + 1]);
+      `,
+        [streamId, fromVersion, maxCount + 1]
+      );
 
       const hasMore = result.rows.length > maxCount;
       const events = result.rows
@@ -203,13 +225,15 @@ export class TimescaleDBEventStore implements EventStore {
         .map(row => this.deserializeEvent(row.event_data, row.timestamp));
 
       return { events, hasMore };
-
     } finally {
       client.release();
     }
   }
 
-  async readByEventType(eventType: string, fromTimestamp?: Date): Promise<DomainEvent[]> {
+  async readByEventType(
+    eventType: string,
+    fromTimestamp?: Date
+  ): Promise<DomainEvent[]> {
     const client = await this.pool.connect();
     try {
       let query = `
@@ -227,8 +251,9 @@ export class TimescaleDBEventStore implements EventStore {
       query += ' ORDER BY timestamp ASC';
 
       const result = await client.query(query, params);
-      return result.rows.map(row => this.deserializeEvent(row.event_data, row.timestamp));
-
+      return result.rows.map(row =>
+        this.deserializeEvent(row.event_data, row.timestamp)
+      );
     } finally {
       client.release();
     }
@@ -243,7 +268,6 @@ export class TimescaleDBEventStore implements EventStore {
       );
 
       return result.rows[0]?.version || 0;
-
     } finally {
       client.release();
     }
@@ -258,7 +282,6 @@ export class TimescaleDBEventStore implements EventStore {
       );
 
       return result.rows.length > 0;
-
     } finally {
       client.release();
     }
@@ -271,30 +294,37 @@ export class TimescaleDBEventStore implements EventStore {
         'UPDATE stream_metadata SET is_deleted = TRUE, last_modified = NOW() WHERE stream_id = $1',
         [streamId]
       );
-
     } finally {
       client.release();
     }
   }
 
-  async createSnapshot<T>(streamId: string, snapshot: T, version: number): Promise<void> {
+  async createSnapshot<T>(
+    streamId: string,
+    snapshot: T,
+    version: number
+  ): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO snapshots (stream_id, version, snapshot_data)
         VALUES ($1, $2, $3)
         ON CONFLICT (stream_id) DO UPDATE SET
           version = $2,
           snapshot_data = $3,
           created_at = NOW()
-      `, [streamId, version, JSON.stringify(snapshot)]);
-
+      `,
+        [streamId, version, JSON.stringify(snapshot)]
+      );
     } finally {
       client.release();
     }
   }
 
-  async getSnapshot<T>(streamId: string): Promise<{ snapshot: T; version: number } | null> {
+  async getSnapshot<T>(
+    streamId: string
+  ): Promise<{ snapshot: T; version: number } | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
@@ -309,9 +339,8 @@ export class TimescaleDBEventStore implements EventStore {
       const row = result.rows[0];
       return {
         snapshot: JSON.parse(row.snapshot_data),
-        version: row.version
+        version: row.version,
       };
-
     } finally {
       client.release();
     }
@@ -371,11 +400,12 @@ export class TimescaleDBEventStore implements EventStore {
   private deserializeEvent(eventData: unknown, timestamp: Date): DomainEvent {
     // This is a simplified deserialization
     // In a real implementation, you'd have a proper event registry
-    const data = typeof eventData === 'string' ? JSON.parse(eventData) : eventData;
+    const data =
+      typeof eventData === 'string' ? JSON.parse(eventData) : eventData;
 
     return {
       ...data,
-      timestamp: new Date(timestamp)
+      timestamp: new Date(timestamp),
     } as DomainEvent;
   }
 

@@ -70,38 +70,54 @@ describe('Video Ingestion Service Integration Tests', () => {
 
     it('should handle upload failures gracefully', async () => {
       // Arrange
-      mockStorageService.upload.mockRejectedValue(new Error('Storage service unavailable'));
+      mockStorageService.upload.mockRejectedValue(
+        new Error('Storage service unavailable')
+      );
 
       // Act & Assert
-      await expect(mockStorageService.upload({
-        stream: 'mock-stream',
-        filename: 'test-video.mp4',
-        mimeType: 'video/mp4',
-      })).rejects.toThrow('Storage service unavailable');
+      await expect(
+        mockStorageService.upload({
+          stream: 'mock-stream',
+          filename: 'test-video.mp4',
+          mimeType: 'video/mp4',
+        })
+      ).rejects.toThrow('Storage service unavailable');
     });
   });
 
   describe('Storage Service Integration', () => {
     it('should generate presigned URLs', async () => {
       // Arrange
-      const mockPresignedUrl = 'https://test-bucket.s3.amazonaws.com/test-key?signature=abc123';
-      mockStorageService.generatePresignedUrl.mockResolvedValue(mockPresignedUrl);
+      const mockPresignedUrl =
+        'https://test-bucket.s3.amazonaws.com/test-key?signature=abc123';
+      mockStorageService.generatePresignedUrl.mockResolvedValue(
+        mockPresignedUrl
+      );
 
       // Act
-      const url = await mockStorageService.generatePresignedUrl('test-key', 3600);
+      const url = await mockStorageService.generatePresignedUrl(
+        'test-key',
+        3600
+      );
 
       // Assert
       expect(url).toBe(mockPresignedUrl);
-      expect(mockStorageService.generatePresignedUrl).toHaveBeenCalledWith('test-key', 3600);
+      expect(mockStorageService.generatePresignedUrl).toHaveBeenCalledWith(
+        'test-key',
+        3600
+      );
     });
 
     it('should handle storage service errors', async () => {
       // Arrange
-      mockStorageService.generatePresignedUrl.mockRejectedValue(new Error('AWS credentials invalid'));
+      mockStorageService.generatePresignedUrl.mockRejectedValue(
+        new Error('AWS credentials invalid')
+      );
 
       // Act & Assert
-      await expect(mockStorageService.generatePresignedUrl('test-key', 3600))
-        .rejects.toThrow('AWS credentials invalid');
+      await expect(
+        mockStorageService.generatePresignedUrl('test-key', 3600)
+      ).rejects.toThrow('AWS credentials invalid');
     });
   });
 
@@ -123,7 +139,7 @@ describe('Video Ingestion Service Integration Tests', () => {
       // Arrange
       const mockEvents = [
         { type: 'VideoUploaded', videoId: 'test-video-1' },
-        { type: 'VideoValidated', videoId: 'test-video-2' }
+        { type: 'VideoValidated', videoId: 'test-video-2' },
       ];
       mockEventPublisher.publishBatch.mockResolvedValue(true);
 
@@ -142,7 +158,7 @@ describe('Video Ingestion Service Integration Tests', () => {
       const mockValidationResult = {
         isValid: true,
         errors: [],
-        warnings: []
+        warnings: [],
       };
 
       const mockMetadata = {
@@ -153,15 +169,23 @@ describe('Video Ingestion Service Integration Tests', () => {
         codec: 'h264',
         format: 'mp4',
         fileSize: 1024 * 1024 * 100,
-        checksum: 'test-checksum'
+        checksum: 'test-checksum',
       };
 
-      mockVideoValidationService.validateVideo.mockResolvedValue(mockValidationResult);
-      mockVideoValidationService.extractMetadata.mockResolvedValue(mockMetadata);
+      mockVideoValidationService.validateVideo.mockResolvedValue(
+        mockValidationResult
+      );
+      mockVideoValidationService.extractMetadata.mockResolvedValue(
+        mockMetadata
+      );
 
       // Act
-      const validationResult = await mockVideoValidationService.validateVideo('/test/path');
-      const metadata = await mockVideoValidationService.extractMetadata('/test/path');
+      const validationResult = await mockVideoValidationService.validateVideo(
+        '/test/path'
+      );
+      const metadata = await mockVideoValidationService.extractMetadata(
+        '/test/path'
+      );
 
       // Assert
       expect(validationResult.isValid).toBe(true);
@@ -175,13 +199,17 @@ describe('Video Ingestion Service Integration Tests', () => {
       const mockValidationResult = {
         isValid: false,
         errors: ['Invalid video format', 'Corrupted file'],
-        warnings: ['Low resolution']
+        warnings: ['Low resolution'],
       };
 
-      mockVideoValidationService.validateVideo.mockResolvedValue(mockValidationResult);
+      mockVideoValidationService.validateVideo.mockResolvedValue(
+        mockValidationResult
+      );
 
       // Act
-      const validationResult = await mockVideoValidationService.validateVideo('/test/path');
+      const validationResult = await mockVideoValidationService.validateVideo(
+        '/test/path'
+      );
 
       // Assert
       expect(validationResult.isValid).toBe(false);
@@ -193,21 +221,27 @@ describe('Video Ingestion Service Integration Tests', () => {
   describe('Error Handling', () => {
     it('should handle repository errors gracefully', async () => {
       // Arrange
-      mockVideoRepository.save.mockRejectedValue(new Error('Database connection failed'));
+      mockVideoRepository.save.mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
       // Act & Assert
-      await expect(mockVideoRepository.save({}))
-        .rejects.toThrow('Database connection failed');
+      await expect(mockVideoRepository.save({})).rejects.toThrow(
+        'Database connection failed'
+      );
     });
 
     it('should handle event publishing errors gracefully', async () => {
       // Arrange
       const mockEvent = { type: 'VideoUploaded', videoId: 'test-video-id' };
-      mockEventPublisher.publishBatch.mockRejectedValue(new Error('Event bus unavailable'));
+      mockEventPublisher.publishBatch.mockRejectedValue(
+        new Error('Event bus unavailable')
+      );
 
       // Act & Assert
-      await expect(mockEventPublisher.publishBatch([mockEvent]))
-        .rejects.toThrow('Event bus unavailable');
+      await expect(
+        mockEventPublisher.publishBatch([mockEvent])
+      ).rejects.toThrow('Event bus unavailable');
     });
   });
 });

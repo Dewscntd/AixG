@@ -53,19 +53,24 @@ expect.extend({
   },
 
   toBeValidPossession(received) {
-    const pass = typeof received === 'number' && received >= 0 && received <= 100;
+    const pass =
+      typeof received === 'number' && received >= 0 && received <= 100;
     return {
-      message: () => `expected ${received} to be a valid possession percentage (0-100)`,
+      message: () =>
+        `expected ${received} to be a valid possession percentage (0-100)`,
       pass,
     };
   },
 
   toBeValidPosition(received) {
-    const pass = received &&
-                 typeof received.x === 'number' &&
-                 typeof received.y === 'number' &&
-                 received.x >= 0 && received.x <= 100 &&
-                 received.y >= 0 && received.y <= 100;
+    const pass =
+      received &&
+      typeof received.x === 'number' &&
+      typeof received.y === 'number' &&
+      received.x >= 0 &&
+      received.x <= 100 &&
+      received.y >= 0 &&
+      received.y <= 100;
     return {
       message: () => `expected ${received} to be a valid field position`,
       pass,
@@ -73,44 +78,63 @@ expect.extend({
   },
 
   toMatchAnalyticsSnapshot(received) {
-    const requiredFields = ['matchId', 'homeTeam', 'awayTeam', 'lastUpdated', 'version'];
+    const requiredFields = [
+      'matchId',
+      'homeTeam',
+      'awayTeam',
+      'lastUpdated',
+      'version',
+    ];
     const hasAllFields = requiredFields.every(field => field in received);
 
     return {
-      message: () => `expected object to have all required analytics snapshot fields`,
+      message: () =>
+        `expected object to have all required analytics snapshot fields`,
       pass: hasAllFields,
     };
   },
 
   toBeValidUUID(received: string) {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const pass = uuidRegex.test(received);
 
     return {
-      message: () => `expected ${received} ${pass ? 'not ' : ''}to be a valid UUID`,
-      pass
+      message: () =>
+        `expected ${received} ${pass ? 'not ' : ''}to be a valid UUID`,
+      pass,
     };
   },
 
   toBeValidVideoId(received: any) {
     const hasValue = received && typeof received.value === 'string';
-    const isValidUUID = hasValue && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(received.value);
+    const isValidUUID =
+      hasValue &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        received.value
+      );
     const pass = hasValue && isValidUUID;
 
     return {
-      message: () => `expected ${received} ${pass ? 'not ' : ''}to be a valid VideoId`,
-      pass
+      message: () =>
+        `expected ${received} ${pass ? 'not ' : ''}to be a valid VideoId`,
+      pass,
     };
   },
 
   toBeValidMatchId(received: any) {
     const hasValue = received && typeof received.value === 'string';
-    const isValidUUID = hasValue && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(received.value);
+    const isValidUUID =
+      hasValue &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        received.value
+      );
     const pass = hasValue && isValidUUID;
 
     return {
-      message: () => `expected ${received} ${pass ? 'not ' : ''}to be a valid MatchId`,
-      pass
+      message: () =>
+        `expected ${received} ${pass ? 'not ' : ''}to be a valid MatchId`,
+      pass,
     };
   },
 
@@ -121,11 +145,19 @@ expect.extend({
     const hasOccurredOn = received && received.occurredOn instanceof Date;
     const hasVersion = received && typeof received.version === 'number';
 
-    const pass = hasEventId && hasEventType && hasAggregateId && hasOccurredOn && hasVersion;
+    const pass =
+      hasEventId &&
+      hasEventType &&
+      hasAggregateId &&
+      hasOccurredOn &&
+      hasVersion;
 
     return {
-      message: () => `expected ${received} ${pass ? 'not ' : ''}to be a valid domain event with eventId, eventType, aggregateId, occurredOn, and version`,
-      pass
+      message: () =>
+        `expected ${received} ${
+          pass ? 'not ' : ''
+        }to be a valid domain event with eventId, eventType, aggregateId, occurredOn, and version`,
+      pass,
     };
   },
 
@@ -150,7 +182,7 @@ expect.extend({
 
     return {
       message: () => `expected object ${pass ? 'not ' : ''}to be immutable`,
-      pass
+      pass,
     };
   },
 
@@ -166,8 +198,9 @@ expect.extend({
     }
 
     return {
-      message: () => `expected object ${pass ? 'not ' : ''}to satisfy domain invariants`,
-      pass
+      message: () =>
+        `expected object ${pass ? 'not ' : ''}to satisfy domain invariants`,
+      pass,
     };
   },
 
@@ -175,8 +208,11 @@ expect.extend({
     const pass = received >= start && received <= end;
 
     return {
-      message: () => `expected ${received} ${pass ? 'not ' : ''}to be within time range ${start} - ${end}`,
-      pass
+      message: () =>
+        `expected ${received} ${
+          pass ? 'not ' : ''
+        }to be within time range ${start} - ${end}`,
+      pass,
     };
   },
 
@@ -188,8 +224,11 @@ expect.extend({
     const pass = duration <= maxMs;
 
     return {
-      message: () => `expected function to execute within ${maxMs}ms but took ${duration.toFixed(2)}ms`,
-      pass
+      message: () =>
+        `expected function to execute within ${maxMs}ms but took ${duration.toFixed(
+          2
+        )}ms`,
+      pass,
     };
   },
 });
@@ -226,7 +265,12 @@ export const TestDataFactory = {
     distanceToGoal: faker.number.float({ min: 1, max: 50, fractionDigits: 1 }),
     angle: faker.number.float({ min: 0, max: 180, fractionDigits: 1 }),
     bodyPart: faker.helpers.arrayElement(['foot', 'head', 'other']),
-    situation: faker.helpers.arrayElement(['open_play', 'corner', 'free_kick', 'penalty']),
+    situation: faker.helpers.arrayElement([
+      'open_play',
+      'corner',
+      'free_kick',
+      'penalty',
+    ]),
     defenderCount: faker.number.int({ min: 0, max: 5 }),
     gameState: {
       minute: faker.number.int({ min: 1, max: 90 }),
@@ -239,7 +283,14 @@ export const TestDataFactory = {
     timestamp: faker.number.int({ min: 0, max: 5400000 }),
     teamId: TestDataFactory.createTeamId(),
     playerId: TestDataFactory.createPlayerId(),
-    eventType: faker.helpers.arrayElement(['pass', 'dribble', 'shot', 'tackle', 'interception', 'clearance']),
+    eventType: faker.helpers.arrayElement([
+      'pass',
+      'dribble',
+      'shot',
+      'tackle',
+      'interception',
+      'clearance',
+    ]),
     position: TestDataFactory.createPosition(),
     successful: faker.datatype.boolean(),
     duration: faker.number.int({ min: 1, max: 30 }),
@@ -291,18 +342,20 @@ export const MockServices = {
     getSnapshot: jest.fn().mockResolvedValue(null),
     saveSnapshot: jest.fn().mockResolvedValue(undefined),
   },
-  
+
   eventPublisher: {
     publish: jest.fn().mockResolvedValue(undefined),
     publishBatch: jest.fn().mockResolvedValue(undefined),
   },
-  
+
   storageService: {
-    upload: jest.fn().mockResolvedValue({ url: 'https://example.com/video.mp4' }),
+    upload: jest
+      .fn()
+      .mockResolvedValue({ url: 'https://example.com/video.mp4' }),
     download: jest.fn().mockResolvedValue(Buffer.alloc(1024)),
     delete: jest.fn().mockResolvedValue(undefined),
   },
-  
+
   mlInference: {
     analyze: jest.fn().mockResolvedValue({
       players: [TestDataFactory.createPlayer()],

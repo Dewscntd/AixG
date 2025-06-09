@@ -1,6 +1,6 @@
 /**
  * Match Dashboard Component
- * 
+ *
  * Demonstrates the declarative component composition pattern with:
  * - HOC composition for cross-cutting concerns
  * - Composable hooks for data management
@@ -25,9 +25,15 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { cn } from '@/lib/utils';
 
 // Lazy-loaded components for performance
-const MatchStatsChart = React.lazy(() => import('@/components/charts/match-stats-chart'));
-const PlayerHeatmap = React.lazy(() => import('@/components/charts/player-heatmap'));
-const EventTimeline = React.lazy(() => import('@/components/match/event-timeline'));
+const MatchStatsChart = React.lazy(
+  () => import('@/components/charts/match-stats-chart')
+);
+const PlayerHeatmap = React.lazy(
+  () => import('@/components/charts/player-heatmap')
+);
+const EventTimeline = React.lazy(
+  () => import('@/components/match/event-timeline')
+);
 const LiveMetrics = React.lazy(() => import('@/components/match/live-metrics'));
 
 export interface MatchDashboardProps {
@@ -68,10 +74,10 @@ const MatchDashboardComponent: React.FC<MatchDashboardProps> = ({
     includeHistorical: true,
     realTimeUpdates: enableRealTime,
     optimisticUpdates: true,
-    onError: (error) => {
+    onError: error => {
       console.error('Match analytics error:', error);
     },
-    onUpdate: (analytics) => {
+    onUpdate: analytics => {
       console.log('Analytics updated:', analytics);
     },
   });
@@ -107,22 +113,17 @@ const MatchDashboardComponent: React.FC<MatchDashboardProps> = ({
   }
 
   return (
-    <div
-      ref={dashboardRef}
-      className={cn(
-        'space-y-6 p-6',
-        className
-      )}
-    >
+    <div ref={dashboardRef} className={cn('space-y-6 p-6', className)}>
       {/* Header with real-time status */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Match Analytics</h1>
           <p className="text-muted-foreground">
-            {analytics.match?.homeTeam?.name} vs {analytics.match?.awayTeam?.name}
+            {analytics.match?.homeTeam?.name} vs{' '}
+            {analytics.match?.awayTeam?.name}
           </p>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           {/* Real-time connection status */}
           <Badge
@@ -131,19 +132,17 @@ const MatchDashboardComponent: React.FC<MatchDashboardProps> = ({
           >
             {isConnected ? 'Live' : 'Offline'}
           </Badge>
-          
+
           {/* Last updated */}
           {lastUpdated && (
             <p className="text-sm text-muted-foreground">
               Updated {new Date(lastUpdated).toLocaleTimeString()}
             </p>
           )}
-          
+
           {/* Performance metrics in development */}
           {process.env.NODE_ENV === 'development' && (
-            <Badge variant="outline">
-              {performanceMetrics.queryTime}ms
-            </Badge>
+            <Badge variant="outline">{performanceMetrics.queryTime}ms</Badge>
           )}
         </div>
       </div>
@@ -165,7 +164,9 @@ const MatchDashboardComponent: React.FC<MatchDashboardProps> = ({
                 <CardTitle>Live Metrics</CardTitle>
               </CardHeader>
               <CardContent>
-                <ErrorBoundary fallback={<div>Failed to load live metrics</div>}>
+                <ErrorBoundary
+                  fallback={<div>Failed to load live metrics</div>}
+                >
                   <Suspense fallback={<LoadingSpinner />}>
                     <LiveMetrics
                       matchId={matchId}
@@ -239,13 +240,13 @@ const MatchDashboardComponent: React.FC<MatchDashboardProps> = ({
               title="xG"
               homeValue={analytics.homeTeam.xG}
               awayValue={analytics.awayTeam.xG}
-              format={(value) => value.toFixed(2)}
+              format={value => value.toFixed(2)}
             />
             <StatCard
               title="Possession"
               homeValue={analytics.homeTeam.possession}
               awayValue={analytics.awayTeam.possession}
-              format={(value) => `${value.toFixed(1)}%`}
+              format={value => `${value.toFixed(1)}%`}
             />
             <StatCard
               title="Shots"
@@ -256,7 +257,7 @@ const MatchDashboardComponent: React.FC<MatchDashboardProps> = ({
               title="Pass Accuracy"
               homeValue={analytics.homeTeam.passAccuracy}
               awayValue={analytics.awayTeam.passAccuracy}
-              format={(value) => `${value.toFixed(1)}%`}
+              format={value => `${value.toFixed(1)}%`}
             />
           </div>
         </motion.div>
@@ -275,23 +276,25 @@ interface StatCardProps {
   format?: (value: number) => string;
 }
 
-const StatCard = memo<StatCardProps>(({ title, homeValue, awayValue, format = (v) => v.toString() }) => (
-  <Card>
-    <CardContent className="p-4">
-      <div className="text-center">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-lg font-bold text-blue-600">
-            {format(homeValue)}
-          </span>
-          <span className="text-lg font-bold text-red-600">
-            {format(awayValue)}
-          </span>
+const StatCard = memo<StatCardProps>(
+  ({ title, homeValue, awayValue, format = v => v.toString() }) => (
+    <Card>
+      <CardContent className="p-4">
+        <div className="text-center">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-lg font-bold text-blue-600">
+              {format(homeValue)}
+            </span>
+            <span className="text-lg font-bold text-red-600">
+              {format(awayValue)}
+            </span>
+          </div>
         </div>
-      </div>
-    </CardContent>
-  </Card>
-));
+      </CardContent>
+    </Card>
+  )
+);
 
 StatCard.displayName = 'StatCard';
 

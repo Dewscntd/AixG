@@ -12,9 +12,15 @@ type TeamFormation = '4-3-3' | '4-4-2' | '3-5-2';
 // =======================
 // Shared Kernel
 // =======================
-export class VideoId { constructor(public readonly value: UUID) {} }
-export class MatchId { constructor(public readonly value: UUID) {} }
-export class AnalyticsId { constructor(public readonly value: UUID) {} }
+export class VideoId {
+  constructor(public readonly value: UUID) {}
+}
+export class MatchId {
+  constructor(public readonly value: UUID) {}
+}
+export class AnalyticsId {
+  constructor(public readonly value: UUID) {}
+}
 
 // =======================
 // Video Processing Context
@@ -54,7 +60,12 @@ export class Match {
   ) {}
 
   static create(matchId: MatchId, teamA: Team, teamB: Team): Match {
-    const match = new Match(matchId, [teamA, teamB], [], MatchAnalytics.empty());
+    const match = new Match(
+      matchId,
+      [teamA, teamB],
+      [],
+      MatchAnalytics.empty()
+    );
     match.pendingEvents.push(new MatchCreated(matchId, Date.now(), 1));
     return match;
   }
@@ -155,8 +166,8 @@ export class SpatialPosition {
   distanceTo(other: SpatialPosition): number {
     return Math.sqrt(
       Math.pow(this.x - other.x, 2) +
-      Math.pow(this.y - other.y, 2) +
-      Math.pow(this.z - other.z, 2)
+        Math.pow(this.y - other.y, 2) +
+        Math.pow(this.z - other.z, 2)
     );
   }
 }
@@ -212,12 +223,13 @@ export type VideoUploadedEvent = EventSchema<'VIDEO_UPLOADED'> & {
   resolution: [number, number];
 };
 
-export type MLProcessingCompleteEvent = EventSchema<'ML_PROCESSING_COMPLETE'> & {
-  videoId: VideoId;
-  matchId: MatchId;
-  detectedEvents: MatchEvent[];
-  modelVersion: string;
-};
+export type MLProcessingCompleteEvent =
+  EventSchema<'ML_PROCESSING_COMPLETE'> & {
+    videoId: VideoId;
+    matchId: MatchId;
+    detectedEvents: MatchEvent[];
+    modelVersion: string;
+  };
 
 export type AnalyticsUpdatedEvent = EventSchema<'ANALYTICS_UPDATED'> & {
   matchId: MatchId;
@@ -226,7 +238,7 @@ export type AnalyticsUpdatedEvent = EventSchema<'ANALYTICS_UPDATED'> & {
   formationChanges: TeamFormation[];
 };
 
-type DomainEventSchema = 
+type DomainEventSchema =
   | VideoUploadedEvent
   | MLProcessingCompleteEvent
   | AnalyticsUpdatedEvent
@@ -241,12 +253,16 @@ export class VideoProcessingSaga {
     public state: 'STARTED' | 'ML_PROCESSING' | 'ANALYSIS_PENDING' | 'COMPLETED'
   ) {}
 
-  static start(correlationId: UUID, videoId: VideoId, matchId: MatchId): VideoProcessingSaga {
+  static start(
+    correlationId: UUID,
+    videoId: VideoId,
+    matchId: MatchId
+  ): VideoProcessingSaga {
     return new VideoProcessingSaga(correlationId, videoId, matchId, 'STARTED');
   }
 
   handleEvent(event: DomainEventSchema): VideoProcessingSaga {
-    switch(event.eventType) {
+    switch (event.eventType) {
       case 'VIDEO_UPLOADED':
         return new VideoProcessingSaga(
           this.correlationId,
@@ -295,49 +311,55 @@ export const ServiceRegistry: Record<string, ServiceDefinition> = {
     eventHandlers: {},
     apiEndpoints: {
       federatedGraphQL: { method: 'POST', path: '/graphql' },
-      videoUpload: { method: 'POST', path: '/api/videos/upload' }
+      videoUpload: { method: 'POST', path: '/api/videos/upload' },
     },
     database: {
       writeModel: 'Document',
       readModel: 'Cache',
-      tech: 'Redis'
+      tech: 'Redis',
     },
-    techStack: ['NestJS', 'Apollo Federation', 'GraphQL', 'OAuth2']
+    techStack: ['NestJS', 'Apollo Federation', 'GraphQL', 'OAuth2'],
   },
   VIDEO_INGESTION: {
     boundedContext: 'Video Processing',
     commandHandlers: {
-      uploadVideo: async (_payload) => { /* Implementation */ }
+      uploadVideo: async _payload => {
+        /* Implementation */
+      },
     },
     eventHandlers: {
-      'MATCH_CREATED': async (_event) => { /* Handle match creation */ }
+      MATCH_CREATED: async _event => {
+        /* Handle match creation */
+      },
     },
     apiEndpoints: {
-      healthCheck: { method: 'GET', path: '/health' }
+      healthCheck: { method: 'GET', path: '/health' },
     },
     database: {
       writeModel: 'Relational',
       readModel: 'OLAP',
-      tech: 'PostgreSQL'
+      tech: 'PostgreSQL',
     },
-    techStack: ['NestJS', 'FFmpeg', 'OpenCV', 'S3 SDK']
+    techStack: ['NestJS', 'FFmpeg', 'OpenCV', 'S3 SDK'],
   },
   ML_PIPELINE: {
     boundedContext: 'Machine Learning',
     commandHandlers: {},
     eventHandlers: {
-      'VIDEO_UPLOADED': async (_event) => { /* Trigger processing */ }
+      VIDEO_UPLOADED: async _event => {
+        /* Trigger processing */
+      },
     },
     apiEndpoints: {
-      modelVersion: { method: 'GET', path: '/models/active' }
+      modelVersion: { method: 'GET', path: '/models/active' },
     },
     database: {
       writeModel: 'Document',
       readModel: 'Search',
-      tech: 'Elasticsearch'
+      tech: 'Elasticsearch',
     },
-    techStack: ['Python', 'TensorFlow', 'PyTorch', 'Kafka']
-  }
+    techStack: ['Python', 'TensorFlow', 'PyTorch', 'Kafka'],
+  },
 };
 
 // CQRS Implementation

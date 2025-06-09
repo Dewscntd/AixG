@@ -30,14 +30,14 @@ export class StreamStartedEvent extends DomainEvent {
       correlationId: this.correlationId,
       causationId: this.causationId,
       startedAt: this.startedAt.toISOString(),
-      metadata: this.metadata
+      metadata: this.metadata,
     };
   }
 
   getPayload(): Record<string, any> {
     return {
       startedAt: this.startedAt.toISOString(),
-      metadata: this.metadata
+      metadata: this.metadata,
     };
   }
 
@@ -49,11 +49,11 @@ export class StreamStartedEvent extends DomainEvent {
       data.correlationId,
       data.causationId
     );
-    
+
     // Override generated values with persisted ones
     (event as any).eventId = data.eventId;
     (event as any).occurredOn = new Date(data.occurredOn);
-    
+
     return event;
   }
 }

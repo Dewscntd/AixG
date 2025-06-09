@@ -70,7 +70,7 @@ export class RealTimePerformanceMonitor extends EventEmitter {
     memoryUsage: { warning: 80, critical: 95 },
     latencyP95: { warning: 1000, critical: 2000 }, // milliseconds
     errorRate: { warning: 0.05, critical: 0.1 }, // 5% warning, 10% critical
-    gpuUtilization: { warning: 90, critical: 98 }
+    gpuUtilization: { warning: 90, critical: 98 },
   };
 
   constructor() {
@@ -87,7 +87,9 @@ export class RealTimePerformanceMonitor extends EventEmitter {
       return;
     }
 
-    this.logger.log(`Starting real-time performance monitoring (interval: ${intervalMs}ms)`);
+    this.logger.log(
+      `Starting real-time performance monitoring (interval: ${intervalMs}ms)`
+    );
     this.isMonitoring = true;
 
     this.monitoringInterval = setInterval(async () => {
@@ -123,7 +125,9 @@ export class RealTimePerformanceMonitor extends EventEmitter {
    * Get current metrics
    */
   getCurrentMetrics(): RealTimeMetrics | null {
-    return this.metrics.length > 0 ? this.metrics[this.metrics.length - 1] : null;
+    return this.metrics.length > 0
+      ? this.metrics[this.metrics.length - 1]
+      : null;
   }
 
   /**
@@ -139,7 +143,7 @@ export class RealTimePerformanceMonitor extends EventEmitter {
    */
   recordLatency(latencyMs: number): void {
     this.latencyMeasurements.push(latencyMs);
-    
+
     // Keep only recent measurements
     if (this.latencyMeasurements.length > this.maxLatencyHistory) {
       this.latencyMeasurements.shift();
@@ -169,22 +173,35 @@ export class RealTimePerformanceMonitor extends EventEmitter {
       return {
         current: null,
         averages: { cpuUsage: 0, memoryUsage: 0, latencyP95: 0 },
-        trends: { cpuTrend: 'stable', memoryTrend: 'stable', latencyTrend: 'stable' }
+        trends: {
+          cpuTrend: 'stable',
+          memoryTrend: 'stable',
+          latencyTrend: 'stable',
+        },
       };
     }
 
     // Calculate averages
     const averages = {
-      cpuUsage: recent.reduce((sum, m) => sum + m.system.cpuUsage, 0) / recent.length,
-      memoryUsage: recent.reduce((sum, m) => sum + m.system.memoryUsage.percentage, 0) / recent.length,
-      latencyP95: recent.reduce((sum, m) => sum + m.performance.requestLatency.p95, 0) / recent.length
+      cpuUsage:
+        recent.reduce((sum, m) => sum + m.system.cpuUsage, 0) / recent.length,
+      memoryUsage:
+        recent.reduce((sum, m) => sum + m.system.memoryUsage.percentage, 0) /
+        recent.length,
+      latencyP95:
+        recent.reduce((sum, m) => sum + m.performance.requestLatency.p95, 0) /
+        recent.length,
     };
 
     // Calculate trends
     const trends = {
       cpuTrend: this.calculateTrend(recent.map(m => m.system.cpuUsage)),
-      memoryTrend: this.calculateTrend(recent.map(m => m.system.memoryUsage.percentage)),
-      latencyTrend: this.calculateTrend(recent.map(m => m.performance.requestLatency.p95))
+      memoryTrend: this.calculateTrend(
+        recent.map(m => m.system.memoryUsage.percentage)
+      ),
+      latencyTrend: this.calculateTrend(
+        recent.map(m => m.performance.requestLatency.p95)
+      ),
     };
 
     return { current, averages, trends };
@@ -205,10 +222,10 @@ export class RealTimePerformanceMonitor extends EventEmitter {
         memoryUsage: {
           used: os.totalmem() - os.freemem(),
           total: os.totalmem(),
-          percentage: ((os.totalmem() - os.freemem()) / os.totalmem()) * 100
+          percentage: ((os.totalmem() - os.freemem()) / os.totalmem()) * 100,
         },
         loadAverage: os.loadavg(),
-        uptime: os.uptime()
+        uptime: os.uptime(),
       },
       application: {
         heapUsed: memUsage.heapUsed,
@@ -217,14 +234,14 @@ export class RealTimePerformanceMonitor extends EventEmitter {
         rss: memUsage.rss,
         eventLoopDelay: this.getEventLoopDelay(),
         activeHandles: (process as any)._getActiveHandles().length,
-        activeRequests: (process as any)._getActiveRequests().length
+        activeRequests: (process as any)._getActiveRequests().length,
       },
       performance: {
         requestLatency: latencyStats,
         throughput: this.calculateThroughput(),
-        errorRate: 0 // Would be calculated from actual error tracking
+        errorRate: 0, // Would be calculated from actual error tracking
       },
-      gpu: await this.getGPUMetrics()
+      gpu: await this.getGPUMetrics(),
     };
   }
 
@@ -233,7 +250,7 @@ export class RealTimePerformanceMonitor extends EventEmitter {
    */
   private addMetrics(metrics: RealTimeMetrics): void {
     this.metrics.push(metrics);
-    
+
     // Keep only recent metrics
     if (this.metrics.length > this.maxMetricsHistory) {
       this.metrics.shift();
@@ -254,7 +271,7 @@ export class RealTimePerformanceMonitor extends EventEmitter {
         value: metrics.system.cpuUsage,
         threshold: this.thresholds.cpuUsage.critical,
         message: `Critical CPU usage: ${metrics.system.cpuUsage.toFixed(1)}%`,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     } else if (metrics.system.cpuUsage > this.thresholds.cpuUsage.warning) {
       alerts.push({
@@ -263,49 +280,65 @@ export class RealTimePerformanceMonitor extends EventEmitter {
         value: metrics.system.cpuUsage,
         threshold: this.thresholds.cpuUsage.warning,
         message: `High CPU usage: ${metrics.system.cpuUsage.toFixed(1)}%`,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
 
     // Memory usage check
-    if (metrics.system.memoryUsage.percentage > this.thresholds.memoryUsage.critical) {
+    if (
+      metrics.system.memoryUsage.percentage >
+      this.thresholds.memoryUsage.critical
+    ) {
       alerts.push({
         type: 'critical',
         metric: 'memory_usage',
         value: metrics.system.memoryUsage.percentage,
         threshold: this.thresholds.memoryUsage.critical,
-        message: `Critical memory usage: ${metrics.system.memoryUsage.percentage.toFixed(1)}%`,
-        timestamp: new Date()
+        message: `Critical memory usage: ${metrics.system.memoryUsage.percentage.toFixed(
+          1
+        )}%`,
+        timestamp: new Date(),
       });
-    } else if (metrics.system.memoryUsage.percentage > this.thresholds.memoryUsage.warning) {
+    } else if (
+      metrics.system.memoryUsage.percentage >
+      this.thresholds.memoryUsage.warning
+    ) {
       alerts.push({
         type: 'warning',
         metric: 'memory_usage',
         value: metrics.system.memoryUsage.percentage,
         threshold: this.thresholds.memoryUsage.warning,
-        message: `High memory usage: ${metrics.system.memoryUsage.percentage.toFixed(1)}%`,
-        timestamp: new Date()
+        message: `High memory usage: ${metrics.system.memoryUsage.percentage.toFixed(
+          1
+        )}%`,
+        timestamp: new Date(),
       });
     }
 
     // Latency check
-    if (metrics.performance.requestLatency.p95 > this.thresholds.latencyP95.critical) {
+    if (
+      metrics.performance.requestLatency.p95 >
+      this.thresholds.latencyP95.critical
+    ) {
       alerts.push({
         type: 'critical',
         metric: 'latency_p95',
         value: metrics.performance.requestLatency.p95,
         threshold: this.thresholds.latencyP95.critical,
         message: `Critical latency: ${metrics.performance.requestLatency.p95}ms`,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
-    } else if (metrics.performance.requestLatency.p95 > this.thresholds.latencyP95.warning) {
+    } else if (
+      metrics.performance.requestLatency.p95 >
+      this.thresholds.latencyP95.warning
+    ) {
       alerts.push({
         type: 'warning',
         metric: 'latency_p95',
         value: metrics.performance.requestLatency.p95,
         threshold: this.thresholds.latencyP95.warning,
         message: `High latency: ${metrics.performance.requestLatency.p95}ms`,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
 
@@ -320,17 +353,17 @@ export class RealTimePerformanceMonitor extends EventEmitter {
    * Get CPU usage percentage
    */
   private async getCPUUsage(): Promise<number> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const startUsage = process.cpuUsage();
       const startTime = process.hrtime();
 
       setTimeout(() => {
         const endUsage = process.cpuUsage(startUsage);
         const endTime = process.hrtime(startTime);
-        
+
         const totalTime = endTime[0] * 1000000 + endTime[1] / 1000; // microseconds
         const totalUsage = endUsage.user + endUsage.system; // microseconds
-        
+
         const cpuPercent = (totalUsage / totalTime) * 100;
         resolve(Math.min(100, Math.max(0, cpuPercent)));
       }, 100);
@@ -340,7 +373,11 @@ export class RealTimePerformanceMonitor extends EventEmitter {
   /**
    * Calculate latency percentiles
    */
-  private calculateLatencyPercentiles(): { p50: number; p95: number; p99: number } {
+  private calculateLatencyPercentiles(): {
+    p50: number;
+    p95: number;
+    p99: number;
+  } {
     if (this.latencyMeasurements.length === 0) {
       return { p50: 0, p95: 0, p99: 0 };
     }
@@ -351,7 +388,7 @@ export class RealTimePerformanceMonitor extends EventEmitter {
     return {
       p50: sorted[Math.floor(len * 0.5)] || 0,
       p95: sorted[Math.floor(len * 0.95)] || 0,
-      p99: sorted[Math.floor(len * 0.99)] || 0
+      p99: sorted[Math.floor(len * 0.99)] || 0,
     };
   }
 
@@ -375,7 +412,7 @@ export class RealTimePerformanceMonitor extends EventEmitter {
         utilization: Math.random() * 100,
         memoryUsed: Math.random() * 8000, // MB
         memoryTotal: 8000, // MB
-        temperature: 60 + Math.random() * 20 // Celsius
+        temperature: 60 + Math.random() * 20, // Celsius
       };
     } catch (error) {
       // GPU monitoring not available
@@ -403,7 +440,9 @@ export class RealTimePerformanceMonitor extends EventEmitter {
   /**
    * Calculate trend from array of values
    */
-  private calculateTrend(values: number[]): 'improving' | 'stable' | 'degrading' {
+  private calculateTrend(
+    values: number[]
+  ): 'improving' | 'stable' | 'degrading' {
     if (values.length < 2) return 'stable';
 
     const recent = values.slice(-5);

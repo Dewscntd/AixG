@@ -1,11 +1,17 @@
 /**
  * Performance Interceptor
- * 
+ *
  * Intercepts requests to monitor and optimize GraphQL performance
  * Implements composition pattern for flexible performance monitoring
  */
 
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+} from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { Observable } from 'rxjs';
 import { tap, timeout, catchError } from 'rxjs/operators';
@@ -56,9 +62,18 @@ export class PerformanceInterceptor implements NestInterceptor {
     private readonly configService: ConfigService,
     private readonly metricsService: MetricsService
   ) {
-    this.requestTimeout = this.configService.get<number>('requestTimeout', 30000); // 30 seconds
-    this.slowQueryThreshold = this.configService.get<number>('slowQueryThreshold', 1000); // 1 second
-    this.memoryWarningThreshold = this.configService.get<number>('memoryWarningThreshold', 100 * 1024 * 1024); // 100MB
+    this.requestTimeout = this.configService.get<number>(
+      'requestTimeout',
+      30000
+    ); // 30 seconds
+    this.slowQueryThreshold = this.configService.get<number>(
+      'slowQueryThreshold',
+      1000
+    ); // 1 second
+    this.memoryWarningThreshold = this.configService.get<number>(
+      'memoryWarningThreshold',
+      100 * 1024 * 1024
+    ); // 100MB
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
@@ -92,14 +107,14 @@ export class PerformanceInterceptor implements NestInterceptor {
     return next.handle().pipe(
       // Add timeout protection
       timeout(this.requestTimeout),
-      
+
       // Monitor successful completion
-      tap((result) => {
+      tap(result => {
         this.recordSuccessfulCompletion(metrics, result, ctx);
       }),
-      
+
       // Monitor errors and timeouts
-      catchError((error) => {
+      catchError(error => {
         this.recordErrorCompletion(metrics, error, ctx);
         throw error;
       })
@@ -144,9 +159,13 @@ export class PerformanceInterceptor implements NestInterceptor {
     // Calculate memory delta
     metrics.memoryDelta = {
       rss: metrics.memoryUsageAfter.rss - metrics.memoryUsageBefore.rss,
-      heapUsed: metrics.memoryUsageAfter.heapUsed - metrics.memoryUsageBefore.heapUsed,
-      heapTotal: metrics.memoryUsageAfter.heapTotal - metrics.memoryUsageBefore.heapTotal,
-      external: metrics.memoryUsageAfter.external - metrics.memoryUsageBefore.external,
+      heapUsed:
+        metrics.memoryUsageAfter.heapUsed - metrics.memoryUsageBefore.heapUsed,
+      heapTotal:
+        metrics.memoryUsageAfter.heapTotal -
+        metrics.memoryUsageBefore.heapTotal,
+      external:
+        metrics.memoryUsageAfter.external - metrics.memoryUsageBefore.external,
     };
 
     // Calculate result size
@@ -182,7 +201,10 @@ export class PerformanceInterceptor implements NestInterceptor {
     }
 
     // Check for high memory usage
-    if (metrics.memoryDelta && metrics.memoryDelta.heapUsed > this.memoryWarningThreshold) {
+    if (
+      metrics.memoryDelta &&
+      metrics.memoryDelta.heapUsed > this.memoryWarningThreshold
+    ) {
       this.logger.warn('High memory usage detected', {
         ...logData,
         memoryIncrease: metrics.memoryDelta.heapUsed,
@@ -191,7 +213,11 @@ export class PerformanceInterceptor implements NestInterceptor {
     }
 
     // Check for high CPU usage
-    if (metrics.cpuUsageAfter && (metrics.cpuUsageAfter.user + metrics.cpuUsageAfter.system) > 1000000) { // 1 second
+    if (
+      metrics.cpuUsageAfter &&
+      metrics.cpuUsageAfter.user + metrics.cpuUsageAfter.system > 1000000
+    ) {
+      // 1 second
       this.logger.warn('High CPU usage detected', {
         ...logData,
         cpuTime: metrics.cpuUsageAfter.user + metrics.cpuUsageAfter.system,
@@ -199,7 +225,8 @@ export class PerformanceInterceptor implements NestInterceptor {
     }
 
     // Check for large result sets
-    if (metrics.resultSize && metrics.resultSize > 1024 * 1024) { // 1MB
+    if (metrics.resultSize && metrics.resultSize > 1024 * 1024) {
+      // 1MB
       this.logger.warn('Large result set detected', {
         ...logData,
         resultSize: metrics.resultSize,
@@ -217,7 +244,10 @@ export class PerformanceInterceptor implements NestInterceptor {
   private recordMetrics(metrics: PerformanceMetrics, success: boolean): void {
     this.metricsService.recordOperation({
       operationName: metrics.operationName,
-      operationType: metrics.operationType as 'query' | 'mutation' | 'subscription',
+      operationType: metrics.operationType as
+        | 'query'
+        | 'mutation'
+        | 'subscription',
       duration: metrics.duration || 0,
       complexity: metrics.complexity,
       depth: metrics.depth,
@@ -255,8 +285,10 @@ export class PerformanceInterceptor implements NestInterceptor {
       return false;
     }
 
-    return info.operation.selectionSet.selections.some((selection: GraphQLSelection) =>
-      selection.name?.value === '__schema' || selection.name?.value === '__type'
+    return info.operation.selectionSet.selections.some(
+      (selection: GraphQLSelection) =>
+        selection.name?.value === '__schema' ||
+        selection.name?.value === '__type'
     );
   }
 
@@ -285,10 +317,11 @@ export class PerformanceInterceptor implements NestInterceptor {
   }> {
     try {
       const systemMetrics = this.getSystemMetrics();
-      const memoryUsagePercent = (systemMetrics.memory.heapUsed / systemMetrics.memory.heapTotal) * 100;
-      
+      const memoryUsagePercent =
+        (systemMetrics.memory.heapUsed / systemMetrics.memory.heapTotal) * 100;
+
       let systemHealth: 'good' | 'warning' | 'critical' = 'good';
-      
+
       if (memoryUsagePercent > 90) {
         systemHealth = 'critical';
       } else if (memoryUsagePercent > 75) {

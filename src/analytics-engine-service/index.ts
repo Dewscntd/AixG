@@ -29,7 +29,7 @@ export {
   calculatePossessionPercentage,
   calculateBothTeamsPossession,
   calculatePossessionByPeriods,
-  PossessionCalculationFunctions
+  PossessionCalculationFunctions,
 } from './domain/services/possession-calculation.service';
 
 // Domain Value Objects & Entities
@@ -47,7 +47,7 @@ export {
   PossessionPercentage,
   PassAccuracy,
   Formation,
-  TeamAnalytics
+  TeamAnalytics,
 } from './domain/value-objects/analytics-metrics';
 
 export type {
@@ -56,17 +56,17 @@ export type {
   ShotData,
   PassData,
   FormationData,
-  TeamMetrics
+  TeamMetrics,
 } from './domain/value-objects/analytics-metrics';
 
 export type {
   // From possession calculation service
   PossessionEvent,
   PossessionSequence,
-  PossessionTransition
+  PossessionTransition,
 } from './domain/services/possession-calculation.service';
 
 export type {
   // From ML pipeline types
-  MLPipelineOutput
+  MLPipelineOutput,
 } from './domain/types/ml-pipeline.types';

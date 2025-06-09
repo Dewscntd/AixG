@@ -15,7 +15,9 @@ export class GetMatchAnalyticsQuery implements AnalyticsQuery {
     public readonly matchId: string,
     public readonly includeHistorical: boolean = false
   ) {
-    this.queryId = `get-match-analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.queryId = `get-match-analytics-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.timestamp = new Date();
   }
 }
@@ -30,7 +32,9 @@ export class GetTeamAnalyticsQuery implements AnalyticsQuery {
     public readonly toDate?: Date,
     public readonly includeOpponents: boolean = false
   ) {
-    this.queryId = `get-team-analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.queryId = `get-team-analytics-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.timestamp = new Date();
   }
 }
@@ -45,7 +49,9 @@ export class GetPlayerAnalyticsQuery implements AnalyticsQuery {
     public readonly toDate?: Date,
     public readonly metrics: string[] = ['xG', 'xA', 'passes', 'possession']
   ) {
-    this.queryId = `get-player-analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.queryId = `get-player-analytics-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.timestamp = new Date();
   }
 }
@@ -62,7 +68,9 @@ export class GetComparativeAnalyticsQuery implements AnalyticsQuery {
     public readonly toDate?: Date,
     public readonly groupBy: 'match' | 'week' | 'month' = 'match'
   ) {
-    this.queryId = `get-comparative-analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.queryId = `get-comparative-analytics-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.timestamp = new Date();
   }
 }
@@ -77,9 +85,16 @@ export class GetTimeSeriesAnalyticsQuery implements AnalyticsQuery {
     public readonly metric: string,
     public readonly fromDate: Date,
     public readonly toDate: Date,
-    public readonly interval: 'minute' | 'hour' | 'day' | 'week' | 'month' = 'day'
+    public readonly interval:
+      | 'minute'
+      | 'hour'
+      | 'day'
+      | 'week'
+      | 'month' = 'day'
   ) {
-    this.queryId = `get-timeseries-analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.queryId = `get-timeseries-analytics-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.timestamp = new Date();
   }
 }
@@ -94,7 +109,9 @@ export class GetLeagueStandingsQuery implements AnalyticsQuery {
     public readonly sortBy: 'points' | 'xG' | 'xGA' | 'xGDiff' = 'points',
     public readonly includeForm: boolean = true
   ) {
-    this.queryId = `get-league-standings-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.queryId = `get-league-standings-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.timestamp = new Date();
   }
 }
@@ -110,7 +127,9 @@ export class GetMatchPredictionQuery implements AnalyticsQuery {
     public readonly includeConfidence: boolean = true,
     public readonly historicalMatches: number = 10
   ) {
-    this.queryId = `get-match-prediction-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.queryId = `get-match-prediction-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.timestamp = new Date();
   }
 }
@@ -126,7 +145,9 @@ export class GetFormationAnalyticsQuery implements AnalyticsQuery {
     public readonly toDate?: Date,
     public readonly includePlayerPositions: boolean = false
   ) {
-    this.queryId = `get-formation-analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.queryId = `get-formation-analytics-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.timestamp = new Date();
   }
 }
@@ -140,7 +161,9 @@ export class GetLiveMatchAnalyticsQuery implements AnalyticsQuery {
     public readonly includeRealTimeUpdates: boolean = true,
     public readonly updateInterval: number = 30 // seconds
   ) {
-    this.queryId = `get-live-match-analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.queryId = `get-live-match-analytics-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.timestamp = new Date();
   }
 }
@@ -164,7 +187,9 @@ export class SearchAnalyticsQuery implements AnalyticsQuery {
     public readonly limit: number = 50,
     public readonly offset: number = 0
   ) {
-    this.queryId = `search-analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.queryId = `search-analytics-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.timestamp = new Date();
   }
 }

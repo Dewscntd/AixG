@@ -9,7 +9,10 @@ import { EventStore } from '../event-store/event-store.interface';
 
 // Database client interface for type safety
 export interface DatabaseClient {
-  query(text: string, params?: unknown[]): Promise<{ rows: unknown[]; rowCount: number }>;
+  query(
+    text: string,
+    params?: unknown[]
+  ): Promise<{ rows: unknown[]; rowCount: number }>;
   release?(): void;
 }
 
@@ -82,21 +85,23 @@ export class ProjectionManager {
 
       // Replay all events
       const events = await this.eventStore.readByEventType('*');
-      
+
       for (const event of events) {
         await this.processEvent(event, projection, client);
       }
 
       // Update projection metadata
       const lastEvent = events.length > 0 ? events[events.length - 1] : null;
-      await client.query(`
+      await client.query(
+        `
         UPDATE projection_metadata
         SET last_processed_event = $1, last_updated = NOW(), status = 'active'
         WHERE projection_name = $2
-      `, [lastEvent?.eventId || null, projectionName]);
+      `,
+        [lastEvent?.eventId || null, projectionName]
+      );
 
       await client.query('COMMIT');
-
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -217,13 +222,15 @@ export class ProjectionManager {
         CREATE INDEX IF NOT EXISTS idx_match_analytics_history_match_id 
         ON match_analytics_history(match_id);
       `);
-
     } finally {
       client.release();
     }
   }
 
-  private async startProjection(name: string, projection: ProjectionDefinition): Promise<void> {
+  private async startProjection(
+    name: string,
+    projection: ProjectionDefinition
+  ): Promise<void> {
     // Get last processed event for this projection
     const client = await this.readDb.connect();
     let lastProcessedEvent: string | null = null;
@@ -248,7 +255,11 @@ export class ProjectionManager {
     }
 
     // Subscribe to new events
-    const unsubscribe = await this.subscribeToEvents(name, projection, lastProcessedEvent);
+    const unsubscribe = await this.subscribeToEvents(
+      name,
+      projection,
+      lastProcessedEvent
+    );
     this.subscriptions.push(unsubscribe);
   }
 
@@ -259,20 +270,23 @@ export class ProjectionManager {
   ): Promise<() => void> {
     // This is a simplified subscription - in a real implementation,
     // you'd use the EventStore's subscription capabilities
-    
+
     const processNewEvent = async (event: DomainEvent) => {
       const client = await this.readDb.connect();
       try {
         await client.query('BEGIN');
-        
+
         await this.processEvent(event, projection, client);
-        
+
         // Update last processed event
-        await client.query(`
+        await client.query(
+          `
           UPDATE projection_metadata 
           SET last_processed_event = $1, last_updated = NOW()
           WHERE projection_name = $2
-        `, [event.eventId, projectionName]);
+        `,
+          [event.eventId, projectionName]
+        );
 
         await client.query('COMMIT');
 
@@ -280,26 +294,33 @@ export class ProjectionManager {
         if (projectionName === 'match_analytics') {
           await this.refreshMaterializedView('match_analytics_view');
         }
-
       } catch (error) {
         await client.query('ROLLBACK');
-        this.logger.error(`Error processing event in projection ${projectionName}:`, error);
+        this.logger.error(
+          `Error processing event in projection ${projectionName}:`,
+          error
+        );
 
         // Update projection metadata with error
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        await client.query(`
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        await client.query(
+          `
           UPDATE projection_metadata
           SET error_message = $1, status = 'error'
           WHERE projection_name = $2
-        `, [errorMessage, projectionName]);
-
+        `,
+          [errorMessage, projectionName]
+        );
       } finally {
         client.release();
       }
     };
 
     // Subscribe to all events (in a real implementation, you'd filter by event types)
-    return await this.eventStore.subscribeToAll?.(processNewEvent) || (() => {});
+    return (
+      (await this.eventStore.subscribeToAll?.(processNewEvent)) || (() => {})
+    );
   }
 
   private async processEvent(
@@ -307,13 +328,18 @@ export class ProjectionManager {
     projection: ProjectionDefinition,
     client: DatabaseClient
   ): Promise<void> {
-    const handler = projection.handlers.find(h => h.eventType === event.eventType);
+    const handler = projection.handlers.find(
+      h => h.eventType === event.eventType
+    );
     if (handler) {
       await handler.handle(event, client);
     }
   }
 
-  private async clearProjectionData(projectionName: string, client: DatabaseClient): Promise<void> {
+  private async clearProjectionData(
+    projectionName: string,
+    client: DatabaseClient
+  ): Promise<void> {
     switch (projectionName) {
       case 'match_analytics':
         await client.query('DELETE FROM match_analytics_projection');

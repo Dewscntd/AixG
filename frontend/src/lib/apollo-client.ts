@@ -1,6 +1,6 @@
 /**
  * Apollo Client Configuration
- * 
+ *
  * Implements a comprehensive GraphQL client with:
  * - HTTP and WebSocket transport
  * - Authentication handling
@@ -28,7 +28,8 @@ import { createClient } from 'graphql-ws';
 import { sha256 } from 'crypto-hash';
 
 // Environment variables
-const GRAPHQL_ENDPOINT = process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql';
+const GRAPHQL_ENDPOINT =
+  process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql';
 const WS_ENDPOINT = process.env.WS_ENDPOINT || 'ws://localhost:4000/graphql';
 
 // Authentication token management
@@ -57,33 +58,36 @@ const httpLink = createHttpLink({
 });
 
 // WebSocket Link configuration for subscriptions
-const wsLink = typeof window !== 'undefined' ? new GraphQLWsLink(
-  createClient({
-    url: WS_ENDPOINT,
-    connectionParams: () => {
-      const token = getAuthToken();
-      return token ? { authorization: `Bearer ${token}` } : {};
-    },
-    retryAttempts: 5,
-    shouldRetry: (errOrCloseEvent) => {
-      // Retry on network errors, but not on authentication errors
-      if (errOrCloseEvent instanceof CloseEvent) {
-        return errOrCloseEvent.code !== 4401; // Don't retry on auth errors
-      }
-      return true;
-    },
-    on: {
-      connected: () => console.log('WebSocket connected'),
-      closed: () => console.log('WebSocket closed'),
-      error: (error) => console.error('WebSocket error:', error),
-    },
-  })
-) : null;
+const wsLink =
+  typeof window !== 'undefined'
+    ? new GraphQLWsLink(
+        createClient({
+          url: WS_ENDPOINT,
+          connectionParams: () => {
+            const token = getAuthToken();
+            return token ? { authorization: `Bearer ${token}` } : {};
+          },
+          retryAttempts: 5,
+          shouldRetry: errOrCloseEvent => {
+            // Retry on network errors, but not on authentication errors
+            if (errOrCloseEvent instanceof CloseEvent) {
+              return errOrCloseEvent.code !== 4401; // Don't retry on auth errors
+            }
+            return true;
+          },
+          on: {
+            connected: () => console.log('WebSocket connected'),
+            closed: () => console.log('WebSocket closed'),
+            error: error => console.error('WebSocket error:', error),
+          },
+        })
+      )
+    : null;
 
 // Authentication link
 const authLink = setContext((_, { headers }) => {
   const token = getAuthToken();
-  
+
   return {
     headers: {
       ...headers,
@@ -94,56 +98,58 @@ const authLink = setContext((_, { headers }) => {
 });
 
 // Error handling link
-const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
-  // Handle GraphQL errors
-  if (graphQLErrors) {
-    graphQLErrors.forEach(({ message, locations, path, extensions }) => {
-      console.error(
-        `GraphQL error: Message: ${message}, Location: ${locations}, Path: ${path}`
-      );
+const errorLink = onError(
+  ({ graphQLErrors, networkError, operation, forward }) => {
+    // Handle GraphQL errors
+    if (graphQLErrors) {
+      graphQLErrors.forEach(({ message, locations, path, extensions }) => {
+        console.error(
+          `GraphQL error: Message: ${message}, Location: ${locations}, Path: ${path}`
+        );
 
-      // Handle authentication errors
-      if (extensions?.code === 'UNAUTHENTICATED') {
-        removeAuthToken();
-        // Redirect to login page
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login';
-        }
-      }
-
-      // Handle authorization errors
-      if (extensions?.code === 'FORBIDDEN') {
-        console.warn('Access denied to resource');
-        // Could show a toast notification here
-      }
-    });
-  }
-
-  // Handle network errors
-  if (networkError) {
-    console.error(`Network error: ${networkError}`);
-    
-    // Handle specific network error types
-    if ('statusCode' in networkError) {
-      switch (networkError.statusCode) {
-        case 401:
+        // Handle authentication errors
+        if (extensions?.code === 'UNAUTHENTICATED') {
           removeAuthToken();
+          // Redirect to login page
           if (typeof window !== 'undefined') {
             window.location.href = '/auth/login';
           }
-          break;
-        case 403:
-          console.warn('Access forbidden');
-          break;
-        case 500:
-          console.error('Server error');
-          break;
-        default:
-          console.error('Unknown network error');
+        }
+
+        // Handle authorization errors
+        if (extensions?.code === 'FORBIDDEN') {
+          console.warn('Access denied to resource');
+          // Could show a toast notification here
+        }
+      });
+    }
+
+    // Handle network errors
+    if (networkError) {
+      console.error(`Network error: ${networkError}`);
+
+      // Handle specific network error types
+      if ('statusCode' in networkError) {
+        switch (networkError.statusCode) {
+          case 401:
+            removeAuthToken();
+            if (typeof window !== 'undefined') {
+              window.location.href = '/auth/login';
+            }
+            break;
+          case 403:
+            console.warn('Access forbidden');
+            break;
+          case 500:
+            console.error('Server error');
+            break;
+          default:
+            console.error('Unknown network error');
+        }
       }
     }
   }
-});
+);
 
 // Retry link configuration
 const retryLink = new RetryLink({
@@ -288,19 +294,19 @@ export const authHelpers = {
   setToken: setAuthToken,
   getToken: getAuthToken,
   removeToken: removeAuthToken,
-  
+
   // Login helper
   async login(token: string) {
     setAuthToken(token);
     await apolloClient.resetStore(); // Clear cache and refetch queries
   },
-  
+
   // Logout helper
   async logout() {
     removeAuthToken();
     await apolloClient.clearStore(); // Clear cache without refetching
   },
-  
+
   // Check if user is authenticated
   isAuthenticated(): boolean {
     return !!getAuthToken();
@@ -318,7 +324,7 @@ export const cacheHelpers = {
     }
     apolloClient.cache.gc();
   },
-  
+
   // Update cache after mutation
   updateCache<T>(typename: string, id: string, data: Partial<T>) {
     apolloClient.cache.modify({
@@ -328,7 +334,7 @@ export const cacheHelpers = {
       },
     });
   },
-  
+
   // Read from cache
   readCache<T>(typename: string, id: string): T | null {
     return apolloClient.cache.readFragment({

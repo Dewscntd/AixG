@@ -1,13 +1,18 @@
 /**
  * Rate Limit Directive
- * 
+ *
  * GraphQL directive for field-level rate limiting
  * Implements composition pattern for flexible rate limiting strategies
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { SchemaDirectiveVisitor } from '@graphql-tools/utils';
-import { GraphQLField, GraphQLObjectType, defaultFieldResolver, GraphQLResolveInfo } from 'graphql';
+import {
+  GraphQLField,
+  GraphQLObjectType,
+  defaultFieldResolver,
+  GraphQLResolveInfo,
+} from 'graphql';
 import Redis from 'ioredis';
 import { ConfigService } from '@nestjs/config';
 import { GraphQLContext } from '../types/context';
@@ -35,15 +40,27 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
     this.redis = new Redis(redisUrl);
   }
 
-  visitFieldDefinition(field: GraphQLField<unknown, GraphQLContext>, _details: { objectType: GraphQLObjectType }) {
+  visitFieldDefinition(
+    field: GraphQLField<unknown, GraphQLContext>,
+    _details: { objectType: GraphQLObjectType }
+  ) {
     const { resolve = defaultFieldResolver } = field;
     const directiveArgs = this.args as RateLimitDirectiveArgs;
 
-    field.resolve = async function (source, args, context: GraphQLContext, info) {
+    field.resolve = async function (
+      source,
+      args,
+      context: GraphQLContext,
+      info
+    ) {
       try {
         // Generate rate limit key
-        const key = this.generateRateLimitKey(context, info, directiveArgs.keyGenerator);
-        
+        const key = this.generateRateLimitKey(
+          context,
+          info,
+          directiveArgs.keyGenerator
+        );
+
         // Check rate limit
         const isAllowed = await this.checkRateLimit(
           key,
@@ -52,9 +69,10 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
         );
 
         if (!isAllowed) {
-          const message = directiveArgs.message || 
+          const message =
+            directiveArgs.message ||
             `Rate limit exceeded. Maximum ${directiveArgs.max} requests per ${directiveArgs.window} seconds.`;
-          
+
           this.logger.warn('Rate limit exceeded', {
             key,
             max: directiveArgs.max,
@@ -79,7 +97,11 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
       } catch (error) {
         // Update rate limit counter (only for failed requests if configured)
         if (!directiveArgs.skipFailedRequests) {
-          const key = this.generateRateLimitKey(context, info, directiveArgs.keyGenerator);
+          const key = this.generateRateLimitKey(
+            context,
+            info,
+            directiveArgs.keyGenerator
+          );
           await this.incrementRateLimit(key, directiveArgs.window);
         }
 
@@ -97,24 +119,26 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
     keyGenerator: string = 'user'
   ): string {
     const field = `${info.parentType.name}.${info.fieldName}`;
-    
+
     switch (keyGenerator) {
       case 'user':
         return `rate_limit:user:${context.user?.id || 'anonymous'}`;
-      
+
       case 'ip': {
         const ip = this.getClientIP(context);
         return `rate_limit:ip:${ip}`;
       }
 
       case 'user_and_field':
-        return `rate_limit:user_field:${context.user?.id || 'anonymous'}:${field}`;
+        return `rate_limit:user_field:${
+          context.user?.id || 'anonymous'
+        }:${field}`;
 
       case 'ip_and_field': {
         const clientIP = this.getClientIP(context);
         return `rate_limit:ip_field:${clientIP}:${field}`;
       }
-      
+
       default:
         return `rate_limit:user:${context.user?.id || 'anonymous'}`;
     }
@@ -123,11 +147,15 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
   /**
    * Checks if the request is within rate limit
    */
-  private async checkRateLimit(key: string, max: number, _windowSeconds: number): Promise<boolean> {
+  private async checkRateLimit(
+    key: string,
+    max: number,
+    _windowSeconds: number
+  ): Promise<boolean> {
     try {
       const current = await this.redis.get(key);
       const currentCount = current ? parseInt(current, 10) : 0;
-      
+
       return currentCount < max;
     } catch (error) {
       this.logger.error(`Failed to check rate limit for key ${key}:`, error);
@@ -139,14 +167,20 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
   /**
    * Increments the rate limit counter
    */
-  private async incrementRateLimit(key: string, windowSeconds: number): Promise<void> {
+  private async incrementRateLimit(
+    key: string,
+    windowSeconds: number
+  ): Promise<void> {
     try {
       const pipeline = this.redis.pipeline();
       pipeline.incr(key);
       pipeline.expire(key, windowSeconds);
       await pipeline.exec();
     } catch (error) {
-      this.logger.error(`Failed to increment rate limit for key ${key}:`, error);
+      this.logger.error(
+        `Failed to increment rate limit for key ${key}:`,
+        error
+      );
     }
   }
 

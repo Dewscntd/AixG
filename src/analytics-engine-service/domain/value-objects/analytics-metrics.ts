@@ -150,11 +150,15 @@ export class PassAccuracy {
   }
 
   equals(other: PassAccuracy): boolean {
-    return this._successful === other._successful && this._total === other._total;
+    return (
+      this._successful === other._successful && this._total === other._total
+    );
   }
 
   toString(): string {
-    return `${this._successful}/${this._total} (${this.percentage.toFixed(1)}%)`;
+    return `${this._successful}/${this._total} (${this.percentage.toFixed(
+      1
+    )}%)`;
   }
 
   static empty(): PassAccuracy {
@@ -264,28 +268,30 @@ export class TeamAnalytics {
   updateXG(newXG: XGValue): TeamAnalytics {
     return new TeamAnalytics({
       ...this._metrics,
-      xG: newXG
+      xG: newXG,
     });
   }
 
   updatePossession(newPossession: PossessionPercentage): TeamAnalytics {
     return new TeamAnalytics({
       ...this._metrics,
-      possession: newPossession
+      possession: newPossession,
     });
   }
 
   updateFormation(newFormation: Formation): TeamAnalytics {
     return new TeamAnalytics({
       ...this._metrics,
-      formation: newFormation
+      formation: newFormation,
     });
   }
 
   equals(other: TeamAnalytics): boolean {
-    return this._metrics.teamId === other._metrics.teamId &&
-           this._metrics.xG.equals(other._metrics.xG) &&
-           this._metrics.possession.equals(other._metrics.possession);
+    return (
+      this._metrics.teamId === other._metrics.teamId &&
+      this._metrics.xG.equals(other._metrics.xG) &&
+      this._metrics.possession.equals(other._metrics.possession)
+    );
   }
 
   static empty(teamId: string): TeamAnalytics {
@@ -301,7 +307,7 @@ export class TeamAnalytics {
       fouls: 0,
       yellowCards: 0,
       redCards: 0,
-      formation: null
+      formation: null,
     });
   }
 }

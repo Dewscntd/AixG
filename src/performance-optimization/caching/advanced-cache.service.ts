@@ -57,14 +57,14 @@ export class AdvancedCacheService {
       max: config.l1MaxSize,
       ttl: config.l1TTL,
       updateAgeOnGet: true,
-      allowStale: false
+      allowStale: false,
     });
 
     // Initialize L2 cache (Redis)
     this.redis = new Redis(redisUrl, {
       retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
-      lazyConnect: true
+      lazyConnect: true,
     });
 
     // Initialize metrics
@@ -75,7 +75,7 @@ export class AdvancedCacheService {
       l2Misses: 0,
       compressionRatio: 0,
       averageResponseTime: 0,
-      totalRequests: 0
+      totalRequests: 0,
     };
 
     // Setup cache warming if enabled
@@ -108,13 +108,13 @@ export class AdvancedCacheService {
       const l2Data = await this.redis.get(key);
       if (l2Data) {
         this.metrics.l2Hits++;
-        
+
         const entry: CacheEntry = JSON.parse(l2Data);
         const value = await this.deserializeValue(entry);
-        
+
         // Promote to L1 cache
         this.l1Cache.set(key, entry);
-        
+
         this.updateResponseTime(startTime);
         return value;
       }
@@ -122,7 +122,6 @@ export class AdvancedCacheService {
       this.metrics.l2Misses++;
       this.updateResponseTime(startTime);
       return null;
-
     } catch (error) {
       this.logger.error(`Cache get error for key ${key}: ${error.message}`);
       return null;
@@ -133,27 +132,30 @@ export class AdvancedCacheService {
    * Set value in cache with compression and tagging
    */
   async set<T>(
-    key: string, 
-    value: T, 
+    key: string,
+    value: T,
     ttl: number = this.config.l2TTL,
     tags: string[] = []
   ): Promise<void> {
     try {
       const serialized = JSON.stringify(value);
       const size = Buffer.byteLength(serialized, 'utf8');
-      
+
       let finalValue = serialized;
       let compressed = false;
 
       // Apply compression if enabled and value is large enough
-      if (this.config.enableCompression && size > this.config.compressionThreshold) {
+      if (
+        this.config.enableCompression &&
+        size > this.config.compressionThreshold
+      ) {
         const compressedBuffer = await gzip(serialized);
         finalValue = compressedBuffer.toString('base64');
         compressed = true;
-        
+
         // Update compression ratio metric
         const compressionRatio = compressedBuffer.length / size;
-        this.metrics.compressionRatio = 
+        this.metrics.compressionRatio =
           (this.metrics.compressionRatio + compressionRatio) / 2;
       }
 
@@ -163,7 +165,7 @@ export class AdvancedCacheService {
         timestamp: Date.now(),
         ttl,
         tags,
-        size
+        size,
       };
 
       // Store in L1 cache
@@ -175,8 +177,9 @@ export class AdvancedCacheService {
       // Update tag index
       this.updateTagIndex(key, tags);
 
-      this.logger.debug(`Cached key ${key} (${size} bytes, compressed: ${compressed})`);
-
+      this.logger.debug(
+        `Cached key ${key} (${size} bytes, compressed: ${compressed})`
+      );
     } catch (error) {
       this.logger.error(`Cache set error for key ${key}: ${error.message}`);
     }
@@ -197,7 +200,6 @@ export class AdvancedCacheService {
       this.removeFromTagIndex(key);
 
       this.logger.debug(`Deleted key ${key} from cache`);
-
     } catch (error) {
       this.logger.error(`Cache delete error for key ${key}: ${error.message}`);
     }
@@ -219,27 +221,41 @@ export class AdvancedCacheService {
       }
 
       // Delete all found keys
-      const deletePromises = Array.from(keysToInvalidate).map(key => this.delete(key));
+      const deletePromises = Array.from(keysToInvalidate).map(key =>
+        this.delete(key)
+      );
       await Promise.all(deletePromises);
 
-      this.logger.log(`Invalidated ${keysToInvalidate.size} keys by tags: ${tags.join(', ')}`);
-
+      this.logger.log(
+        `Invalidated ${keysToInvalidate.size} keys by tags: ${tags.join(', ')}`
+      );
     } catch (error) {
-      this.logger.error(`Cache invalidation error for tags ${tags}: ${error.message}`);
+      this.logger.error(
+        `Cache invalidation error for tags ${tags}: ${error.message}`
+      );
     }
   }
 
   /**
    * Warm cache with predefined queries
    */
-  async warmCache(warmupData: Array<{ key: string; value: any; ttl?: number; tags?: string[] }>): Promise<void> {
+  async warmCache(
+    warmupData: Array<{
+      key: string;
+      value: any;
+      ttl?: number;
+      tags?: string[];
+    }>
+  ): Promise<void> {
     this.logger.log(`Starting cache warming with ${warmupData.length} entries`);
 
     const warmupPromises = warmupData.map(async ({ key, value, ttl, tags }) => {
       try {
         await this.set(key, value, ttl, tags);
       } catch (error) {
-        this.logger.warn(`Failed to warm cache for key ${key}: ${error.message}`);
+        this.logger.warn(
+          `Failed to warm cache for key ${key}: ${error.message}`
+        );
       }
     });
 
@@ -265,7 +281,7 @@ export class AdvancedCacheService {
       l1Size: this.l1Cache.size,
       l1MaxSize: this.config.l1MaxSize,
       l2ConnectionStatus: this.redis.status,
-      hitRatio
+      hitRatio,
     };
   }
 
@@ -291,11 +307,10 @@ export class AdvancedCacheService {
         l2Misses: 0,
         compressionRatio: 0,
         averageResponseTime: 0,
-        totalRequests: 0
+        totalRequests: 0,
       });
 
       this.logger.log('All cache layers cleared');
-
     } catch (error) {
       this.logger.error(`Cache clear error: ${error.message}`);
     }
@@ -334,7 +349,7 @@ export class AdvancedCacheService {
       l1SizeBytes,
       l2SizeBytes,
       totalKeys,
-      compressionSavings
+      compressionSavings,
     };
   }
 
@@ -382,7 +397,7 @@ export class AdvancedCacheService {
    */
   private updateResponseTime(startTime: number): void {
     const responseTime = Date.now() - startTime;
-    this.metrics.averageResponseTime = 
+    this.metrics.averageResponseTime =
       (this.metrics.averageResponseTime + responseTime) / 2;
   }
 
@@ -418,11 +433,10 @@ export class AdvancedCacheService {
         key: `warmup:${query}`,
         value: { query, result: 'warmed_data', timestamp: Date.now() },
         ttl: 3600, // 1 hour
-        tags: ['warmup']
+        tags: ['warmup'],
       }));
 
       await this.warmCache(warmupData);
-
     } catch (error) {
       this.logger.error(`Cache warming failed: ${error.message}`);
     }
@@ -465,7 +479,7 @@ export class AdvancedCacheService {
       l1Status: 'ready',
       l2Status: this.redis.status,
       hitRatio: metrics.hitRatio,
-      issues
+      issues,
     };
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Virtual List Component
- * 
+ *
  * High-performance virtual scrolling implementation for large datasets with:
  * - Dynamic item heights
  * - Smooth scrolling
@@ -48,20 +48,20 @@ export interface VirtualListProps<T extends VirtualListItem> {
   width?: number;
   overscan?: number;
   direction?: 'ltr' | 'rtl';
-  
+
   // Infinite loading
   hasNextPage?: boolean;
   isNextPageLoading?: boolean;
   loadNextPage?: () => Promise<void>;
-  
+
   // Performance
   useIsScrolling?: boolean;
   trackPerformance?: boolean;
-  
+
   // Accessibility
   role?: string;
   ariaLabel?: string;
-  
+
   // Callbacks
   onScroll?: (props: {
     scrollDirection: 'forward' | 'backward';
@@ -78,14 +78,20 @@ export interface VirtualListProps<T extends VirtualListItem> {
 
 export interface VirtualListRef {
   scrollTo: (offset: number) => void;
-  scrollToItem: (index: number, align?: 'auto' | 'smart' | 'center' | 'end' | 'start') => void;
+  scrollToItem: (
+    index: number,
+    align?: 'auto' | 'smart' | 'center' | 'end' | 'start'
+  ) => void;
   resetAfterIndex: (index: number, shouldForceUpdate?: boolean) => void;
 }
 
 /**
  * Virtual List Component with dynamic heights
  */
-export const VirtualList = forwardRef<VirtualListRef, VirtualListProps<VirtualListItem>>(
+export const VirtualList = forwardRef<
+  VirtualListRef,
+  VirtualListProps<VirtualListItem>
+>(
   <T extends VirtualListItem>(
     {
       items,
@@ -110,7 +116,7 @@ export const VirtualList = forwardRef<VirtualListRef, VirtualListProps<VirtualLi
   ) => {
     const listRef = useRef<any>(null);
     const performanceMonitor = usePerformanceMonitor('virtual-list');
-    
+
     // Track performance metrics
     useEffect(() => {
       if (trackPerformance) {
@@ -188,19 +194,23 @@ export const VirtualList = forwardRef<VirtualListRef, VirtualListProps<VirtualLi
     );
 
     // Expose methods via ref
-    useImperativeHandle(ref, () => ({
-      scrollTo: (offset: number) => {
-        listRef.current?.scrollTo(offset);
-      },
-      scrollToItem: (index: number, align = 'auto') => {
-        listRef.current?.scrollToItem(index, align);
-      },
-      resetAfterIndex: (index: number, shouldForceUpdate = true) => {
-        if (isVariableSize) {
-          listRef.current?.resetAfterIndex(index, shouldForceUpdate);
-        }
-      },
-    }), [isVariableSize]);
+    useImperativeHandle(
+      ref,
+      () => ({
+        scrollTo: (offset: number) => {
+          listRef.current?.scrollTo(offset);
+        },
+        scrollToItem: (index: number, align = 'auto') => {
+          listRef.current?.scrollToItem(index, align);
+        },
+        resetAfterIndex: (index: number, shouldForceUpdate = true) => {
+          if (isVariableSize) {
+            listRef.current?.resetAfterIndex(index, shouldForceUpdate);
+          }
+        },
+      }),
+      [isVariableSize]
+    );
 
     // Memoized list component
     const ListComponent = useMemo(() => {
@@ -218,20 +228,14 @@ export const VirtualList = forwardRef<VirtualListRef, VirtualListProps<VirtualLi
 
       if (isVariableSize) {
         return (
-          <VariableSizeList
-            {...commonProps}
-            itemSize={getItemSize}
-          >
+          <VariableSizeList {...commonProps} itemSize={getItemSize}>
             {enhancedRenderItem}
           </VariableSizeList>
         );
       }
 
       return (
-        <List
-          {...commonProps}
-          itemSize={itemHeight as number}
-        >
+        <List {...commonProps} itemSize={itemHeight as number}>
           {enhancedRenderItem}
         </List>
       );
@@ -339,7 +343,7 @@ export const MatchEventList: React.FC<MatchEventListProps> = ({
         onClick={() => onEventClick?.(data)}
         role="listitem"
         tabIndex={0}
-        onKeyDown={(e) => {
+        onKeyDown={e => {
           if (e.key === 'Enter' || e.key === ' ') {
             onEventClick?.(data);
           }
@@ -353,7 +357,8 @@ export const MatchEventList: React.FC<MatchEventListProps> = ({
             {data.description}
           </p>
           <p className="text-xs text-muted-foreground">
-            {Math.floor(data.timestamp / 60)}:{(data.timestamp % 60).toString().padStart(2, '0')}
+            {Math.floor(data.timestamp / 60)}:
+            {(data.timestamp % 60).toString().padStart(2, '0')}
           </p>
         </div>
         <div className="flex-shrink-0">

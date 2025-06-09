@@ -49,24 +49,19 @@ import configuration from './config/configuration';
     }),
   ],
 
-  controllers: [
-    RealTimeAnalysisController,
-  ],
+  controllers: [RealTimeAnalysisController],
 
   providers: [
     // Application Services
     RealTimeAnalysisService,
-    
+
     // Infrastructure Services
     EventStreamService,
-    
+
     // WebSocket Gateways
     RealTimeAnalysisGateway,
   ],
 
-  exports: [
-    RealTimeAnalysisService,
-    EventStreamService,
-  ],
+  exports: [RealTimeAnalysisService, EventStreamService],
 })
 export class RealTimeAnalysisModule {}

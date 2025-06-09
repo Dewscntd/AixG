@@ -14,7 +14,12 @@ export interface ShotData {
   position: Position;
   targetPosition: Position;
   bodyPart: 'foot' | 'head' | 'other';
-  situation: 'open_play' | 'corner' | 'free_kick' | 'penalty' | 'counter_attack';
+  situation:
+    | 'open_play'
+    | 'corner'
+    | 'free_kick'
+    | 'penalty'
+    | 'counter_attack';
   defenderCount: number;
   distanceToGoal?: number;
   angle?: number;
@@ -25,13 +30,25 @@ export interface PossessionSequence {
   startTime: number;
   endTime: number;
   events: PossessionEvent[];
-  endReason: 'lost_ball' | 'shot' | 'foul' | 'out_of_bounds' | 'half_time' | 'full_time';
+  endReason:
+    | 'lost_ball'
+    | 'shot'
+    | 'foul'
+    | 'out_of_bounds'
+    | 'half_time'
+    | 'full_time';
 }
 
 export interface PossessionEvent {
   timestamp: number;
   playerId: string;
-  eventType: 'pass' | 'dribble' | 'shot' | 'tackle' | 'interception' | 'clearance';
+  eventType:
+    | 'pass'
+    | 'dribble'
+    | 'shot'
+    | 'tackle'
+    | 'interception'
+    | 'clearance';
   position: Position;
   successful: boolean;
   duration?: number;

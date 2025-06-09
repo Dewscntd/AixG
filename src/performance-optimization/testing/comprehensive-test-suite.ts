@@ -18,11 +18,11 @@ export const FootAnalyticsComprehensiveTestSuite: PerformanceTestSuite = {
         duration: 60,
         pipelining: 2,
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-token'
+          Authorization: 'Bearer test-token',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           query: `
             query GetMatchAnalytics($matchId: ID!) {
               match(id: $matchId) {
@@ -39,14 +39,14 @@ export const FootAnalyticsComprehensiveTestSuite: PerformanceTestSuite = {
               }
             }
           `,
-          variables: { matchId: "test-match-123" }
-        })
+          variables: { matchId: 'test-match-123' },
+        }),
       },
       expectedMetrics: {
         maxLatencyP95: 200,
         minThroughput: 800,
-        maxErrorRate: 0.5
-      }
+        maxErrorRate: 0.5,
+      },
     },
     {
       name: 'Video Upload Endpoint Performance',
@@ -57,14 +57,14 @@ export const FootAnalyticsComprehensiveTestSuite: PerformanceTestSuite = {
         pipelining: 1,
         method: 'POST',
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+        },
       },
       expectedMetrics: {
         maxLatencyP95: 2000,
         minThroughput: 25,
-        maxErrorRate: 1
-      }
+        maxErrorRate: 1,
+      },
     },
     {
       name: 'Real-time Analysis WebSocket',
@@ -72,13 +72,13 @@ export const FootAnalyticsComprehensiveTestSuite: PerformanceTestSuite = {
         url: 'ws://localhost:3003/real-time-analysis',
         connections: 500,
         duration: 60,
-        pipelining: 1
+        pipelining: 1,
       },
       expectedMetrics: {
         maxLatencyP95: 100,
         minThroughput: 2000,
-        maxErrorRate: 0.2
-      }
+        maxErrorRate: 0.2,
+      },
     },
     {
       name: 'ML Pipeline Processing',
@@ -89,19 +89,19 @@ export const FootAnalyticsComprehensiveTestSuite: PerformanceTestSuite = {
         pipelining: 1,
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           videoId: 'test-video-123',
           analysisType: 'full',
-          priority: 'high'
-        })
+          priority: 'high',
+        }),
       },
       expectedMetrics: {
         maxLatencyP95: 5000,
         minThroughput: 10,
-        maxErrorRate: 2
-      }
+        maxErrorRate: 2,
+      },
     },
     {
       name: 'Database Query Performance',
@@ -112,22 +112,22 @@ export const FootAnalyticsComprehensiveTestSuite: PerformanceTestSuite = {
         pipelining: 2,
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query: 'complex-analytics-query',
           filters: {
             dateRange: '2024-01-01:2024-12-31',
             teams: ['team1', 'team2'],
-            metrics: ['xG', 'possession', 'passAccuracy']
-          }
-        })
+            metrics: ['xG', 'possession', 'passAccuracy'],
+          },
+        }),
       },
       expectedMetrics: {
         maxLatencyP95: 150,
         minThroughput: 500,
-        maxErrorRate: 0.5
-      }
+        maxErrorRate: 0.5,
+      },
     },
     {
       name: 'Cache Performance Test',
@@ -136,13 +136,13 @@ export const FootAnalyticsComprehensiveTestSuite: PerformanceTestSuite = {
         connections: 300,
         duration: 45,
         pipelining: 3,
-        method: 'GET'
+        method: 'GET',
       },
       expectedMetrics: {
         maxLatencyP95: 50,
         minThroughput: 1500,
-        maxErrorRate: 0.1
-      }
+        maxErrorRate: 0.1,
+      },
     },
     {
       name: 'CDN Asset Delivery',
@@ -151,15 +151,15 @@ export const FootAnalyticsComprehensiveTestSuite: PerformanceTestSuite = {
         connections: 200,
         duration: 30,
         pipelining: 4,
-        method: 'GET'
+        method: 'GET',
       },
       expectedMetrics: {
         maxLatencyP95: 100,
         minThroughput: 1000,
-        maxErrorRate: 0.2
-      }
-    }
-  ]
+        maxErrorRate: 0.2,
+      },
+    },
+  ],
 };
 
 /**
@@ -173,18 +173,18 @@ export const BenchmarkConfigurations: Record<string, BenchmarkConfig> = {
     warmupIterations: 100,
     timeout: 30000,
     parallel: true,
-    maxConcurrency: 50
+    maxConcurrency: 50,
   },
-  
+
   'database-query-performance': {
     name: 'Database Query Performance',
     description: 'Benchmarks database query execution times',
     iterations: 500,
     warmupIterations: 50,
     timeout: 10000,
-    parallel: false
+    parallel: false,
   },
-  
+
   'ml-inference-speed': {
     name: 'ML Inference Speed',
     description: 'Measures ML model inference performance',
@@ -192,9 +192,9 @@ export const BenchmarkConfigurations: Record<string, BenchmarkConfig> = {
     warmupIterations: 20,
     timeout: 60000,
     parallel: true,
-    maxConcurrency: 10
+    maxConcurrency: 10,
   },
-  
+
   'cache-operations': {
     name: 'Cache Operations Performance',
     description: 'Benchmarks cache read/write operations',
@@ -202,9 +202,9 @@ export const BenchmarkConfigurations: Record<string, BenchmarkConfig> = {
     warmupIterations: 200,
     timeout: 5000,
     parallel: true,
-    maxConcurrency: 100
+    maxConcurrency: 100,
   },
-  
+
   'video-processing': {
     name: 'Video Processing Pipeline',
     description: 'Measures video processing and transcoding performance',
@@ -212,18 +212,18 @@ export const BenchmarkConfigurations: Record<string, BenchmarkConfig> = {
     warmupIterations: 5,
     timeout: 300000,
     parallel: true,
-    maxConcurrency: 5
+    maxConcurrency: 5,
   },
-  
+
   'memory-allocation': {
     name: 'Memory Allocation Performance',
     description: 'Benchmarks memory allocation and garbage collection',
     iterations: 1000,
     warmupIterations: 100,
     timeout: 10000,
-    parallel: false
+    parallel: false,
   },
-  
+
   'gpu-utilization': {
     name: 'GPU Utilization Benchmark',
     description: 'Measures GPU compute and memory utilization',
@@ -231,8 +231,8 @@ export const BenchmarkConfigurations: Record<string, BenchmarkConfig> = {
     warmupIterations: 10,
     timeout: 120000,
     parallel: true,
-    maxConcurrency: 4
-  }
+    maxConcurrency: 4,
+  },
 };
 
 /**
@@ -248,12 +248,12 @@ export const StressTestConfigurations = {
       pipelining: 1,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: '{ healthCheck { status } }' })
+      body: JSON.stringify({ query: '{ healthCheck { status } }' }),
     },
     maxConnections: 10000,
-    incrementStep: 100
+    incrementStep: 100,
   },
-  
+
   'memory-pressure': {
     name: 'Memory Pressure Test',
     baseConfig: {
@@ -261,12 +261,12 @@ export const StressTestConfigurations = {
       connections: 50,
       duration: 300,
       pipelining: 1,
-      method: 'POST'
+      method: 'POST',
     },
     maxConnections: 1000,
-    incrementStep: 25
+    incrementStep: 25,
   },
-  
+
   'cpu-intensive': {
     name: 'CPU Intensive Operations',
     baseConfig: {
@@ -274,11 +274,11 @@ export const StressTestConfigurations = {
       connections: 20,
       duration: 180,
       pipelining: 1,
-      method: 'POST'
+      method: 'POST',
     },
     maxConnections: 200,
-    incrementStep: 10
-  }
+    incrementStep: 10,
+  },
 };
 
 /**
@@ -294,11 +294,11 @@ export const EnduranceTestConfigurations = {
       pipelining: 1,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: '{ healthCheck { status } }' })
+      body: JSON.stringify({ query: '{ healthCheck { status } }' }),
     },
-    durationMinutes: 1440 // 24 hours
+    durationMinutes: 1440, // 24 hours
   },
-  
+
   'memory-leak-detection': {
     name: 'Memory Leak Detection Test',
     config: {
@@ -306,11 +306,11 @@ export const EnduranceTestConfigurations = {
       connections: 50,
       duration: 60,
       pipelining: 1,
-      method: 'GET'
+      method: 'GET',
     },
-    durationMinutes: 480 // 8 hours
+    durationMinutes: 480, // 8 hours
   },
-  
+
   'performance-degradation': {
     name: 'Performance Degradation Test',
     config: {
@@ -320,12 +320,12 @@ export const EnduranceTestConfigurations = {
       pipelining: 2,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        query: '{ matches { id analytics { xG possession } } }' 
-      })
+      body: JSON.stringify({
+        query: '{ matches { id analytics { xG possession } } }',
+      }),
     },
-    durationMinutes: 720 // 12 hours
-  }
+    durationMinutes: 720, // 12 hours
+  },
 };
 
 /**
@@ -337,22 +337,22 @@ export const PerformanceThresholds = {
     minThroughput: 100,
     maxErrorRate: 5,
     maxMemoryUsage: 90,
-    maxCpuUsage: 90
+    maxCpuUsage: 90,
   },
-  
+
   staging: {
     maxLatencyP95: 300,
     minThroughput: 300,
     maxErrorRate: 2,
     maxMemoryUsage: 80,
-    maxCpuUsage: 80
+    maxCpuUsage: 80,
   },
-  
+
   production: {
     maxLatencyP95: 200,
     minThroughput: 500,
     maxErrorRate: 1,
     maxMemoryUsage: 70,
-    maxCpuUsage: 70
-  }
+    maxCpuUsage: 70,
+  },
 };

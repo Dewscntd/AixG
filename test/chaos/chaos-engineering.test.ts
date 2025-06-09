@@ -21,7 +21,7 @@ describe('Chaos Engineering Tests', () => {
       .withEnvironment({
         POSTGRES_DB: 'footanalytics_chaos',
         POSTGRES_USER: 'test',
-        POSTGRES_PASSWORD: 'test'
+        POSTGRES_PASSWORD: 'test',
       })
       .withExposedPorts(5432)
       .start();
@@ -58,7 +58,7 @@ describe('Chaos Engineering Tests', () => {
           id: TestDataFactory.createMatchId(),
           homeTeamId: TestDataFactory.createTeamId(),
           awayTeamId: TestDataFactory.createTeamId(),
-          startTime: new Date().toISOString()
+          startTime: new Date().toISOString(),
         })
         .expect(503); // Service Unavailable
 
@@ -70,7 +70,7 @@ describe('Chaos Engineering Tests', () => {
         .withEnvironment({
           POSTGRES_DB: 'footanalytics_chaos',
           POSTGRES_USER: 'test',
-          POSTGRES_PASSWORD: 'test'
+          POSTGRES_PASSWORD: 'test',
         })
         .withExposedPorts(5432)
         .start();
@@ -79,9 +79,7 @@ describe('Chaos Engineering Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 5000));
 
       // Verify service recovery
-      const recoveryResponse = await request
-        .get('/health')
-        .expect(200);
+      const recoveryResponse = await request.get('/health').expect(200);
 
       expect(recoveryResponse.body.database).toBe('healthy');
     });
@@ -103,18 +101,16 @@ describe('Chaos Engineering Tests', () => {
     it('should handle database connection pool exhaustion', async () => {
       // Create multiple concurrent requests to exhaust connection pool
       const concurrentRequests = Array.from({ length: 50 }, () =>
-        request
-          .post('/api/matches')
-          .send({
-            id: TestDataFactory.createMatchId(),
-            homeTeamId: TestDataFactory.createTeamId(),
-            awayTeamId: TestDataFactory.createTeamId(),
-            startTime: new Date().toISOString()
-          })
+        request.post('/api/matches').send({
+          id: TestDataFactory.createMatchId(),
+          homeTeamId: TestDataFactory.createTeamId(),
+          awayTeamId: TestDataFactory.createTeamId(),
+          startTime: new Date().toISOString(),
+        })
       );
 
       const responses = await Promise.allSettled(concurrentRequests);
-      
+
       // Some requests should succeed, others should be rate limited
       const successful = responses.filter(r => r.status === 'fulfilled').length;
       const failed = responses.filter(r => r.status === 'rejected').length;
@@ -206,8 +202,7 @@ describe('Chaos Engineering Tests', () => {
     it('should handle sudden traffic spikes', async () => {
       // Generate sudden spike in traffic
       const spikeRequests = Array.from({ length: 100 }, () =>
-        request
-          .get('/api/analytics/match/popular-match-id')
+        request.get('/api/analytics/match/popular-match-id')
       );
 
       const startTime = Date.now();
@@ -232,10 +227,10 @@ describe('Chaos Engineering Tests', () => {
       );
 
       const responses = await Promise.allSettled(extremeRequests);
-      
+
       // Should have rate limiting responses
-      const rateLimited = responses.filter(r => 
-        r.status === 'fulfilled' && r.value.status === 429
+      const rateLimited = responses.filter(
+        r => r.status === 'fulfilled' && r.value.status === 429
       ).length;
 
       expect(rateLimited).toBeGreaterThan(0);
@@ -245,7 +240,7 @@ describe('Chaos Engineering Tests', () => {
   describe('Data Corruption Scenarios', () => {
     it('should handle corrupted video files gracefully', async () => {
       const corruptedVideoData = Buffer.from('corrupted video data');
-      
+
       const response = await request
         .post('/api/videos/upload')
         .attach('video', corruptedVideoData, 'corrupted.mp4')
@@ -266,10 +261,10 @@ describe('Chaos Engineering Tests', () => {
               // Malicious data injection attempt
               teamId: "'; DROP TABLE matches; --",
               xG: 'NaN',
-              position: { x: 'invalid', y: null }
-            }
-          ]
-        }
+              position: { x: 'invalid', y: null },
+            },
+          ],
+        },
       };
 
       const response = await request
@@ -292,14 +287,14 @@ describe('Chaos Engineering Tests', () => {
             teamId: TestDataFactory.createTeamId(),
             playerId: TestDataFactory.createPlayerId(),
             position: { x: Math.random() * 100, y: Math.random() * 100 },
-            xG: Math.random()
+            xG: Math.random(),
           })),
           possessionEvents: Array.from({ length: 50000 }, () => ({
             timestamp: Date.now(),
             teamId: TestDataFactory.createTeamId(),
-            eventType: 'pass'
-          }))
-        }
+            eventType: 'pass',
+          })),
+        },
       };
 
       const response = await request
@@ -308,7 +303,7 @@ describe('Chaos Engineering Tests', () => {
 
       // Should either process successfully or reject gracefully
       expect([200, 202, 413]).toContain(response.status);
-      
+
       if (response.status === 413) {
         expect(response.body.error).toContain('Payload too large');
       }
@@ -321,7 +316,7 @@ describe('Chaos Engineering Tests', () => {
         recalculateAll: true,
         includeAdvancedMetrics: true,
         includePlayerHeatmaps: true,
-        includeFormationAnalysis: true
+        includeFormationAnalysis: true,
       };
 
       const startTime = Date.now();
@@ -333,7 +328,7 @@ describe('Chaos Engineering Tests', () => {
 
       // Should complete within reasonable time or be queued
       expect([200, 202]).toContain(response.status);
-      
+
       if (response.status === 202) {
         expect(response.body.estimatedCompletion).toBeDefined();
       } else {
@@ -346,16 +341,14 @@ describe('Chaos Engineering Tests', () => {
     it('should handle DDoS attacks', async () => {
       // Simulate DDoS attack with rapid requests
       const ddosRequests = Array.from({ length: 500 }, () =>
-        request
-          .get('/api/health')
-          .set('User-Agent', 'AttackBot/1.0')
+        request.get('/api/health').set('User-Agent', 'AttackBot/1.0')
       );
 
       const responses = await Promise.allSettled(ddosRequests);
-      
+
       // Should implement DDoS protection
-      const blocked = responses.filter(r => 
-        r.status === 'fulfilled' && r.value.status === 429
+      const blocked = responses.filter(
+        r => r.status === 'fulfilled' && r.value.status === 429
       ).length;
 
       expect(blocked).toBeGreaterThan(400); // Most should be blocked
@@ -365,30 +358,30 @@ describe('Chaos Engineering Tests', () => {
       const malformedRequests = [
         // Invalid JSON
         request.post('/api/matches').send('invalid json'),
-        
+
         // Missing required fields
         request.post('/api/matches').send({}),
-        
+
         // Invalid data types
         request.post('/api/matches').send({
           id: 123, // Should be string
           homeTeamId: null,
-          startTime: 'invalid date'
+          startTime: 'invalid date',
         }),
-        
+
         // SQL injection attempt
         request.get("/api/analytics/match/'; DROP TABLE matches; --"),
-        
+
         // XSS attempt
         request.post('/api/matches').send({
           id: '<script>alert("xss")</script>',
           homeTeamId: 'team-1',
-          awayTeamId: 'team-2'
-        })
+          awayTeamId: 'team-2',
+        }),
       ];
 
       const responses = await Promise.allSettled(malformedRequests);
-      
+
       // All should be rejected with appropriate error codes
       responses.forEach(response => {
         if (response.status === 'fulfilled') {
@@ -412,7 +405,9 @@ async function fillRedisMemory() {
 
 async function simulateNetworkPartition(service1: string, service2: string) {
   // Implementation would block network communication between services
-  console.log(`Simulating network partition between ${service1} and ${service2}`);
+  console.log(
+    `Simulating network partition between ${service1} and ${service2}`
+  );
 }
 
 async function simulateExternalServiceFailure(serviceName: string) {

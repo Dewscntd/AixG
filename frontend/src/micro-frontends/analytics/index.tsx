@@ -1,6 +1,6 @@
 /**
  * Analytics Micro-Frontend
- * 
+ *
  * Self-contained analytics module implementing:
  * - Module Federation compatibility
  * - Independent state management
@@ -21,7 +21,9 @@ import { AnalyticsLoadingSpinner } from './components/analytics-loading-spinner'
 import { withCommonEnhancements } from '@/components/hoc';
 
 // Lazy-loaded components for code splitting
-const AnalyticsDashboard = lazy(() => import('./components/analytics-dashboard'));
+const AnalyticsDashboard = lazy(
+  () => import('./components/analytics-dashboard')
+);
 const MatchAnalytics = lazy(() => import('./components/match-analytics'));
 const TeamAnalytics = lazy(() => import('./components/team-analytics'));
 const PlayerAnalytics = lazy(() => import('./components/player-analytics'));
@@ -55,7 +57,9 @@ const createAnalyticsQueryClient = () => {
 /**
  * Analytics Micro-Frontend Root Component
  */
-const AnalyticsMicroFrontendComponent: React.FC<AnalyticsMicroFrontendProps> = ({
+const AnalyticsMicroFrontendComponent: React.FC<
+  AnalyticsMicroFrontendProps
+> = ({
   mode = 'dashboard',
   matchId,
   teamId,
@@ -136,7 +140,7 @@ const AnalyticsMicroFrontendComponent: React.FC<AnalyticsMicroFrontendProps> = (
             onError={(error, errorInfo) => {
               console.error('Analytics Micro-Frontend Error:', error);
               console.error('Error Info:', errorInfo);
-              
+
               // Send to error tracking service
               if (typeof window !== 'undefined' && window.gtag) {
                 window.gtag('event', 'exception', {
@@ -206,9 +210,12 @@ export const microFrontendMetadata = {
   },
   exposedComponents: {
     './AnalyticsMicroFrontend': './src/micro-frontends/analytics/index.tsx',
-    './MatchAnalytics': './src/micro-frontends/analytics/components/match-analytics.tsx',
-    './TeamAnalytics': './src/micro-frontends/analytics/components/team-analytics.tsx',
-    './PlayerAnalytics': './src/micro-frontends/analytics/components/player-analytics.tsx',
+    './MatchAnalytics':
+      './src/micro-frontends/analytics/components/match-analytics.tsx',
+    './TeamAnalytics':
+      './src/micro-frontends/analytics/components/team-analytics.tsx',
+    './PlayerAnalytics':
+      './src/micro-frontends/analytics/components/player-analytics.tsx',
   },
   sharedDependencies: [
     'react',
@@ -235,7 +242,10 @@ export const loadAnalyticsModule = async () => {
 /**
  * Bootstrap function for standalone mode
  */
-export const bootstrapAnalytics = (containerId: string, props: AnalyticsMicroFrontendProps) => {
+export const bootstrapAnalytics = (
+  containerId: string,
+  props: AnalyticsMicroFrontendProps
+) => {
   if (typeof window === 'undefined') return;
 
   const container = document.getElementById(containerId);

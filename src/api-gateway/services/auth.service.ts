@@ -1,6 +1,6 @@
 /**
  * Authentication Service
- * 
+ *
  * Handles JWT token validation, user authentication, and authorization
  * Implements composition pattern for maximum flexibility and testability
  */
@@ -69,7 +69,7 @@ export class AuthService {
 
       // Verify JWT token
       const payload = jwt.verify(token, this.jwtSecret) as JWTPayload;
-      
+
       // Check if user is still active
       const user = await this.getUserFromPayload(payload);
       if (!user.isActive) {
@@ -101,7 +101,7 @@ export class AuthService {
     };
 
     const expiresIn = this.configService.get<string>('jwtExpiresIn', '24h');
-    
+
     return jwt.sign(payload, this.jwtSecret, {
       expiresIn,
       issuer: 'footanalytics-api-gateway',
@@ -145,7 +145,9 @@ export class AuthService {
       return true;
     }
 
-    return requiredPermissions.some(permission => user.permissions.includes(permission));
+    return requiredPermissions.some(permission =>
+      user.permissions.includes(permission)
+    );
   }
 
   /**
@@ -211,11 +213,11 @@ export class AuthService {
   private async getUserFromPayload(payload: JWTPayload): Promise<User> {
     // In a real implementation, this would fetch additional user data from the database
     // For now, we'll construct the user from the JWT payload
-    
+
     // Check cache first
     const cacheKey = `user:${payload.sub}`;
     const cachedUser = await this.redis.get(cacheKey);
-    
+
     if (cachedUser) {
       try {
         return JSON.parse(cachedUser);
@@ -256,7 +258,7 @@ export class AuthService {
     try {
       // Test Redis connection
       await this.redis.ping();
-      
+
       // Test JWT functionality
       const testPayload = { test: true };
       const testToken = jwt.sign(testPayload, this.jwtSecret);

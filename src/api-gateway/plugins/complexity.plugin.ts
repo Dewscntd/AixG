@@ -1,6 +1,6 @@
 /**
  * Complexity Plugin
- * 
+ *
  * Apollo Server plugin for query complexity analysis and protection
  * Implements composition pattern for flexible complexity rules
  */
@@ -41,19 +41,28 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
       // Analyze query complexity before execution
       async didResolveOperation(requestContext) {
         const { request, context } = requestContext;
-        
+
         // Skip complexity analysis for introspection queries if allowed
-        if (this.config.introspection && this.isIntrospectionQuery(request.query)) {
+        if (
+          this.config.introspection &&
+          this.isIntrospectionQuery(request.query)
+        ) {
           return;
         }
 
         try {
-          const complexity = this.calculateComplexity(request.query || '', request.variables || {});
-          
+          const complexity = this.calculateComplexity(
+            request.query || '',
+            request.variables || {}
+          );
+
           // Check if complexity exceeds maximum
           if (complexity > this.config.maximumComplexity) {
-            const error = this.config.createError(this.config.maximumComplexity, complexity);
-            
+            const error = this.config.createError(
+              this.config.maximumComplexity,
+              complexity
+            );
+
             this.logger.warn('Query complexity exceeded', {
               complexity,
               maximum: this.config.maximumComplexity,
@@ -61,7 +70,7 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
               userId: context.user?.id,
               correlationId: context.correlationId,
             });
-            
+
             throw error;
           }
 
@@ -78,18 +87,17 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
             ...context.metadata,
             queryComplexity: complexity,
           };
-
         } catch (error) {
           if (error instanceof GraphQLError) {
             throw error;
           }
-          
+
           this.logger.error('Failed to analyze query complexity', {
             error: error.message,
             operationName: request.operationName,
             correlationId: context.correlationId,
           });
-          
+
           // Don't block the query if complexity analysis fails
         }
       },
@@ -99,39 +107,46 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
   /**
    * Calculates query complexity using a simplified algorithm
    */
-  private calculateComplexity(query: string, variables: Record<string, unknown>): number {
+  private calculateComplexity(
+    query: string,
+    variables: Record<string, unknown>
+  ): number {
     if (!query) return 0;
 
     let complexity = 0;
     let depth = 0;
     let currentDepth = 0;
-    
+
     // Remove comments and normalize whitespace
     const normalizedQuery = query
       .replace(/#.*$/gm, '') // Remove comments
-      .replace(/\s+/g, ' ')  // Normalize whitespace
+      .replace(/\s+/g, ' ') // Normalize whitespace
       .trim();
 
     // Parse the query structure
     const tokens = this.tokenizeQuery(normalizedQuery);
-    
+
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
-      
+
       switch (token.type) {
         case 'field':
-          complexity += this.calculateFieldComplexity(token, currentDepth, variables);
+          complexity += this.calculateFieldComplexity(
+            token,
+            currentDepth,
+            variables
+          );
           break;
-          
+
         case 'open_brace':
           currentDepth++;
           depth = Math.max(depth, currentDepth);
           break;
-          
+
         case 'close_brace':
           currentDepth--;
           break;
-          
+
         case 'list':
           complexity *= this.config.listFactor!;
           break;
@@ -140,22 +155,24 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
 
     // Apply depth cost factor
     complexity *= Math.pow(this.config.depthCostFactor!, depth);
-    
+
     return Math.round(complexity);
   }
 
   /**
    * Tokenizes a GraphQL query for complexity analysis
    */
-  private tokenizeQuery(query: string): Array<{ type: string; value: string; args?: string }> {
+  private tokenizeQuery(
+    query: string
+  ): Array<{ type: string; value: string; args?: string }> {
     const tokens: Array<{ type: string; value: string; args?: string }> = [];
-    
+
     // Simple tokenization - in production, use a proper GraphQL parser
     const fieldRegex = /(\w+)(\([^)]*\))?\s*{/g;
     const braceRegex = /[{}]/g;
-    
+
     let match;
-    
+
     // Find fields with arguments
     while ((match = fieldRegex.exec(query)) !== null) {
       tokens.push({
@@ -164,7 +181,7 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
         args: match[2],
       });
     }
-    
+
     // Find braces
     while ((match = braceRegex.exec(query)) !== null) {
       tokens.push({
@@ -172,14 +189,14 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
         value: match[0],
       });
     }
-    
+
     // Sort tokens by position
     tokens.sort((a, b) => {
       const aIndex = query.indexOf(a.value);
       const bIndex = query.indexOf(b.value);
       return aIndex - bIndex;
     });
-    
+
     return tokens;
   }
 
@@ -192,49 +209,55 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
     variables: Record<string, unknown>
   ): number {
     let complexity = this.config.objectCost!;
-    
+
     // Analyze field arguments for complexity multipliers
     if (token.args) {
       const args = this.parseArguments(token.args, variables);
-      
+
       // Check for pagination arguments that might increase complexity
       if (args.first || args.last || args.limit) {
         const limitValue = args.first || args.last || args.limit || 10;
-        const limit = typeof limitValue === 'number' ? limitValue : parseInt(String(limitValue), 10) || 10;
+        const limit =
+          typeof limitValue === 'number'
+            ? limitValue
+            : parseInt(String(limitValue), 10) || 10;
         complexity *= Math.min(limit, 100); // Cap at 100 to prevent abuse
       }
-      
+
       // Check for filter arguments that might increase complexity
       if (args.where || args.filter) {
         complexity *= 2;
       }
-      
+
       // Check for sorting arguments
       if (args.orderBy || args.sort) {
         complexity *= 1.5;
       }
     }
-    
+
     // Apply depth multiplier
     complexity *= Math.pow(1.2, depth);
-    
+
     return complexity;
   }
 
   /**
    * Parses GraphQL field arguments
    */
-  private parseArguments(argsString: string, variables: Record<string, unknown>): Record<string, unknown> {
+  private parseArguments(
+    argsString: string,
+    variables: Record<string, unknown>
+  ): Record<string, unknown> {
     const args: Record<string, unknown> = {};
-    
+
     try {
       // Simple argument parsing - in production, use a proper GraphQL parser
       const argRegex = /(\w+):\s*([^,)]+)/g;
       let match;
-      
+
       while ((match = argRegex.exec(argsString)) !== null) {
         const [, key, value] = match;
-        
+
         // Handle variables
         if (value.startsWith('$')) {
           const varName = value.substring(1);
@@ -247,7 +270,7 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
     } catch (error) {
       this.logger.warn(`Failed to parse arguments: ${argsString}`);
     }
-    
+
     return args;
   }
 
@@ -275,9 +298,11 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
    */
   private isIntrospectionQuery(query?: string): boolean {
     if (!query) return false;
-    
-    return query.includes('__schema') || 
-           query.includes('__type') || 
-           query.includes('IntrospectionQuery');
+
+    return (
+      query.includes('__schema') ||
+      query.includes('__type') ||
+      query.includes('IntrospectionQuery')
+    );
   }
 }

@@ -1,7 +1,10 @@
 import { EventEmitter } from 'events';
 import * as SimplePeer from 'simple-peer';
 import { StreamId } from '../../domain/value-objects/stream-id';
-import { VideoFrame, VideoFrameFormat } from '../../domain/value-objects/video-frame';
+import {
+  VideoFrame,
+  VideoFrameFormat,
+} from '../../domain/value-objects/video-frame';
 
 /**
  * WebRTC signal data interface
@@ -23,9 +26,7 @@ export class WebRTCStreamManager extends EventEmitter {
   private frameCallbacks: Map<string, (frame: VideoFrame) => void> = new Map();
   private isInitialized: boolean = false;
 
-  constructor(
-    private readonly config: WebRTCConfig = DEFAULT_WEBRTC_CONFIG
-  ) {
+  constructor(private readonly config: WebRTCConfig = DEFAULT_WEBRTC_CONFIG) {
     super();
   }
 
@@ -43,7 +44,10 @@ export class WebRTCStreamManager extends EventEmitter {
       this.isInitialized = true;
       this.emit('initialized');
     } catch (error) {
-      this.emit('error', new Error(`Failed to initialize WebRTC: ${error.message}`));
+      this.emit(
+        'error',
+        new Error(`Failed to initialize WebRTC: ${error.message}`)
+      );
       throw error;
     }
   }
@@ -63,8 +67,8 @@ export class WebRTCStreamManager extends EventEmitter {
         initiator: isInitiator,
         trickle: true,
         config: {
-          iceServers: this.config.iceServers
-        }
+          iceServers: this.config.iceServers,
+        },
       });
 
       // Set up peer event handlers
@@ -78,11 +82,17 @@ export class WebRTCStreamManager extends EventEmitter {
         this.setupStreamReceiver(peer, peerId, streamId);
       }
 
-      this.emit('peerCreated', { peerId, streamId: streamId.value, isInitiator });
+      this.emit('peerCreated', {
+        peerId,
+        streamId: streamId.value,
+        isInitiator,
+      });
       return peerId;
-
     } catch (error) {
-      this.emit('error', new Error(`Failed to create peer connection: ${error.message}`));
+      this.emit(
+        'error',
+        new Error(`Failed to create peer connection: ${error.message}`)
+      );
       throw error;
     }
   }
@@ -90,10 +100,7 @@ export class WebRTCStreamManager extends EventEmitter {
   /**
    * Add local media stream to peer connection
    */
-  async addLocalStream(
-    peerId: string,
-    stream: MediaStream
-  ): Promise<void> {
+  async addLocalStream(peerId: string, stream: MediaStream): Promise<void> {
     const peer = this.peers.get(peerId);
     if (!peer) {
       throw new Error(`Peer ${peerId} not found`);
@@ -172,7 +179,7 @@ export class WebRTCStreamManager extends EventEmitter {
     }
 
     // Get WebRTC statistics
-    // Note: SimplePeer doesn't expose getStats directly, 
+    // Note: SimplePeer doesn't expose getStats directly,
     // in a real implementation you'd access the underlying RTCPeerConnection
     return {
       peerId,
@@ -181,7 +188,7 @@ export class WebRTCStreamManager extends EventEmitter {
       bytesSent: 0,
       packetsLost: 0,
       roundTripTime: 0,
-      jitter: 0
+      jitter: 0,
     };
   }
 
@@ -197,7 +204,7 @@ export class WebRTCStreamManager extends EventEmitter {
    */
   async cleanup(): Promise<void> {
     const peerIds = Array.from(this.peers.keys());
-    
+
     for (const peerId of peerIds) {
       await this.closePeerConnection(peerId);
     }
@@ -223,7 +230,7 @@ export class WebRTCStreamManager extends EventEmitter {
     peerId: string,
     streamId: StreamId
   ): void {
-    peer.on('signal', (data) => {
+    peer.on('signal', data => {
       this.emit('signal', { peerId, streamId: streamId.value, data });
     });
 
@@ -231,15 +238,15 @@ export class WebRTCStreamManager extends EventEmitter {
       this.emit('connected', { peerId, streamId: streamId.value });
     });
 
-    peer.on('data', (data) => {
+    peer.on('data', data => {
       this.emit('data', { peerId, streamId: streamId.value, data });
     });
 
-    peer.on('stream', (stream) => {
+    peer.on('stream', stream => {
       this.handleIncomingStream(stream, peerId, streamId);
     });
 
-    peer.on('error', (error) => {
+    peer.on('error', error => {
       this.emit('error', new Error(`Peer ${peerId} error: ${error.message}`));
     });
 
@@ -257,7 +264,7 @@ export class WebRTCStreamManager extends EventEmitter {
     peerId: string,
     streamId: StreamId
   ): void {
-    peer.on('stream', (stream) => {
+    peer.on('stream', stream => {
       this.handleIncomingStream(stream, peerId, streamId);
     });
   }
@@ -298,7 +305,7 @@ export class WebRTCStreamManager extends EventEmitter {
   ): void {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    
+
     if (!ctx) {
       return;
     }
@@ -307,16 +314,17 @@ export class WebRTCStreamManager extends EventEmitter {
     const frameCallback = this.frameCallbacks.get(streamId.value);
 
     const extractFrame = () => {
-      if (video.readyState >= 2) { // HAVE_CURRENT_DATA
+      if (video.readyState >= 2) {
+        // HAVE_CURRENT_DATA
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        
+
         ctx.drawImage(video, 0, 0);
-        
+
         // Convert to VideoFrame
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const frameData = Buffer.from(imageData.data);
-        
+
         const frame = new VideoFrame(
           Date.now(),
           frameNumber++,
@@ -374,10 +382,10 @@ export interface WebRTCStats {
 const DEFAULT_WEBRTC_CONFIG: WebRTCConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
+    { urls: 'stun:stun1.l.google.com:19302' },
   ],
   maxBitrate: 2000000, // 2 Mbps
-  frameRate: 30
+  frameRate: 30,
 };
 
 /**
@@ -387,7 +395,7 @@ const DEFAULT_MEDIA_CONSTRAINTS: MediaStreamConstraints = {
   video: {
     width: { ideal: 1920 },
     height: { ideal: 1080 },
-    frameRate: { ideal: 30 }
+    frameRate: { ideal: 30 },
   },
-  audio: false // Video analysis doesn't need audio
+  audio: false, // Video analysis doesn't need audio
 };

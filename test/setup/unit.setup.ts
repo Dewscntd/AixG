@@ -9,7 +9,7 @@ import { MockServices } from './jest.setup';
 beforeEach(() => {
   // Reset all mocks before each unit test
   jest.resetAllMocks();
-  
+
   // Ensure no real external calls in unit tests
   jest.clearAllTimers();
   jest.useFakeTimers();
@@ -18,7 +18,7 @@ beforeEach(() => {
 afterEach(() => {
   // Restore real timers after each test
   jest.useRealTimers();
-  
+
   // Verify no unexpected calls were made
   expect(MockServices.eventPublisher.publish).not.toHaveBeenCalled();
 });
@@ -28,16 +28,18 @@ export const UnitTestUtils = {
   /**
    * Creates a mock implementation that tracks calls
    */
-  createMockWithHistory: <T extends (...args: any[]) => any>(implementation?: T) => {
+  createMockWithHistory: <T extends (...args: any[]) => any>(
+    implementation?: T
+  ) => {
     const calls: Parameters<T>[] = [];
     const mock = jest.fn((...args: Parameters<T>) => {
       calls.push(args);
       return implementation?.(...args);
     });
-    
+
     return Object.assign(mock, { getCalls: () => calls });
   },
-  
+
   /**
    * Asserts that a function is pure (same input = same output)
    */
@@ -49,13 +51,13 @@ export const UnitTestUtils = {
     inputs.forEach(input => {
       const results = Array.from({ length: iterations }, () => fn(...input));
       const firstResult = results[0];
-      
+
       results.forEach((result, _index) => {
         expect(result).toEqual(firstResult);
       });
     });
   },
-  
+
   /**
    * Asserts that a function has no side effects
    */
@@ -66,10 +68,14 @@ export const UnitTestUtils = {
     const originalConsoleLog = console.log;
     const originalConsoleError = console.error;
     const consoleCalls: string[] = [];
-    
-    console.log = jest.fn((...args) => consoleCalls.push(`log: ${  args.join(' ')}`));
-    console.error = jest.fn((...args) => consoleCalls.push(`error: ${  args.join(' ')}`));
-    
+
+    console.log = jest.fn((...args) =>
+      consoleCalls.push(`log: ${args.join(' ')}`)
+    );
+    console.error = jest.fn((...args) =>
+      consoleCalls.push(`error: ${args.join(' ')}`)
+    );
+
     try {
       fn(...input);
       expect(consoleCalls).toHaveLength(0);

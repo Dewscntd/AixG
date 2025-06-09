@@ -16,12 +16,15 @@ export class S3StorageService implements StorageService {
     this.s3 = new S3({
       region: process.env.AWS_REGION || 'eu-west-1',
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     });
     this.bucketName = process.env.S3_VIDEO_BUCKET || 'footanalytics-videos';
   }
 
-  async upload(stream: ReadableStream, metadata: UploadMetadata): Promise<StorageResult> {
+  async upload(
+    stream: ReadableStream,
+    metadata: UploadMetadata
+  ): Promise<StorageResult> {
     try {
       const key = this.generateStorageKey(metadata);
 
@@ -39,9 +42,9 @@ export class S3StorageService implements StorageService {
           'upload-id': metadata.uploadId,
           ...(metadata.matchId && { 'match-id': metadata.matchId }),
           ...(metadata.teamId && { 'team-id': metadata.teamId }),
-          'tags': metadata.tags.join(',')
+          tags: metadata.tags.join(','),
         },
-        ServerSideEncryption: 'AES256'
+        ServerSideEncryption: 'AES256',
       };
 
       this.logger.log(`Starting upload to S3: ${key}`);
@@ -57,16 +60,19 @@ export class S3StorageService implements StorageService {
         url: result.Location!,
         size: metadata.size,
         etag: result.ETag,
-        metadata: uploadParams.Metadata
+        metadata: uploadParams.Metadata,
       });
-
     } catch (error) {
       this.logger.error(`Upload failed: ${error.message}`, error.stack);
       throw new Error(`S3 upload failed: ${error.message}`);
     }
   }
 
-  async resumeUpload(uploadId: string, stream: ReadableStream, offset: number): Promise<StorageResult> {
+  async resumeUpload(
+    uploadId: string,
+    stream: ReadableStream,
+    offset: number
+  ): Promise<StorageResult> {
     try {
       // For resumable uploads, we would typically use S3 multipart upload
       // This is a simplified implementation
@@ -81,7 +87,6 @@ export class S3StorageService implements StorageService {
       // This is not efficient and should be replaced with proper multipart upload
 
       throw new Error('Resumable upload not yet implemented for S3');
-
     } catch (error) {
       this.logger.error(`Resume upload failed: ${error.message}`, error.stack);
       throw new Error(`S3 resume upload failed: ${error.message}`);
@@ -101,9 +106,11 @@ export class S3StorageService implements StorageService {
       // For now, return a mock progress
       // In real implementation, query the actual progress
       return 100; // Assume completed for now
-
     } catch (error) {
-      this.logger.error(`Get upload progress failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Get upload progress failed: ${error.message}`,
+        error.stack
+      );
       throw new Error(`Failed to get upload progress: ${error.message}`);
     }
   }
@@ -120,19 +127,21 @@ export class S3StorageService implements StorageService {
       // 3. Clean up any multipart upload if incomplete
 
       throw new Error('Delete upload not yet implemented');
-
     } catch (error) {
       this.logger.error(`Delete upload failed: ${error.message}`, error.stack);
       throw new Error(`Failed to delete upload: ${error.message}`);
     }
   }
 
-  async generatePresignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
+  async generatePresignedUrl(
+    key: string,
+    expiresIn: number = 3600
+  ): Promise<string> {
     try {
       const params = {
         Bucket: this.bucketName,
         Key: key,
-        Expires: expiresIn
+        Expires: expiresIn,
       };
 
       const url = await this.s3.getSignedUrlPromise('getObject', params);
@@ -140,17 +149,24 @@ export class S3StorageService implements StorageService {
       this.logger.log(`Generated presigned URL for: ${key}`);
 
       return url;
-
     } catch (error) {
-      this.logger.error(`Generate presigned URL failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Generate presigned URL failed: ${error.message}`,
+        error.stack
+      );
       throw new Error(`Failed to generate presigned URL: ${error.message}`);
     }
   }
 
   private generateStorageKey(metadata: UploadMetadata): string {
     const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const hash = crypto.createHash('md5').update(metadata.uploadId).digest('hex').substring(0, 8);
-    const extension = metadata.filename.split('.').pop()?.toLowerCase() || 'mp4';
+    const hash = crypto
+      .createHash('md5')
+      .update(metadata.uploadId)
+      .digest('hex')
+      .substring(0, 8);
+    const extension =
+      metadata.filename.split('.').pop()?.toLowerCase() || 'mp4';
 
     let keyPath = `videos/${timestamp}/${hash}`;
 
@@ -181,7 +197,7 @@ export class S3StorageService implements StorageService {
         } catch (error) {
           this.destroy(error);
         }
-      }
+      },
     });
   }
 }

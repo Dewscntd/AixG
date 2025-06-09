@@ -7,7 +7,7 @@ import {
   GetMatchAnalyticsQuery,
   GetTeamAnalyticsQuery,
   GetTimeSeriesAnalyticsQuery,
-  AnalyticsQuery
+  AnalyticsQuery,
 } from './analytics-queries';
 
 export interface AnalyticsResult<T = unknown> {
@@ -74,16 +74,20 @@ export interface TeamAnalyticsReadModel {
 }
 
 export class GetMatchAnalyticsQueryHandler
-  implements AnalyticsQueryHandler<GetMatchAnalyticsQuery, MatchAnalyticsReadModel> {
-
+  implements
+    AnalyticsQueryHandler<GetMatchAnalyticsQuery, MatchAnalyticsReadModel>
+{
   constructor(private readonly readDb: Pool) {}
 
-  async handle(query: GetMatchAnalyticsQuery): Promise<AnalyticsResult<MatchAnalyticsReadModel>> {
+  async handle(
+    query: GetMatchAnalyticsQuery
+  ): Promise<AnalyticsResult<MatchAnalyticsReadModel>> {
     const client = await this.readDb.connect();
-    
+
     try {
       // Get current match analytics from materialized view
-      const matchResult = await client.query(`
+      const matchResult = await client.query(
+        `
         SELECT 
           m.match_id,
           m.home_team_id,
@@ -112,14 +116,16 @@ export class GetMatchAnalyticsQueryHandler
         JOIN teams ht ON m.home_team_id = ht.team_id
         JOIN teams at ON m.away_team_id = at.team_id
         WHERE m.match_id = $1
-      `, [query.matchId]);
+      `,
+        [query.matchId]
+      );
 
       if (matchResult.rows.length === 0) {
         throw new Error(`Match analytics not found for match ${query.matchId}`);
       }
 
       const row = matchResult.rows[0];
-      
+
       const data: MatchAnalyticsReadModel = {
         matchId: row.match_id,
         homeTeam: {
@@ -131,7 +137,7 @@ export class GetMatchAnalyticsQueryHandler
           passAccuracy: parseFloat(row.home_pass_accuracy) || 0,
           shotsOnTarget: parseInt(row.home_shots_on_target) || 0,
           shotsOffTarget: parseInt(row.home_shots_off_target) || 0,
-          formation: row.home_formation
+          formation: row.home_formation,
         },
         awayTeam: {
           teamId: row.away_team_id,
@@ -142,17 +148,18 @@ export class GetMatchAnalyticsQueryHandler
           passAccuracy: parseFloat(row.away_pass_accuracy) || 0,
           shotsOnTarget: parseInt(row.away_shots_on_target) || 0,
           shotsOffTarget: parseInt(row.away_shots_off_target) || 0,
-          formation: row.away_formation
+          formation: row.away_formation,
         },
         matchDuration: parseInt(row.match_duration) || 0,
         lastUpdated: row.last_updated,
-        status: row.status
+        status: row.status,
       };
 
       // Get historical data if requested
       let historicalData = null;
       if (query.includeHistorical) {
-        const historicalResult = await client.query(`
+        const historicalResult = await client.query(
+          `
           SELECT 
             timestamp,
             home_xg,
@@ -162,7 +169,9 @@ export class GetMatchAnalyticsQueryHandler
           FROM match_analytics_history 
           WHERE match_id = $1 
           ORDER BY timestamp ASC
-        `, [query.matchId]);
+        `,
+          [query.matchId]
+        );
 
         historicalData = historicalResult.rows;
       }
@@ -173,10 +182,9 @@ export class GetMatchAnalyticsQueryHandler
         data,
         metadata: {
           includeHistorical: query.includeHistorical,
-          historicalData
-        }
+          historicalData,
+        },
       };
-
     } finally {
       client.release();
     }
@@ -184,13 +192,16 @@ export class GetMatchAnalyticsQueryHandler
 }
 
 export class GetTeamAnalyticsQueryHandler
-  implements AnalyticsQueryHandler<GetTeamAnalyticsQuery, TeamAnalyticsReadModel> {
-
+  implements
+    AnalyticsQueryHandler<GetTeamAnalyticsQuery, TeamAnalyticsReadModel>
+{
   constructor(private readonly readDb: Pool) {}
 
-  async handle(query: GetTeamAnalyticsQuery): Promise<AnalyticsResult<TeamAnalyticsReadModel>> {
+  async handle(
+    query: GetTeamAnalyticsQuery
+  ): Promise<AnalyticsResult<TeamAnalyticsReadModel>> {
     const client = await this.readDb.connect();
-    
+
     try {
       let whereClause = 'WHERE t.team_id = $1';
       const params: (string | Date)[] = [query.teamId];
@@ -208,7 +219,8 @@ export class GetTeamAnalyticsQueryHandler
         paramIndex++;
       }
 
-      const teamResult = await client.query(`
+      const teamResult = await client.query(
+        `
         SELECT 
           t.team_id,
           t.team_name,
@@ -245,7 +257,9 @@ export class GetTeamAnalyticsQueryHandler
         LEFT JOIN match_analytics_view ma ON m.match_id = ma.match_id
         ${whereClause}
         GROUP BY t.team_id, t.team_name
-      `, params);
+      `,
+        params
+      );
 
       if (teamResult.rows.length === 0) {
         throw new Error(`Team not found: ${query.teamId}`);
@@ -254,7 +268,8 @@ export class GetTeamAnalyticsQueryHandler
       const row = teamResult.rows[0];
 
       // Get recent form (last 5 matches)
-      const formResult = await client.query(`
+      const formResult = await client.query(
+        `
         SELECT 
           CASE 
             WHEN (m.home_team_id = $1 AND m.home_score > m.away_score) OR 
@@ -267,7 +282,9 @@ export class GetTeamAnalyticsQueryHandler
           AND m.status = 'completed'
         ORDER BY m.match_date DESC
         LIMIT 5
-      `, [query.teamId]);
+      `,
+        [query.teamId]
+      );
 
       const form = formResult.rows.map(r => r.result);
 
@@ -285,7 +302,7 @@ export class GetTeamAnalyticsQueryHandler
         avgPossession: parseFloat(row.avg_possession) || 0,
         avgPassAccuracy: parseFloat(row.avg_pass_accuracy) || 0,
         form,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
 
       return {
@@ -295,10 +312,9 @@ export class GetTeamAnalyticsQueryHandler
         metadata: {
           fromDate: query.fromDate,
           toDate: query.toDate,
-          includeOpponents: query.includeOpponents
-        }
+          includeOpponents: query.includeOpponents,
+        },
       };
-
     } finally {
       client.release();
     }
@@ -306,21 +322,24 @@ export class GetTeamAnalyticsQueryHandler
 }
 
 export class GetTimeSeriesAnalyticsQueryHandler
-  implements AnalyticsQueryHandler<GetTimeSeriesAnalyticsQuery, TimeSeriesDataPoint[]> {
-
+  implements
+    AnalyticsQueryHandler<GetTimeSeriesAnalyticsQuery, TimeSeriesDataPoint[]>
+{
   constructor(private readonly readDb: Pool) {}
 
-  async handle(query: GetTimeSeriesAnalyticsQuery): Promise<AnalyticsResult<TimeSeriesDataPoint[]>> {
+  async handle(
+    query: GetTimeSeriesAnalyticsQuery
+  ): Promise<AnalyticsResult<TimeSeriesDataPoint[]>> {
     const client = await this.readDb.connect();
-    
+
     try {
       // Build time series query based on interval
       const intervalMap = {
-        'minute': '1 minute',
-        'hour': '1 hour',
-        'day': '1 day',
-        'week': '1 week',
-        'month': '1 month'
+        minute: '1 minute',
+        hour: '1 hour',
+        day: '1 day',
+        week: '1 week',
+        month: '1 month',
       };
 
       const interval = intervalMap[query.interval];
@@ -341,14 +360,20 @@ export class GetTimeSeriesAnalyticsQueryHandler
           GROUP BY time_bucket
           ORDER BY time_bucket ASC
         `;
-        params = [interval, query.metric, query.entityId, query.fromDate, query.toDate];
+        params = [
+          interval,
+          query.metric,
+          query.entityId,
+          query.fromDate,
+          query.toDate,
+        ];
       }
 
       const result = await client.query(timeSeriesQuery, params);
 
       const data = result.rows.map(row => ({
         timestamp: row.time_bucket,
-        value: parseFloat(row.value) || 0
+        value: parseFloat(row.value) || 0,
       }));
 
       return {
@@ -362,10 +387,9 @@ export class GetTimeSeriesAnalyticsQueryHandler
           interval: query.interval,
           fromDate: query.fromDate,
           toDate: query.toDate,
-          dataPoints: data.length
-        }
+          dataPoints: data.length,
+        },
       };
-
     } finally {
       client.release();
     }

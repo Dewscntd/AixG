@@ -48,7 +48,7 @@ export type {
   Permission,
   AuthDirectiveArgs,
   AuthenticationError,
-  AuthErrorCode
+  AuthErrorCode,
 } from './types/auth.types';
 
 export type {
@@ -62,13 +62,12 @@ export type {
   MatchEvent,
   MatchEventMetadata,
   BatchLoadFn,
-  CacheKeyGenerators
+  CacheKeyGenerators,
 } from './types/datasources';
 
-export type {
-  // Domain types (if they exist)
-  // These will be added when domain.types.ts is properly structured
-} from './types/domain.types';
+export type {} from // Domain types (if they exist)
+// These will be added when domain.types.ts is properly structured
+'./types/domain.types';
 
 // Schemas (GraphQL schema files)
 // Note: These are .graphql files, not TypeScript exports

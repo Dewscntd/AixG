@@ -22,7 +22,8 @@ export const ContractTestUtils = {
   /**
    * Creates a new Pact instance for service contract testing
    */
-  createPact: (consumer: string, provider: string, port?: number) => new Pact({
+  createPact: (consumer: string, provider: string, port?: number) =>
+    new Pact({
       ...pactConfig,
       consumer,
       provider,
@@ -34,8 +35,8 @@ export const ContractTestUtils = {
    */
   getStandardHeaders: () => ({
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Authorization': 'Bearer test-token',
+    Accept: 'application/json',
+    Authorization: 'Bearer test-token',
   }),
 
   /**
@@ -129,21 +130,25 @@ export const ContractTestUtils = {
     const validate = (obj: any, schema: any, path = '') => {
       for (const [key, expectedType] of Object.entries(schema)) {
         const fullPath = path ? `${path}.${key}` : key;
-        
+
         if (!(key in obj)) {
           throw new Error(`Missing required field: ${fullPath}`);
         }
-        
+
         const actualValue = obj[key];
-        
+
         if (typeof expectedType === 'string') {
           if (typeof actualValue !== expectedType) {
-            throw new Error(`Type mismatch at ${fullPath}: expected ${expectedType}, got ${typeof actualValue}`);
+            throw new Error(
+              `Type mismatch at ${fullPath}: expected ${expectedType}, got ${typeof actualValue}`
+            );
           }
         } else if (typeof expectedType === 'object' && expectedType !== null) {
           if (Array.isArray(expectedType)) {
             if (!Array.isArray(actualValue)) {
-              throw new Error(`Type mismatch at ${fullPath}: expected array, got ${typeof actualValue}`);
+              throw new Error(
+                `Type mismatch at ${fullPath}: expected array, got ${typeof actualValue}`
+              );
             }
             if (expectedType.length > 0 && actualValue.length > 0) {
               validate(actualValue[0], expectedType[0], `${fullPath}[0]`);
@@ -154,7 +159,7 @@ export const ContractTestUtils = {
         }
       }
     };
-    
+
     validate(response, expectedSchema);
   },
 
@@ -167,32 +172,36 @@ export const ContractTestUtils = {
       matchId: 'string',
       timestamp: 'string',
       data: {
-        shots: [{
-          teamId: 'string',
-          playerId: 'string',
-          position: { x: 'number', y: 'number' },
-          targetPosition: { x: 'number', y: 'number' },
-          distanceToGoal: 'number',
-          angle: 'number',
-          bodyPart: 'string',
-          situation: 'string',
-          defenderCount: 'number',
-          gameState: {
-            minute: 'number',
-            scoreDifference: 'number',
-            isHome: 'boolean',
+        shots: [
+          {
+            teamId: 'string',
+            playerId: 'string',
+            position: { x: 'number', y: 'number' },
+            targetPosition: { x: 'number', y: 'number' },
+            distanceToGoal: 'number',
+            angle: 'number',
+            bodyPart: 'string',
+            situation: 'string',
+            defenderCount: 'number',
+            gameState: {
+              minute: 'number',
+              scoreDifference: 'number',
+              isHome: 'boolean',
+            },
+            confidence: 'number',
           },
-          confidence: 'number',
-        }],
-        possessionEvents: [{
-          timestamp: 'number',
-          teamId: 'string',
-          playerId: 'string',
-          eventType: 'string',
-          position: { x: 'number', y: 'number' },
-          successful: 'boolean',
-          duration: 'number',
-        }],
+        ],
+        possessionEvents: [
+          {
+            timestamp: 'number',
+            teamId: 'string',
+            playerId: 'string',
+            eventType: 'string',
+            position: { x: 'number', y: 'number' },
+            successful: 'boolean',
+            duration: 'number',
+          },
+        ],
         metadata: {
           processingTime: 'number',
           modelVersions: {
@@ -239,16 +248,16 @@ export const ContractTestUtils = {
 beforeAll(() => {
   // eslint-disable-next-line no-console
   console.log('🤝 Setting up contract testing environment...');
-  
+
   // Ensure pact directories exist
   const fs = require('fs');
   const pactDir = join(process.cwd(), 'test-results', 'pacts');
   const logDir = join(process.cwd(), 'test-results');
-  
+
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
   }
-  
+
   if (!fs.existsSync(pactDir)) {
     fs.mkdirSync(pactDir, { recursive: true });
   }
@@ -266,7 +275,7 @@ export const ContractHelpers = {
    */
   waitForPactServer: async (port: number, timeout = 10000) => {
     const start = Date.now();
-    
+
     while (Date.now() - start < timeout) {
       try {
         const response = await fetch(`http://localhost:${port}/`);
@@ -277,10 +286,10 @@ export const ContractHelpers = {
       } catch (error) {
         // Server not ready yet
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     throw new Error(`Pact server not ready after ${timeout}ms`);
   },
 
@@ -301,14 +310,14 @@ export const ContractHelpers = {
    */
   publishContracts: async (brokerUrl: string, version: string) => {
     const { Publisher } = require('@pact-foundation/pact');
-    
+
     const publisher = new Publisher({
       pactFilesOrDirs: [join(process.cwd(), 'test-results', 'pacts')],
       pactBroker: brokerUrl,
       consumerVersion: version,
       publishVerificationResult: true,
     });
-    
+
     try {
       await publisher.publishPacts();
       // eslint-disable-next-line no-console

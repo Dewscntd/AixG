@@ -26,13 +26,13 @@ export class PossessionCalculatedEvent extends BaseDomainEvent {
       correlationId,
       causationId
     );
-    
+
     this.homeTeamId = homeTeamId;
     this.homeTeamPossession = homeTeamPossession;
     this.awayTeamId = awayTeamId;
     this.awayTeamPossession = awayTeamPossession;
     this.calculationMethod = calculationMethod;
-    
+
     if (timestamp) {
       (this as any).timestamp = timestamp;
     }
@@ -45,7 +45,7 @@ export class PossessionCalculatedEvent extends BaseDomainEvent {
       awayTeamId: this.awayTeamId,
       awayTeamPossession: this.awayTeamPossession,
       possessionDifference: this.homeTeamPossession - this.awayTeamPossession,
-      calculationMethod: this.calculationMethod
+      calculationMethod: this.calculationMethod,
     };
   }
 }

@@ -72,7 +72,15 @@ export interface TeamClassification extends MLPredictionResult {
  * Event detection result
  */
 export interface EventDetection extends MLPredictionResult {
-  eventType: 'pass' | 'shot' | 'tackle' | 'foul' | 'offside' | 'goal' | 'corner' | 'throw_in';
+  eventType:
+    | 'pass'
+    | 'shot'
+    | 'tackle'
+    | 'foul'
+    | 'offside'
+    | 'goal'
+    | 'corner'
+    | 'throw_in';
   playerId?: string;
   timestamp: number;
   position: {
@@ -93,9 +101,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
   private modelVersion: string = '1.0.0';
   private gpuEnabled: boolean = false;
 
-  constructor(
-    private readonly config: EdgeMLConfig = DEFAULT_EDGE_ML_CONFIG
-  ) {}
+  constructor(private readonly config: EdgeMLConfig = DEFAULT_EDGE_ML_CONFIG) {}
 
   /**
    * Initialize ML models and GPU resources
@@ -108,16 +114,18 @@ export class EdgeMLInferenceService implements EdgeMLInference {
     try {
       // Check GPU availability
       this.gpuEnabled = await this.checkGPUAvailability();
-      
+
       // Load ML models
       await this.loadModels();
-      
+
       // Warm up models
       await this.warmUpModels();
-      
+
       this.isInitialized = true;
     } catch (error) {
-      throw new Error(`Failed to initialize Edge ML Inference: ${error.message}`);
+      throw new Error(
+        `Failed to initialize Edge ML Inference: ${error.message}`
+      );
     }
   }
 
@@ -134,18 +142,18 @@ export class EdgeMLInferenceService implements EdgeMLInference {
     try {
       // Preprocess frame for ML inference
       const preprocessedData = await this.preprocessFrame(frame);
-      
+
       // Run inference on different models in parallel
       const [
         playerDetections,
         ballDetection,
         teamClassification,
-        eventDetection
+        eventDetection,
       ] = await Promise.all([
         this.detectPlayers(preprocessedData),
         this.detectBall(preprocessedData),
         this.classifyTeams(preprocessedData),
-        this.detectEvents(preprocessedData)
+        this.detectEvents(preprocessedData),
       ]);
 
       const processingTime = Date.now() - startTime;
@@ -162,15 +170,14 @@ export class EdgeMLInferenceService implements EdgeMLInference {
           ...playerDetections,
           ...(ballDetection ? [ballDetection] : []),
           teamClassification,
-          ...eventDetection
+          ...eventDetection,
         ]),
         metadata: {
           modelVersion: this.modelVersion,
           gpuEnabled: this.gpuEnabled,
-          frameSize: frame.sizeBytes
-        }
+          frameSize: frame.sizeBytes,
+        },
       };
-
     } catch (error) {
       throw new Error(`ML analysis failed: ${error.message}`);
     }
@@ -195,7 +202,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
    */
   async updateConfig(config: Partial<EdgeMLConfig>): Promise<void> {
     Object.assign(this.config, config);
-    
+
     // Reload models if necessary
     if (config.modelPaths) {
       await this.loadModels();
@@ -211,7 +218,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
       gpuEnabled: this.gpuEnabled,
       modelVersion: this.modelVersion,
       loadedModels: Array.from(this.models.keys()),
-      memoryUsage: this.getMemoryUsage()
+      memoryUsage: this.getMemoryUsage(),
     };
   }
 
@@ -225,7 +232,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
         model.dispose();
       }
     }
-    
+
     this.models.clear();
     this.isInitialized = false;
   }
@@ -248,10 +255,16 @@ export class EdgeMLInferenceService implements EdgeMLInference {
    */
   private async loadModels(): Promise<void> {
     const modelConfigs = [
-      { name: 'player_detection', path: this.config.modelPaths.playerDetection },
+      {
+        name: 'player_detection',
+        path: this.config.modelPaths.playerDetection,
+      },
       { name: 'ball_detection', path: this.config.modelPaths.ballDetection },
-      { name: 'team_classification', path: this.config.modelPaths.teamClassification },
-      { name: 'event_detection', path: this.config.modelPaths.eventDetection }
+      {
+        name: 'team_classification',
+        path: this.config.modelPaths.teamClassification,
+      },
+      { name: 'event_detection', path: this.config.modelPaths.eventDetection },
     ];
 
     for (const modelConfig of modelConfigs) {
@@ -261,7 +274,9 @@ export class EdgeMLInferenceService implements EdgeMLInference {
         const model = await this.loadModel(modelConfig.path);
         this.models.set(modelConfig.name, model);
       } catch (error) {
-        this.logger.warn(`Failed to load model ${modelConfig.name}: ${error.message}`);
+        this.logger.warn(
+          `Failed to load model ${modelConfig.name}: ${error.message}`
+        );
       }
     }
   }
@@ -274,7 +289,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
     return {
       path: modelPath,
       loaded: true,
-      predict: async (input: Float32Array) => this.mockPrediction(input)
+      predict: async (input: Float32Array) => this.mockPrediction(input),
     };
   }
 
@@ -299,7 +314,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
       this.detectPlayers(dummyData),
       this.detectBall(dummyData),
       this.classifyTeams(dummyData),
-      this.detectEvents(dummyData)
+      this.detectEvents(dummyData),
     ]);
 
     this.logger.log('Models warmed up successfully');
@@ -312,19 +327,21 @@ export class EdgeMLInferenceService implements EdgeMLInference {
     // Convert frame data to normalized float array
     // In reality, this would handle different formats, resizing, normalization, etc.
     const normalizedData = new Float32Array(frame.width * frame.height * 3);
-    
+
     // Mock preprocessing
     for (let i = 0; i < normalizedData.length; i++) {
       normalizedData[i] = Math.random(); // Mock normalized pixel values
     }
-    
+
     return normalizedData;
   }
 
   /**
    * Detect players in frame
    */
-  private async detectPlayers(_frameData: Float32Array): Promise<PlayerDetection[]> {
+  private async detectPlayers(
+    _frameData: Float32Array
+  ): Promise<PlayerDetection[]> {
     const model = this.models.get('player_detection');
     if (!model) {
       return [];
@@ -339,7 +356,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
         boundingBox: { x: 100, y: 150, width: 50, height: 120 },
         position: { x: 125, y: 210 },
         teamId: 'home',
-        jerseyNumber: 10
+        jerseyNumber: 10,
       },
       {
         playerId: 'player_2',
@@ -348,15 +365,17 @@ export class EdgeMLInferenceService implements EdgeMLInference {
         boundingBox: { x: 300, y: 200, width: 45, height: 115 },
         position: { x: 322, y: 257 },
         teamId: 'away',
-        jerseyNumber: 7
-      }
+        jerseyNumber: 7,
+      },
     ];
   }
 
   /**
    * Detect ball in frame
    */
-  private async detectBall(_frameData: Float32Array): Promise<BallDetection | null> {
+  private async detectBall(
+    _frameData: Float32Array
+  ): Promise<BallDetection | null> {
     const model = this.models.get('ball_detection');
     if (!model) {
       return null;
@@ -368,21 +387,23 @@ export class EdgeMLInferenceService implements EdgeMLInference {
       processingTimeMs: 8,
       position: { x: 250, y: 300 },
       velocity: { x: 2.5, y: -1.2 },
-      visible: true
+      visible: true,
     };
   }
 
   /**
    * Classify team colors/jerseys
    */
-  private async classifyTeams(_frameData: Float32Array): Promise<TeamClassification> {
+  private async classifyTeams(
+    _frameData: Float32Array
+  ): Promise<TeamClassification> {
     const model = this.models.get('team_classification');
     if (!model) {
       return {
         confidence: 0,
         processingTimeMs: 0,
         homeTeam: { color: 'unknown', players: [] },
-        awayTeam: { color: 'unknown', players: [] }
+        awayTeam: { color: 'unknown', players: [] },
       };
     }
 
@@ -392,37 +413,41 @@ export class EdgeMLInferenceService implements EdgeMLInference {
       processingTimeMs: 20,
       homeTeam: {
         color: 'blue',
-        players: ['player_1']
+        players: ['player_1'],
       },
       awayTeam: {
         color: 'red',
-        players: ['player_2']
-      }
+        players: ['player_2'],
+      },
     };
   }
 
   /**
    * Detect football events
    */
-  private async detectEvents(_frameData: Float32Array): Promise<EventDetection[]> {
+  private async detectEvents(
+    _frameData: Float32Array
+  ): Promise<EventDetection[]> {
     const model = this.models.get('event_detection');
     if (!model) {
       return [];
     }
 
     // Mock event detection
-    return [{
-      eventType: 'pass',
-      confidence: 0.65,
-      processingTimeMs: 18,
-      playerId: 'player_1',
-      timestamp: Date.now(),
-      position: { x: 125, y: 210 },
-      metadata: {
-        passTarget: 'player_2',
-        passDistance: 15.5
-      }
-    }];
+    return [
+      {
+        eventType: 'pass',
+        confidence: 0.65,
+        processingTimeMs: 18,
+        playerId: 'player_1',
+        timestamp: Date.now(),
+        position: { x: 125, y: 210 },
+        metadata: {
+          passTarget: 'player_2',
+          passDistance: 15.5,
+        },
+      },
+    ];
   }
 
   /**
@@ -441,12 +466,14 @@ export class EdgeMLInferenceService implements EdgeMLInference {
   /**
    * Mock prediction for model warm-up
    */
-  private async mockPrediction(_input: Float32Array): Promise<MLPredictionResult> {
+  private async mockPrediction(
+    _input: Float32Array
+  ): Promise<MLPredictionResult> {
     // Simulate inference time
     await new Promise(resolve => setTimeout(resolve, 10));
     return {
       confidence: 0.5,
-      processingTimeMs: 10
+      processingTimeMs: 10,
     };
   }
 
@@ -508,8 +535,8 @@ const DEFAULT_EDGE_ML_CONFIG: EdgeMLConfig = {
     playerDetection: '/models/player_detection.onnx',
     ballDetection: '/models/ball_detection.onnx',
     teamClassification: '/models/team_classification.onnx',
-    eventDetection: '/models/event_detection.onnx'
+    eventDetection: '/models/event_detection.onnx',
   },
   batchSize: 1,
-  maxConcurrentInferences: 4
+  maxConcurrentInferences: 4,
 };

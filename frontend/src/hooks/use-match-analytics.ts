@@ -1,6 +1,6 @@
 /**
  * Composable Match Analytics Hook
- * 
+ *
  * Implements the composable hooks pattern with:
  * - Real-time data synchronization
  * - Optimistic updates
@@ -43,19 +43,19 @@ export interface UseMatchAnalyticsReturn {
   analytics: MatchAnalytics | null;
   isLoading: boolean;
   error: Error | null;
-  
+
   // Real-time status
   isConnected: boolean;
   lastUpdated: Date | null;
-  
+
   // Actions
   refetch: () => Promise<void>;
   updateAnalytics: (input: UpdateMatchAnalyticsInput) => Promise<void>;
-  
+
   // Optimistic updates
   optimisticUpdate: (update: Partial<MatchAnalytics>) => void;
   revertOptimisticUpdate: () => void;
-  
+
   // Performance metrics
   performanceMetrics: {
     queryTime: number;
@@ -67,7 +67,9 @@ export interface UseMatchAnalyticsReturn {
 /**
  * Main hook for match analytics with composition pattern
  */
-export function useMatchAnalytics(options: UseMatchAnalyticsOptions): UseMatchAnalyticsReturn {
+export function useMatchAnalytics(
+  options: UseMatchAnalyticsOptions
+): UseMatchAnalyticsReturn {
   const {
     matchId,
     includeHistorical = false,
@@ -80,13 +82,15 @@ export function useMatchAnalytics(options: UseMatchAnalyticsOptions): UseMatchAn
 
   // Store actions
   const { setLoadingState, setError, clearError } = useAppActions();
-  
+
   // Performance monitoring
-  const performanceMonitor = usePerformanceMonitor(`match-analytics-${matchId}`);
-  
+  const performanceMonitor = usePerformanceMonitor(
+    `match-analytics-${matchId}`
+  );
+
   // Debounced match ID to prevent excessive queries
   const [debouncedMatchId] = useDebounce(matchId, 300);
-  
+
   // Refs for tracking
   const lastUpdatedRef = useRef<Date | null>(null);
   const updateCountRef = useRef(0);
@@ -106,14 +110,14 @@ export function useMatchAnalytics(options: UseMatchAnalyticsOptions): UseMatchAn
     errorPolicy: 'all',
     notifyOnNetworkStatusChange: true,
     pollInterval: realTimeUpdates ? 0 : pollInterval, // Disable polling if using subscriptions
-    onCompleted: (data) => {
+    onCompleted: data => {
       performanceMonitor.recordMetric('queryTime', Date.now());
       clearError(`match-analytics-${matchId}`);
       if (onUpdate && data.getMatchAnalytics) {
         onUpdate(data.getMatchAnalytics);
       }
     },
-    onError: (error) => {
+    onError: error => {
       setError(`match-analytics-${matchId}`, error.message);
       if (onError) {
         onError(error);
@@ -133,17 +137,19 @@ export function useMatchAnalytics(options: UseMatchAnalyticsOptions): UseMatchAn
       skip: !realTimeUpdates || !debouncedMatchId,
       onData: ({ data }) => {
         if (data.data?.matchAnalyticsUpdated) {
-          const latency = Date.now() - new Date(data.data.matchAnalyticsUpdated.lastUpdated).getTime();
+          const latency =
+            Date.now() -
+            new Date(data.data.matchAnalyticsUpdated.lastUpdated).getTime();
           performanceMonitor.recordMetric('subscriptionLatency', latency);
           updateCountRef.current += 1;
           lastUpdatedRef.current = new Date();
-          
+
           if (onUpdate) {
             onUpdate(data.data.matchAnalyticsUpdated);
           }
         }
       },
-      onError: (error) => {
+      onError: error => {
         setError(`match-analytics-subscription-${matchId}`, error.message);
         if (onError) {
           onError(error);
@@ -160,7 +166,7 @@ export function useMatchAnalytics(options: UseMatchAnalyticsOptions): UseMatchAn
         toast.success('Analytics updated successfully');
         clearError(`match-analytics-update-${matchId}`);
       },
-      onError: (error) => {
+      onError: error => {
         toast.error('Failed to update analytics');
         setError(`match-analytics-update-${matchId}`, error.message);
         if (onError) {
@@ -171,19 +177,16 @@ export function useMatchAnalytics(options: UseMatchAnalyticsOptions): UseMatchAn
   );
 
   // Optimistic updates hook
-  const {
-    optimisticData,
-    applyOptimisticUpdate,
-    revertOptimisticUpdate,
-  } = useOptimisticUpdate<MatchAnalytics>(
-    subscriptionData?.matchAnalyticsUpdated || queryData?.getMatchAnalytics,
-    optimisticUpdates
-  );
+  const { optimisticData, applyOptimisticUpdate, revertOptimisticUpdate } =
+    useOptimisticUpdate<MatchAnalytics>(
+      subscriptionData?.matchAnalyticsUpdated || queryData?.getMatchAnalytics,
+      optimisticUpdates
+    );
 
   // Real-time sync hook
   const { isConnected } = useRealTimeSync({
     enabled: realTimeUpdates,
-    onConnectionChange: (connected) => {
+    onConnectionChange: connected => {
       if (!connected) {
         toast.error('Lost real-time connection');
       } else {
@@ -194,7 +197,7 @@ export function useMatchAnalytics(options: UseMatchAnalyticsOptions): UseMatchAn
 
   // Combined loading state
   const isLoading = queryLoading || subscriptionLoading || updateLoading;
-  
+
   // Update loading state in store
   useEffect(() => {
     setLoadingState(`match-analytics-${matchId}`, isLoading);
@@ -205,10 +208,12 @@ export function useMatchAnalytics(options: UseMatchAnalyticsOptions): UseMatchAn
 
   // Get the most recent analytics data
   const analytics = useMemo(() => {
-    return optimisticData || 
-           subscriptionData?.matchAnalyticsUpdated || 
-           queryData?.getMatchAnalytics || 
-           null;
+    return (
+      optimisticData ||
+      subscriptionData?.matchAnalyticsUpdated ||
+      queryData?.getMatchAnalytics ||
+      null
+    );
   }, [optimisticData, subscriptionData, queryData]);
 
   // Refetch function
@@ -222,88 +227,97 @@ export function useMatchAnalytics(options: UseMatchAnalyticsOptions): UseMatchAn
   }, [queryRefetch]);
 
   // Update analytics function
-  const updateAnalytics = useCallback(async (input: UpdateMatchAnalyticsInput) => {
-    try {
-      // Apply optimistic update if enabled
-      if (optimisticUpdates && analytics) {
-        applyOptimisticUpdate({
-          ...analytics,
-          ...input,
-          lastUpdated: new Date().toISOString(),
-        });
-      }
-
-      await updateAnalyticsMutation({
-        variables: {
-          matchId: debouncedMatchId,
-          input,
-        },
-        // Optimistic response
-        optimisticResponse: optimisticUpdates ? {
-          updateMatchAnalytics: {
+  const updateAnalytics = useCallback(
+    async (input: UpdateMatchAnalyticsInput) => {
+      try {
+        // Apply optimistic update if enabled
+        if (optimisticUpdates && analytics) {
+          applyOptimisticUpdate({
             ...analytics,
             ...input,
             lastUpdated: new Date().toISOString(),
+          });
+        }
+
+        await updateAnalyticsMutation({
+          variables: {
+            matchId: debouncedMatchId,
+            input,
           },
-        } : undefined,
-        // Update cache
-        update: (cache, { data }) => {
-          if (data?.updateMatchAnalytics) {
-            cache.writeQuery({
-              query: GET_MATCH_ANALYTICS,
-              variables: {
-                matchId: debouncedMatchId,
-                includeHistorical,
-              },
-              data: {
-                getMatchAnalytics: data.updateMatchAnalytics,
-              },
-            });
-          }
-        },
-      });
-    } catch (error) {
-      // Revert optimistic update on error
-      if (optimisticUpdates) {
-        revertOptimisticUpdate();
+          // Optimistic response
+          optimisticResponse: optimisticUpdates
+            ? {
+                updateMatchAnalytics: {
+                  ...analytics,
+                  ...input,
+                  lastUpdated: new Date().toISOString(),
+                },
+              }
+            : undefined,
+          // Update cache
+          update: (cache, { data }) => {
+            if (data?.updateMatchAnalytics) {
+              cache.writeQuery({
+                query: GET_MATCH_ANALYTICS,
+                variables: {
+                  matchId: debouncedMatchId,
+                  includeHistorical,
+                },
+                data: {
+                  getMatchAnalytics: data.updateMatchAnalytics,
+                },
+              });
+            }
+          },
+        });
+      } catch (error) {
+        // Revert optimistic update on error
+        if (optimisticUpdates) {
+          revertOptimisticUpdate();
+        }
+        throw error;
       }
-      throw error;
-    }
-  }, [
-    debouncedMatchId,
-    analytics,
-    optimisticUpdates,
-    applyOptimisticUpdate,
-    revertOptimisticUpdate,
-    updateAnalyticsMutation,
-    includeHistorical,
-  ]);
+    },
+    [
+      debouncedMatchId,
+      analytics,
+      optimisticUpdates,
+      applyOptimisticUpdate,
+      revertOptimisticUpdate,
+      updateAnalyticsMutation,
+      includeHistorical,
+    ]
+  );
 
   // Performance metrics
-  const performanceMetrics = useMemo(() => ({
-    queryTime: performanceMonitor.getMetric('queryTime') || 0,
-    subscriptionLatency: performanceMonitor.getMetric('subscriptionLatency') || 0,
-    updateCount: updateCountRef.current,
-  }), [performanceMonitor]);
+  const performanceMetrics = useMemo(
+    () => ({
+      queryTime: performanceMonitor.getMetric('queryTime') || 0,
+      subscriptionLatency:
+        performanceMonitor.getMetric('subscriptionLatency') || 0,
+      updateCount: updateCountRef.current,
+    }),
+    [performanceMonitor]
+  );
 
   return {
     // Data
     analytics,
     isLoading,
     error,
-    
+
     // Real-time status
     isConnected,
     lastUpdated: lastUpdatedRef.current,
-    
+
     // Actions
     refetch,
     updateAnalytics,
-    
+
     // Optimistic updates
     optimisticUpdate: applyOptimisticUpdate,
     revertOptimisticUpdate,
-    
+
     // Performance metrics
     performanceMetrics,
   };
@@ -313,7 +327,7 @@ export function useMatchAnalytics(options: UseMatchAnalyticsOptions): UseMatchAn
  * Composition helper for multiple match analytics
  */
 export function useMultipleMatchAnalytics(matchIds: string[]) {
-  const analyticsHooks = matchIds.map(matchId => 
+  const analyticsHooks = matchIds.map(matchId =>
     useMatchAnalytics({ matchId })
   );
 
@@ -330,9 +344,9 @@ export function useMultipleMatchAnalytics(matchIds: string[]) {
  */
 export function useMatchAnalyticsWithCache(options: UseMatchAnalyticsOptions) {
   const baseHook = useMatchAnalytics(options);
-  
+
   // Add additional caching logic here if needed
   // This could include local storage caching, service worker caching, etc.
-  
+
   return baseHook;
 }

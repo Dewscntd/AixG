@@ -1,6 +1,6 @@
 /**
  * Metrics Service
- * 
+ *
  * Collects and reports performance metrics, error rates, and usage statistics
  * Implements composition pattern for flexible metric collection
  */
@@ -50,7 +50,7 @@ export class MetricsService {
   private readonly redis: Redis;
   private readonly metricsEnabled: boolean;
   private readonly systemMetricsInterval: NodeJS.Timeout;
-  
+
   // In-memory counters for performance
   private operationCounts = new Map<string, number>();
   private errorCounts = new Map<string, number>();
@@ -58,8 +58,11 @@ export class MetricsService {
 
   constructor(private readonly configService: ConfigService) {
     this.redis = new Redis(this.configService.get<string>('redisUrl'));
-    this.metricsEnabled = this.configService.get<boolean>('metricsEnabled', true);
-    
+    this.metricsEnabled = this.configService.get<boolean>(
+      'metricsEnabled',
+      true
+    );
+
     if (this.metricsEnabled) {
       // Start system metrics collection
       this.systemMetricsInterval = setInterval(() => {
@@ -90,8 +93,11 @@ export class MetricsService {
       });
 
       // Log slow operations
-      if (metrics.duration > 1000) { // > 1 second
-        this.logger.warn(`Slow operation detected: ${metrics.operationName} took ${metrics.duration}ms`);
+      if (metrics.duration > 1000) {
+        // > 1 second
+        this.logger.warn(
+          `Slow operation detected: ${metrics.operationName} took ${metrics.duration}ms`
+        );
       }
     } catch (error) {
       this.logger.error(`Failed to record operation metrics: ${error.message}`);
@@ -202,7 +208,9 @@ export class MetricsService {
       await this.redis.ping();
       return { redis: true, collection: this.metricsEnabled };
     } catch (error) {
-      this.logger.error(`Metrics service health check failed: ${error.message}`);
+      this.logger.error(
+        `Metrics service health check failed: ${error.message}`
+      );
       return { redis: false, collection: this.metricsEnabled };
     }
   }
@@ -219,7 +227,9 @@ export class MetricsService {
 
   // Private methods
 
-  private async storeOperationMetrics(metrics: OperationMetrics): Promise<void> {
+  private async storeOperationMetrics(
+    metrics: OperationMetrics
+  ): Promise<void> {
     const key = `metrics:operations:${Date.now()}`;
     await this.redis.setex(key, 86400, JSON.stringify(metrics)); // 24 hour retention
   }
