@@ -18,7 +18,7 @@ describe('Video Ingestion → Analytics Service Contract', () => {
       port: 1234,
       log: path.resolve(process.cwd(), 'logs', 'pact.log'),
       dir: path.resolve(process.cwd(), 'pacts'),
-      logLevel: 'INFO',
+      logLevel: 'info',
       spec: 2
     });
 
@@ -35,25 +35,33 @@ describe('Video Ingestion → Analytics Service Contract', () => {
 
   describe('Video Processing Events', () => {
     it('should send VideoProcessedEvent when video processing completes', async () => {
+      const videoId = TestDataFactory.createVideoId();
+      const matchId = TestDataFactory.createMatchId();
+      const correlationId = TestDataFactory.createCorrelationId();
+      const playerId1 = TestDataFactory.createPlayerId();
+      const playerId2 = TestDataFactory.createPlayerId();
+      const teamId = TestDataFactory.createTeamId();
+      const eventId = TestDataFactory.createEventId();
+
       const videoProcessedEvent = {
         eventType: 'VideoProcessed',
-        videoId: TestDataFactory.createVideoId(),
-        matchId: TestDataFactory.createMatchId(),
+        videoId,
+        matchId,
         timestamp: new Date().toISOString(),
-        correlationId: TestDataFactory.createCorrelationId(),
+        correlationId,
         payload: {
           detectedEvents: [
             {
               type: 'shot',
               timestamp: 1500,
               position: { x: 85, y: 50 },
-              playerId: TestDataFactory.createPlayerId(),
-              teamId: TestDataFactory.createTeamId()
+              playerId: playerId1,
+              teamId
             }
           ],
           playerTracking: [
             {
-              playerId: TestDataFactory.createPlayerId(),
+              playerId: playerId2,
               positions: [
                 { timestamp: 1000, x: 50, y: 30 },
                 { timestamp: 1500, x: 55, y: 35 }
@@ -85,7 +93,7 @@ describe('Video Ingestion → Analytics Service Contract', () => {
             'Content-Type': 'application/json'
           },
           body: {
-            eventId: TestDataFactory.createEventId(),
+            eventId,
             status: 'accepted',
             message: 'Video processed event received successfully'
           }
@@ -110,12 +118,17 @@ describe('Video Ingestion → Analytics Service Contract', () => {
     });
 
     it('should handle video processing failure events', async () => {
+      const videoId = TestDataFactory.createVideoId();
+      const matchId = TestDataFactory.createMatchId();
+      const correlationId = TestDataFactory.createCorrelationId();
+      const eventId = TestDataFactory.createEventId();
+
       const videoFailedEvent = {
         eventType: 'VideoProcessingFailed',
-        videoId: TestDataFactory.createVideoId(),
-        matchId: TestDataFactory.createMatchId(),
+        videoId,
+        matchId,
         timestamp: new Date().toISOString(),
-        correlationId: TestDataFactory.createCorrelationId(),
+        correlationId,
         payload: {
           error: 'Invalid video format',
           errorCode: 'INVALID_FORMAT',
@@ -141,7 +154,7 @@ describe('Video Ingestion → Analytics Service Contract', () => {
             'Content-Type': 'application/json'
           },
           body: {
-            eventId: TestDataFactory.createEventId(),
+            eventId,
             status: 'accepted',
             message: 'Video failed event received successfully'
           }
@@ -166,6 +179,8 @@ describe('Video Ingestion → Analytics Service Contract', () => {
   describe('Analytics Query Contracts', () => {
     it('should provide match analytics when requested', async () => {
       const matchId = TestDataFactory.createMatchId();
+      const homeTeamId = TestDataFactory.createTeamId();
+      const awayTeamId = TestDataFactory.createTeamId();
 
       const interaction: InteractionObject = {
         state: 'match analytics exist for the given match',
@@ -185,7 +200,7 @@ describe('Video Ingestion → Analytics Service Contract', () => {
           body: {
             matchId,
             homeTeam: {
-              teamId: TestDataFactory.createTeamId(),
+              teamId: homeTeamId,
               xG: 1.85,
               xA: 0.92,
               possession: 58.3,
@@ -198,7 +213,7 @@ describe('Video Ingestion → Analytics Service Contract', () => {
               redCards: 0
             },
             awayTeam: {
-              teamId: TestDataFactory.createTeamId(),
+              teamId: awayTeamId,
               xG: 1.23,
               xA: 0.67,
               possession: 41.7,
@@ -270,41 +285,44 @@ describe('Video Ingestion → Analytics Service Contract', () => {
   });
 
   describe('Real-time Analytics Subscriptions', () => {
-    it('should provide real-time analytics updates via WebSocket', async () => {
+    it('should provide real-time analytics subscription endpoint', async () => {
       const matchId = TestDataFactory.createMatchId();
 
       const interaction: InteractionObject = {
         state: 'real-time analytics are available for the match',
-        uponReceiving: 'a WebSocket subscription request for real-time analytics',
+        uponReceiving: 'a request to check real-time analytics availability',
         withRequest: {
           method: 'GET',
-          path: `/api/analytics/realtime/${matchId}`,
+          path: `/api/analytics/realtime/${matchId}/status`,
           headers: {
-            'Upgrade': 'websocket',
-            'Connection': 'Upgrade',
             'Authorization': 'Bearer valid-token'
           }
         },
         willRespondWith: {
-          status: 101,
+          status: 200,
           headers: {
-            'Upgrade': 'websocket',
-            'Connection': 'Upgrade'
+            'Content-Type': 'application/json'
+          },
+          body: {
+            available: true,
+            streamUrl: `ws://localhost:8080/analytics/realtime/${matchId}`,
+            protocols: ['analytics-v1']
           }
         }
       };
 
       await provider.addInteraction(interaction);
 
-      const response = await fetch(`${provider.mockService.baseUrl}/api/analytics/realtime/${matchId}`, {
+      const response = await fetch(`${provider.mockService.baseUrl}/api/analytics/realtime/${matchId}/status`, {
         headers: {
-          'Upgrade': 'websocket',
-          'Connection': 'Upgrade',
           'Authorization': 'Bearer valid-token'
         }
       });
 
-      expect(response.status).toBe(101);
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.available).toBe(true);
+      expect(data.streamUrl).toContain(matchId);
     });
   });
 

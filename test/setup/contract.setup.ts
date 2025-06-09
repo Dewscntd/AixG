@@ -13,7 +13,7 @@ const pactConfig = {
   port: 1234,
   log: join(process.cwd(), 'test-results', 'pact.log'),
   dir: join(process.cwd(), 'test-results', 'pacts'),
-  logLevel: 'INFO' as const,
+  logLevel: 'info' as const,
   spec: 2,
 };
 

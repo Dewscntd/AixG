@@ -18,7 +18,7 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
       port: 1234,
       log: './test-results/pact.log',
       dir: './test-results/pacts',
-      logLevel: 'INFO',
+      logLevel: 'info',
     });
 
     return provider.setup();
@@ -34,119 +34,108 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
       const homeTeamId = TestDataFactory.createTeamId();
       const awayTeamId = TestDataFactory.createTeamId();
 
-      const expectedAnalysisResult = {
+      // Actual request data (no matchers)
+      const actualAnalysisResult = {
         eventType: 'VideoAnalysisCompleted',
-        matchId: like(matchId),
-        timestamp: like('2024-01-01T00:00:00.000Z'),
+        matchId: matchId,
+        timestamp: '2024-01-01T00:00:00.000Z',
         data: {
-          shots: eachLike({
-            teamId: like(homeTeamId),
-            playerId: like('player-123'),
+          shots: [{
+            teamId: homeTeamId,
+            playerId: 'player-123',
             position: {
-              x: like(85.5),
-              y: like(45.2),
+              x: 85.5,
+              y: 45.2,
             },
             targetPosition: {
-              x: like(100),
-              y: like(50),
+              x: 100,
+              y: 50,
             },
-            distanceToGoal: like(15.3),
-            angle: like(25.7),
-            bodyPart: term({
-              matcher: 'foot|head|other',
-              generate: 'foot',
-            }),
-            situation: term({
-              matcher: 'open_play|corner|free_kick|penalty',
-              generate: 'open_play',
-            }),
-            defenderCount: like(2),
+            distanceToGoal: 15.3,
+            angle: 25.7,
+            bodyPart: 'foot',
+            situation: 'open_play',
+            defenderCount: 2,
             gameState: {
-              minute: like(45),
-              scoreDifference: like(0),
-              isHome: like(true),
+              minute: 45,
+              scoreDifference: 0,
+              isHome: true,
             },
-            confidence: like(0.95),
-          }),
-          possessionEvents: eachLike({
-            timestamp: like(1234567890),
-            teamId: like(homeTeamId),
-            playerId: like('player-456'),
-            eventType: term({
-              matcher: 'pass|dribble|shot|tackle|interception|clearance',
-              generate: 'pass',
-            }),
+            confidence: 0.95,
+          }],
+          possessionEvents: [{
+            timestamp: 1234567890,
+            teamId: homeTeamId,
+            playerId: 'player-456',
+            eventType: 'pass',
             position: {
-              x: like(50.0),
-              y: like(30.5),
+              x: 50.0,
+              y: 30.5,
             },
-            successful: like(true),
-            duration: like(5),
-          }),
-          players: eachLike({
-            id: like('player-789'),
-            teamId: like(homeTeamId),
+            successful: true,
+            duration: 5,
+          }],
+          players: [{
+            id: 'player-789',
+            teamId: homeTeamId,
             position: {
-              x: like(45.0),
-              y: like(55.0),
+              x: 45.0,
+              y: 55.0,
             },
             velocity: {
-              x: like(2.5),
-              y: like(-1.2),
+              x: 2.5,
+              y: -1.2,
             },
-            confidence: like(0.92),
-          }),
+            confidence: 0.92,
+          }],
           formations: {
             homeTeam: {
-              formation: term({
-                matcher: '4-4-2|4-3-3|3-5-2|5-4-1',
-                generate: '4-4-2',
-              }),
-              confidence: like(0.88),
-              players: eachLike({
-                playerId: like('player-001'),
-                position: like('defender'),
+              formation: '4-4-2',
+              confidence: 0.88,
+              players: [{
+                playerId: 'player-001',
+                position: 'defender',
                 coordinates: {
-                  x: like(25.0),
-                  y: like(50.0),
+                  x: 25.0,
+                  y: 50.0,
                 },
-              }),
+              }],
             },
             awayTeam: {
-              teamId: like(awayTeamId),
-              formation: like('4-3-3'),
-              confidence: like(0.91),
-              players: eachLike({
-                playerId: like('player-002'),
-                position: like('midfielder'),
+              teamId: awayTeamId,
+              formation: '4-3-3',
+              confidence: 0.91,
+              players: [{
+                playerId: 'player-002',
+                position: 'midfielder',
                 coordinates: {
-                  x: like(75.0),
-                  y: like(50.0),
+                  x: 75.0,
+                  y: 50.0,
                 },
-              }),
+              }],
             },
           },
-          ballTracking: eachLike({
-            timestamp: like(1234567890),
+          ballTracking: [{
+            timestamp: 1234567890,
             position: {
-              x: like(50.0),
-              y: like(50.0),
+              x: 50.0,
+              y: 50.0,
             },
             velocity: {
-              x: like(10.5),
-              y: like(-5.2),
+              x: 10.5,
+              y: -5.2,
             },
-            confidence: like(0.97),
-          }),
+            confidence: 0.97,
+          }],
           metadata: {
-            processingTime: like(45.2),
+            processingTime: 45.2,
             modelVersions: {
-              playerDetection: like('v2.1.0'),
-              ballTracking: like('v1.8.3'),
-              eventDetection: like('v3.0.1'),
+              playerDetection: 'v2.1.0',
+              ballTracking: 'v1.8.3',
+              eventDetection: 'v3.0.1',
             },
-            frameCount: like(2700),
-            analysisQuality: like('high'),
+            frameCount: 2700,
+            analysisQuality: 'high',
           },
         },
       };
@@ -160,9 +149,9 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
             path: '/api/analytics/process-ml-output',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': like('Bearer token123'),
+              'Authorization': 'Bearer token123',
             },
-            body: expectedAnalysisResult,
+            body: actualAnalysisResult,
           })
           .willRespondWith({
             status: 200,
@@ -184,7 +173,7 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer token123',
         },
-        body: JSON.stringify(expectedAnalysisResult),
+        body: JSON.stringify(actualAnalysisResult),
       });
 
       expect(response.status).toBe(200);
@@ -196,25 +185,25 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
     it('should handle partial analysis results', async () => {
       const partialAnalysisResult = {
         eventType: 'PartialAnalysisCompleted',
-        matchId: like('match-456'),
-        timestamp: like('2024-01-01T00:00:00.000Z'),
+        matchId: 'match-456',
+        timestamp: '2024-01-01T00:00:00.000Z',
         data: {
           shots: [], // No shots detected
-          possessionEvents: eachLike({
-            timestamp: like(1234567890),
-            teamId: like('team-a'),
-            playerId: like('player-123'),
-            eventType: like('pass'),
+          possessionEvents: [{
+            timestamp: 1234567890,
+            teamId: 'team-a',
+            playerId: 'player-123',
+            eventType: 'pass',
             position: {
-              x: like(50.0),
-              y: like(30.5),
+              x: 50.0,
+              y: 30.5,
             },
-            successful: like(true),
-          }),
+            successful: true,
+          }],
           metadata: {
-            processingTime: like(30.1),
-            analysisQuality: like('medium'),
-            warnings: eachLike('Low confidence in player detection'),
+            processingTime: 30.1,
+            analysisQuality: 'medium',
+            warnings: ['Low confidence in player detection'],
           },
         },
       };
@@ -305,38 +294,38 @@ describe('ML Pipeline -> Analytics Engine Contract', () => {
     it('should receive real-time frame analysis updates', async () => {
       const frameAnalysisUpdate = {
         eventType: 'FrameAnalyzed',
-        streamId: like('stream-123'),
-        frameNumber: like(1500),
-        timestamp: like(60000), // 1 minute into the match
+        streamId: 'stream-123',
+        frameNumber: 1500,
+        timestamp: 60000, // 1 minute into the match
         data: {
-          players: eachLike({
-            id: like('player-123'),
-            teamId: like('team-a'),
+          players: [{
+            id: 'player-123',
+            teamId: 'team-a',
             position: {
-              x: like(45.0),
-              y: like(55.0),
+              x: 45.0,
+              y: 55.0,
             },
             velocity: {
-              x: like(2.5),
-              y: like(-1.2),
+              x: 2.5,
+              y: -1.2,
             },
-          }),
+          }],
           ball: {
             position: {
-              x: like(50.0),
-              y: like(50.0),
+              x: 50.0,
+              y: 50.0,
             },
             velocity: {
-              x: like(10.5),
-              y: like(-5.2),
+              x: 10.5,
+              y: -5.2,
             },
-            confidence: like(0.97),
+            confidence: 0.97,
           },
-          events: eachLike({
-            type: like('pass'),
-            confidence: like(0.85),
-            playerId: like('player-123'),
-          }),
+          events: [{
+            type: 'pass',
+            confidence: 0.85,
+            playerId: 'player-123',
+          }],
         },
       };
 

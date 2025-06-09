@@ -19,7 +19,7 @@ describe('API Gateway → Services Contract Tests', () => {
       port: 1235,
       log: path.resolve(process.cwd(), 'logs', 'pact-video.log'),
       dir: path.resolve(process.cwd(), 'pacts'),
-      logLevel: 'INFO',
+      logLevel: 'info',
       spec: 2
     });
 
@@ -29,7 +29,7 @@ describe('API Gateway → Services Contract Tests', () => {
       port: 1236,
       log: path.resolve(process.cwd(), 'logs', 'pact-analytics.log'),
       dir: path.resolve(process.cwd(), 'pacts'),
-      logLevel: 'INFO',
+      logLevel: 'info',
       spec: 2
     });
 
@@ -53,6 +53,8 @@ describe('API Gateway → Services Contract Tests', () => {
 
     it('should fetch video metadata for GraphQL resolver', async () => {
       const videoId = TestDataFactory.createVideoId();
+      const matchId = TestDataFactory.createMatchId();
+      const teamId = TestDataFactory.createTeamId();
 
       const interaction: InteractionObject = {
         state: 'video exists with the given ID',
@@ -83,8 +85,8 @@ describe('API Gateway → Services Contract Tests', () => {
             fileSize: 2147483648, // 2GB
             uploadedAt: '2023-12-01T10:00:00Z',
             processedAt: '2023-12-01T10:15:00Z',
-            matchId: TestDataFactory.createMatchId(),
-            teamId: TestDataFactory.createTeamId()
+            matchId,
+            teamId
           }
         }
       };
@@ -105,12 +107,16 @@ describe('API Gateway → Services Contract Tests', () => {
     });
 
     it('should handle video upload requests', async () => {
+      const matchId = TestDataFactory.createMatchId();
+      const teamId = TestDataFactory.createTeamId();
+      const responseVideoId = TestDataFactory.createVideoId();
+
       const uploadRequest = {
         filename: 'new-match.mp4',
         fileSize: 1073741824, // 1GB
         mimeType: 'video/mp4',
-        matchId: TestDataFactory.createMatchId(),
-        teamId: TestDataFactory.createTeamId(),
+        matchId,
+        teamId,
         uploadedBy: 'user-123'
       };
 
@@ -132,7 +138,7 @@ describe('API Gateway → Services Contract Tests', () => {
             'Content-Type': 'application/json'
           },
           body: {
-            videoId: TestDataFactory.createVideoId(),
+            videoId: responseVideoId,
             uploadUrl: 'https://storage.example.com/upload/signed-url',
             expiresAt: '2023-12-01T11:00:00Z'
           }
@@ -208,6 +214,8 @@ describe('API Gateway → Services Contract Tests', () => {
 
     it('should fetch match analytics for GraphQL resolver', async () => {
       const matchId = TestDataFactory.createMatchId();
+      const homeTeamId = TestDataFactory.createTeamId();
+      const awayTeamId = TestDataFactory.createTeamId();
 
       const interaction: InteractionObject = {
         state: 'analytics exist for the given match',
@@ -228,7 +236,7 @@ describe('API Gateway → Services Contract Tests', () => {
           body: {
             matchId,
             homeTeam: {
-              teamId: TestDataFactory.createTeamId(),
+              teamId: homeTeamId,
               xG: 2.15,
               xA: 1.23,
               possession: 62.4,
@@ -242,7 +250,7 @@ describe('API Gateway → Services Contract Tests', () => {
               formation: '4-3-3'
             },
             awayTeam: {
-              teamId: TestDataFactory.createTeamId(),
+              teamId: awayTeamId,
               xG: 1.87,
               xA: 0.94,
               possession: 37.6,
@@ -354,8 +362,11 @@ describe('API Gateway → Services Contract Tests', () => {
     });
 
     it('should handle analytics calculation requests', async () => {
+      const matchId = TestDataFactory.createMatchId();
+      const calculationId = TestDataFactory.createCalculationId();
+
       const calculationRequest = {
-        matchId: TestDataFactory.createMatchId(),
+        matchId,
         recalculateAll: false,
         includePlayerAnalytics: true,
         includeTeamAnalytics: true
@@ -379,7 +390,7 @@ describe('API Gateway → Services Contract Tests', () => {
             'Content-Type': 'application/json'
           },
           body: {
-            calculationId: TestDataFactory.createCalculationId(),
+            calculationId,
             status: 'queued',
             estimatedCompletion: '2023-12-01T10:35:00Z'
           }
