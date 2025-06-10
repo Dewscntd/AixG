@@ -37,6 +37,7 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
   }
 
   async requestDidStart(): Promise<GraphQLRequestListener<GraphQLContext>> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const plugin = this; // Capture reference to plugin instance
 
     return {

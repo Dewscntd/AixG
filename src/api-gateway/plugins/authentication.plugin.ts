@@ -18,6 +18,7 @@ export class AuthenticationPlugin
   constructor(private readonly authService: AuthService) {}
 
   async requestDidStart(): Promise<GraphQLRequestListener<GraphQLContext>> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const plugin = this; // Capture reference to plugin instance
 
     return {

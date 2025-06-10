@@ -5,7 +5,6 @@
 import {
   calculateXG,
   calculateXGComposed,
-  calculateBatchXG,
   calculateTotalXG,
   XGCalculationFunctions,
 } from '../../domain/services/xg-calculation.service';

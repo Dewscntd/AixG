@@ -17,6 +17,7 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
   constructor(private readonly metricsService: MetricsService) {}
 
   async requestDidStart(): Promise<GraphQLRequestListener<GraphQLContext>> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const plugin = this; // Capture reference to plugin instance
     let operationStartTime: number;
     let operationName: string;

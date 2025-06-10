@@ -16,6 +16,7 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
   constructor(private readonly dataLoaderService: DataLoaderService) {}
 
   async requestDidStart(): Promise<GraphQLRequestListener<GraphQLContext>> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const plugin = this; // Capture reference to plugin instance
 
     return {
