@@ -24,33 +24,33 @@ import { GraphQLContext, User } from '../types/context';
 
 // GraphQL Types
 export class HealthStatus {
-  status: string;
-  timestamp: Date;
-  version: string;
-  uptime: number;
-  services: ServiceHealth[];
+  status!: string;
+  timestamp!: Date;
+  version!: string;
+  uptime!: number;
+  services!: ServiceHealth[];
 }
 
 export class ServiceHealth {
-  name: string;
-  status: 'healthy' | 'unhealthy' | 'degraded';
+  name!: string;
+  status!: 'healthy' | 'unhealthy' | 'degraded';
   responseTime?: number;
-  lastCheck: Date;
+  lastCheck!: Date;
   details?: Record<string, unknown>;
 }
 
 export class GatewayMetrics {
-  totalRequests: number;
-  successRate: number;
-  averageResponseTime: number;
-  errorRate: number;
-  cacheHitRate: number;
-  activeConnections: number;
-  timestamp: Date;
+  totalRequests!: number;
+  successRate!: number;
+  averageResponseTime!: number;
+  errorRate!: number;
+  cacheHitRate!: number;
+  activeConnections!: number;
+  timestamp!: Date;
 }
 
 export class AuthenticationResult {
-  success: boolean;
+  success!: boolean;
   token?: string;
   user?: User;
   expiresAt?: Date;
@@ -176,10 +176,10 @@ export class GatewayResolver {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         message: 'Authentication successful',
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Authentication failed', {
         email,
-        error: error.message,
+        error: (error as Error).message,
         correlationId: context.correlationId,
       });
 
@@ -209,9 +209,9 @@ export class GatewayResolver {
         success: false,
         message: 'Token refresh not implemented yet',
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Token refresh failed', {
-        error: error.message,
+        error: (error as Error).message,
         correlationId: context.correlationId,
       });
 
@@ -240,10 +240,10 @@ export class GatewayResolver {
       }
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Logout failed', {
         userId: context.user?.id,
-        error: error.message,
+        error: (error as Error).message,
         correlationId: context.correlationId,
       });
 
@@ -280,12 +280,12 @@ export class GatewayResolver {
         lastCheck: new Date(),
         details: authHealth,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       services.push({
         name: 'authentication',
         status: 'unhealthy',
         lastCheck: new Date(),
-        details: { error: error.message },
+        details: { error: (error as Error).message },
       });
     }
 
@@ -301,12 +301,12 @@ export class GatewayResolver {
         lastCheck: new Date(),
         details: metricsHealth,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       services.push({
         name: 'metrics',
         status: 'unhealthy',
         lastCheck: new Date(),
-        details: { error: error.message },
+        details: { error: (error as Error).message },
       });
     }
 
@@ -322,12 +322,12 @@ export class GatewayResolver {
         lastCheck: new Date(),
         details: subscriptionHealth,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       services.push({
         name: 'subscriptions',
         status: 'unhealthy',
         lastCheck: new Date(),
-        details: { error: error.message },
+        details: { error: (error as Error).message },
       });
     }
 

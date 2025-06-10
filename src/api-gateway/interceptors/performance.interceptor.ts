@@ -16,7 +16,7 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 import { Observable } from 'rxjs';
 import { tap, timeout, catchError } from 'rxjs/operators';
 import { ConfigService } from '@nestjs/config';
-import { MetricsService } from '../services/metrics.service';
+import { MetricsService, OperationMetrics } from '../services/metrics.service';
 import { GraphQLContext } from '../types/context';
 import { GraphQLInfo, GraphQLSelection } from './logging.interceptor';
 
@@ -93,9 +93,15 @@ export class PerformanceInterceptor implements NestInterceptor {
       startTime: Date.now(),
       memoryUsageBefore: process.memoryUsage(),
       cpuUsageBefore: process.cpuUsage(),
-      complexity: ctx.metadata?.queryComplexity,
-      depth: ctx.metadata?.queryDepth,
     };
+
+    // Only add optional properties if they have values
+    if (ctx.metadata?.queryComplexity !== undefined) {
+      metrics.complexity = ctx.metadata.queryComplexity;
+    }
+    if (ctx.metadata?.queryDepth !== undefined) {
+      metrics.depth = ctx.metadata.queryDepth;
+    }
 
     // Log operation start
     this.logger.debug('Performance monitoring started', {
@@ -242,18 +248,26 @@ export class PerformanceInterceptor implements NestInterceptor {
    * Records metrics in the metrics service
    */
   private recordMetrics(metrics: PerformanceMetrics, success: boolean): void {
-    this.metricsService.recordOperation({
+    const operationMetrics: Partial<OperationMetrics> = {
       operationName: metrics.operationName,
       operationType: metrics.operationType as
         | 'query'
         | 'mutation'
         | 'subscription',
       duration: metrics.duration || 0,
-      complexity: metrics.complexity,
-      depth: metrics.depth,
       success,
       timestamp: new Date(),
-    });
+    };
+
+    // Only add optional properties if they have values
+    if (metrics.complexity !== undefined) {
+      operationMetrics.complexity = metrics.complexity;
+    }
+    if (metrics.depth !== undefined) {
+      operationMetrics.depth = metrics.depth;
+    }
+
+    this.metricsService.recordOperation(operationMetrics as OperationMetrics);
   }
 
   /**

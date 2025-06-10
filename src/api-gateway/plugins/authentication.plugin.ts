@@ -18,23 +18,25 @@ export class AuthenticationPlugin
   constructor(private readonly authService: AuthService) {}
 
   async requestDidStart(): Promise<GraphQLRequestListener<GraphQLContext>> {
+    const plugin = this; // Capture reference to plugin instance
+
     return {
       // Validate authentication before parsing
       async didResolveOperation(requestContext) {
-        const { request, context } = requestContext;
+        const { request, contextValue: context } = requestContext;
 
         // Skip authentication for introspection queries
-        if (this.isIntrospectionQuery(request.query)) {
+        if (plugin.isIntrospectionQuery(request.query)) {
           return;
         }
 
         // Skip authentication for health check queries
-        if (this.isHealthCheckQuery(request.query)) {
+        if (plugin.isHealthCheckQuery(request.query)) {
           return;
         }
 
         // Check if operation requires authentication
-        const requiresAuth = this.operationRequiresAuth(request.query);
+        const requiresAuth = plugin.operationRequiresAuth(request.query);
 
         if (requiresAuth && !context.user) {
           throw new Error('Authentication required');
@@ -42,7 +44,7 @@ export class AuthenticationPlugin
 
         // Log authentication events
         if (context.user) {
-          this.logger.debug(
+          plugin.logger.debug(
             `Authenticated request from user: ${context.user.id}`,
             {
               operationName: request.operationName,
@@ -55,7 +57,7 @@ export class AuthenticationPlugin
 
       // Validate authorization before execution
       async willSendResponse(requestContext) {
-        const { context, response } = requestContext;
+        const { contextValue: context, response } = requestContext;
 
         // Add authentication headers to response
         if (context.user) {
@@ -74,11 +76,11 @@ export class AuthenticationPlugin
 
       // Handle authentication errors
       async didEncounterErrors(requestContext) {
-        const { errors, context } = requestContext;
+        const { errors, contextValue: context } = requestContext;
 
         for (const error of errors) {
-          if (this.isAuthenticationError(error)) {
-            this.logger.warn(`Authentication error: ${error.message}`, {
+          if (plugin.isAuthenticationError(error)) {
+            plugin.logger.warn(`Authentication error: ${error.message}`, {
               userId: context.user?.id,
               operationName: requestContext.request.operationName,
             });

@@ -6,10 +6,9 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { SchemaDirectiveVisitor } from '@graphql-tools/utils';
+import { mapSchema, getDirective, MapperKind } from '@graphql-tools/utils';
 import {
-  GraphQLField,
-  GraphQLObjectType,
+  GraphQLSchema,
   defaultFieldResolver,
   GraphQLResolveInfo,
 } from 'graphql';
@@ -27,12 +26,11 @@ export interface RateLimitDirectiveArgs {
 }
 
 @Injectable()
-export class RateLimitDirective extends SchemaDirectiveVisitor {
+export class RateLimitDirective {
   private readonly logger = new Logger(RateLimitDirective.name);
   private readonly redis: Redis;
 
   constructor(private readonly configService: ConfigService) {
-    super();
     const redisUrl = this.configService.get<string>('redisUrl');
     if (!redisUrl) {
       throw new Error('Redis URL is not configured');
@@ -40,74 +38,80 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
     this.redis = new Redis(redisUrl);
   }
 
-  visitFieldDefinition(
-    field: GraphQLField<unknown, GraphQLContext>,
-    _details: { objectType: GraphQLObjectType }
-  ) {
-    const { resolve = defaultFieldResolver } = field;
-    const directiveArgs = this.args as RateLimitDirectiveArgs;
+  createTransformer() {
+    return (schema: GraphQLSchema) =>
+      mapSchema(schema, {
+        [MapperKind.OBJECT_FIELD]: (fieldConfig, _fieldName, _typeName) => {
+          const rateLimitDirective = getDirective(schema, fieldConfig, 'rateLimit')?.[0];
+          if (rateLimitDirective) {
+            const { resolve = defaultFieldResolver } = fieldConfig;
+            const directiveArgs = rateLimitDirective as RateLimitDirectiveArgs;
 
-    field.resolve = async function (
-      source,
-      args,
-      context: GraphQLContext,
-      info
-    ) {
-      try {
-        // Generate rate limit key
-        const key = this.generateRateLimitKey(
-          context,
-          info,
-          directiveArgs.keyGenerator
-        );
+            fieldConfig.resolve = async (
+              source: unknown,
+              args: unknown,
+              context: GraphQLContext,
+              info: GraphQLResolveInfo
+            ) => {
+              try {
+                // Generate rate limit key
+                const key = this.generateRateLimitKey(
+                  context,
+                  info,
+                  directiveArgs.keyGenerator
+                );
 
-        // Check rate limit
-        const isAllowed = await this.checkRateLimit(
-          key,
-          directiveArgs.max,
-          directiveArgs.window
-        );
+                // Check rate limit
+                const isAllowed = await this.checkRateLimit(
+                  key,
+                  directiveArgs.max,
+                  directiveArgs.window
+                );
 
-        if (!isAllowed) {
-          const message =
-            directiveArgs.message ||
-            `Rate limit exceeded. Maximum ${directiveArgs.max} requests per ${directiveArgs.window} seconds.`;
+                if (!isAllowed) {
+                  const message =
+                    directiveArgs.message ||
+                    `Rate limit exceeded. Maximum ${directiveArgs.max} requests per ${directiveArgs.window} seconds.`;
 
-          this.logger.warn('Rate limit exceeded', {
-            key,
-            max: directiveArgs.max,
-            window: directiveArgs.window,
-            field: info.fieldName,
-            userId: context.user?.id,
-            correlationId: context.correlationId,
-          });
+                  this.logger.warn('Rate limit exceeded', {
+                    key,
+                    max: directiveArgs.max,
+                    window: directiveArgs.window,
+                    field: info.fieldName,
+                    userId: context.user?.id,
+                    correlationId: context.correlationId,
+                  });
 
-          throw new Error(message);
-        }
+                  throw new Error(message);
+                }
 
-        // Execute the resolver
-        const result = await resolve.call(this, source, args, context, info);
+                // Execute the resolver
+                const result = await resolve(source, args, context, info);
 
-        // Update rate limit counter (only for successful requests if configured)
-        if (!directiveArgs.skipSuccessfulRequests) {
-          await this.incrementRateLimit(key, directiveArgs.window);
-        }
+                // Update rate limit counter (only for successful requests if configured)
+                if (!directiveArgs.skipSuccessfulRequests) {
+                  await this.incrementRateLimit(key, directiveArgs.window);
+                }
 
-        return result;
-      } catch (error) {
-        // Update rate limit counter (only for failed requests if configured)
-        if (!directiveArgs.skipFailedRequests) {
-          const key = this.generateRateLimitKey(
-            context,
-            info,
-            directiveArgs.keyGenerator
-          );
-          await this.incrementRateLimit(key, directiveArgs.window);
-        }
+                return result;
+              } catch (error: unknown) {
+                // Update rate limit counter (only for failed requests if configured)
+                if (!directiveArgs.skipFailedRequests) {
+                  const key = this.generateRateLimitKey(
+                    context,
+                    info,
+                    directiveArgs.keyGenerator
+                  );
+                  await this.incrementRateLimit(key, directiveArgs.window);
+                }
 
-        throw error;
-      }
-    }.bind(this);
+                throw error;
+              }
+            };
+          }
+          return fieldConfig;
+        },
+      });
   }
 
   /**
@@ -193,12 +197,14 @@ export class RateLimitDirective extends SchemaDirectiveVisitor {
     // Check for forwarded IP headers
     const forwarded = context.req.headers['x-forwarded-for'];
     if (forwarded) {
-      return Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+      const forwardedIP = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+      return forwardedIP || 'unknown';
     }
 
     const realIP = context.req.headers['x-real-ip'];
     if (realIP) {
-      return Array.isArray(realIP) ? realIP[0] : realIP;
+      const realIPValue = Array.isArray(realIP) ? realIP[0] : realIP;
+      return realIPValue || 'unknown';
     }
 
     return context.req.connection?.remoteAddress || 'unknown';
@@ -230,9 +236,5 @@ export const rateLimitDirectiveTypeDefs = `
  * Factory function to create rate limit directive transformer
  */
 export function createRateLimitDirective(configService: ConfigService) {
-  return class extends RateLimitDirective {
-    constructor() {
-      super(configService);
-    }
-  };
+  return new RateLimitDirective(configService);
 }

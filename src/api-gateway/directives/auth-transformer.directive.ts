@@ -160,7 +160,10 @@ export class AuthDirectiveTransformer {
       SUPER_ADMIN: 3,
     };
 
-    const userLevel = levels[user.role as keyof typeof levels] || 0;
+    // User has roles array, check if any role meets the required level
+    const userLevel = Math.max(
+      ...user.roles.map(role => levels[role.toUpperCase() as keyof typeof levels] || 0)
+    );
     const required = levels[requiredLevel as keyof typeof levels] || 0;
 
     return userLevel >= required;

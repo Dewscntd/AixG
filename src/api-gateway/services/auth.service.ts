@@ -8,7 +8,8 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-import * as jwt from 'jsonwebtoken';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const jwt = require('jsonwebtoken');
 import Redis from 'ioredis';
 
 import { User } from '../types/context';
@@ -35,8 +36,18 @@ export class AuthService {
   private readonly jwtSecret: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.redis = new Redis(this.configService.get<string>('redisUrl'));
-    this.jwtSecret = this.configService.get<string>('jwtSecret');
+    const redisUrl = this.configService.get<string>('redisUrl');
+    const jwtSecret = this.configService.get<string>('jwtSecret');
+
+    if (!redisUrl) {
+      throw new Error('Redis URL is not configured');
+    }
+    if (!jwtSecret) {
+      throw new Error('JWT secret is not configured');
+    }
+
+    this.redis = new Redis(redisUrl);
+    this.jwtSecret = jwtSecret;
   }
 
   /**
@@ -50,8 +61,8 @@ export class AuthService {
       }
 
       return await this.validateToken(token);
-    } catch (error) {
-      this.logger.warn(`Request validation failed: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.warn(`Request validation failed: ${(error as Error).message}`);
       return undefined;
     }
   }
@@ -97,8 +108,12 @@ export class AuthService {
       email: user.email,
       roles: user.roles,
       permissions: user.permissions,
-      teamId: user.teamId,
     };
+
+    // Only add teamId if it exists
+    if (user.teamId) {
+      payload.teamId = user.teamId;
+    }
 
     const expiresIn = this.configService.get<string>('jwtExpiresIn', '24h');
 
@@ -121,8 +136,8 @@ export class AuthService {
           await this.redis.setex(`blacklist:${token}`, ttl, '1');
         }
       }
-    } catch (error) {
-      this.logger.warn(`Failed to revoke token: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.warn(`Failed to revoke token: ${(error as Error).message}`);
     }
   }
 
@@ -201,8 +216,8 @@ export class AuthService {
     try {
       const result = await this.redis.get(`blacklist:${token}`);
       return result === '1';
-    } catch (error) {
-      this.logger.warn(`Failed to check token blacklist: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.warn(`Failed to check token blacklist: ${(error as Error).message}`);
       return false;
     }
   }
@@ -221,8 +236,8 @@ export class AuthService {
     if (cachedUser) {
       try {
         return JSON.parse(cachedUser);
-      } catch (error) {
-        this.logger.warn(`Failed to parse cached user: ${error.message}`);
+      } catch (error: unknown) {
+        this.logger.warn(`Failed to parse cached user: ${(error as Error).message}`);
       }
     }
 
@@ -232,9 +247,9 @@ export class AuthService {
       email: payload.email,
       roles: payload.roles,
       permissions: payload.permissions,
-      teamId: payload.teamId,
       isActive: true, // In real app, check database
       lastLoginAt: new Date(),
+      ...(payload.teamId && { teamId: payload.teamId }),
     };
 
     // Cache user for 5 minutes
@@ -265,8 +280,8 @@ export class AuthService {
       jwt.verify(testToken, this.jwtSecret);
 
       return { redis: true, jwt: true };
-    } catch (error) {
-      this.logger.error(`Auth service health check failed: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(`Auth service health check failed: ${(error as Error).message}`);
       return { redis: false, jwt: false };
     }
   }

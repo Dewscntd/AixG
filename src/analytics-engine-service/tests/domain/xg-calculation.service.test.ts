@@ -6,6 +6,7 @@ import {
   calculateXG,
   calculateXGComposed,
   calculateBatchXG,
+  calculateTotalXG,
   XGCalculationFunctions,
 } from '../../domain/services/xg-calculation.service';
 import { ShotData } from '../../domain/value-objects/analytics-metrics';
@@ -217,19 +218,19 @@ describe('XGCalculationService', () => {
         },
       ];
 
-      const totalXG = calculateBatchXG(shots);
-      const individual1 = calculateXG(shots[0]);
-      const individual2 = calculateXG(shots[1]);
+      const totalXG = calculateTotalXG(shots);
+      const individual1 = calculateXG(shots[0]!);
+      const individual2 = calculateXG(shots[1]!);
 
-      expect(totalXG.value).toBeCloseTo(
+      expect(totalXG).toBeCloseTo(
         individual1.value + individual2.value,
         4
       );
     });
 
     it('should handle empty shot array', () => {
-      const totalXG = calculateBatchXG([]);
-      expect(totalXG.value).toBe(0);
+      const totalXG = calculateTotalXG([]);
+      expect(totalXG).toBe(0);
     });
   });
 
@@ -316,9 +317,11 @@ describe('XGCalculationService', () => {
 
       // All results should be identical
       const firstResult = results[0];
-      results.forEach(result => {
-        expect(result.value).toBe(firstResult.value);
-      });
+      if (firstResult) {
+        results.forEach(result => {
+          expect(result.value).toBe(firstResult.value);
+        });
+      }
     });
 
     it('should be pure functions with no side effects', () => {

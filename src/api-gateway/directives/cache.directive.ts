@@ -6,10 +6,9 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { SchemaDirectiveVisitor } from '@graphql-tools/utils';
+import { mapSchema, getDirective, MapperKind } from '@graphql-tools/utils';
 import {
-  GraphQLField,
-  GraphQLObjectType,
+  GraphQLSchema,
   defaultFieldResolver,
   GraphQLResolveInfo,
 } from 'graphql';
@@ -37,7 +36,7 @@ export interface CacheDirectiveArgs {
 }
 
 @Injectable()
-export class CacheDirective extends SchemaDirectiveVisitor {
+export class CacheDirective {
   private readonly logger = new Logger(CacheDirective.name);
   private readonly redis: Redis;
   private readonly defaultTtl: number;
@@ -46,7 +45,6 @@ export class CacheDirective extends SchemaDirectiveVisitor {
     private readonly configService: ConfigService,
     private readonly metricsService: MetricsService
   ) {
-    super();
     const redisUrl = this.configService.get<string>('redisUrl');
     if (!redisUrl) {
       throw new Error('Redis URL is not configured');
@@ -55,84 +53,90 @@ export class CacheDirective extends SchemaDirectiveVisitor {
     this.defaultTtl = this.configService.get<number>('cacheDefaultTtl', 300); // 5 minutes
   }
 
-  visitFieldDefinition(
-    field: GraphQLField<unknown, GraphQLContext>,
-    _details: { objectType: GraphQLObjectType }
-  ) {
-    const { resolve = defaultFieldResolver } = field;
-    const directiveArgs = this.args as CacheDirectiveArgs;
+  createTransformer() {
+    return (schema: GraphQLSchema) =>
+      mapSchema(schema, {
+        [MapperKind.OBJECT_FIELD]: (fieldConfig, _fieldName, _typeName) => {
+          const cacheDirective = getDirective(schema, fieldConfig, 'cache')?.[0];
+          if (cacheDirective) {
+            const { resolve = defaultFieldResolver } = fieldConfig;
+            const directiveArgs = cacheDirective as CacheDirectiveArgs;
 
-    field.resolve = async function (
-      source: unknown,
-      args: unknown,
-      context: GraphQLContext,
-      info: GraphQLResolveInfo
-    ) {
-      const startTime = Date.now();
+            fieldConfig.resolve = async (
+              source: unknown,
+              args: unknown,
+              context: GraphQLContext,
+              info: GraphQLResolveInfo
+            ) => {
+              const startTime = Date.now();
 
-      try {
-        // Generate cache key
-        const cacheKey = this.generateCacheKey(
-          source,
-          args,
-          context,
-          info,
-          directiveArgs
-        );
+              try {
+                // Generate cache key
+                const cacheKey = this.generateCacheKey(
+                  source,
+                  args,
+                  context,
+                  info,
+                  directiveArgs
+                );
 
-        // Try to get from cache
-        const cached = await this.getFromCache(cacheKey);
-        if (cached !== null) {
-          // Record cache hit
-          this.metricsService.recordCacheOperation({
-            operation: 'hit',
-            key: cacheKey,
-            duration: Date.now() - startTime,
-            timestamp: new Date(),
-          });
+                // Try to get from cache
+                const cached = await this.getFromCache(cacheKey);
+                if (cached !== null) {
+                  // Record cache hit
+                  this.metricsService.recordCacheOperation({
+                    operation: 'hit',
+                    key: cacheKey,
+                    duration: Date.now() - startTime,
+                    timestamp: new Date(),
+                  });
 
-          this.logger.debug('Cache hit', {
-            key: cacheKey,
-            field: info.fieldName,
-            correlationId: context.correlationId,
-          });
+                  this.logger.debug('Cache hit', {
+                    key: cacheKey,
+                    field: info.fieldName,
+                    correlationId: context.correlationId,
+                  });
 
-          return cached;
-        }
+                  return cached;
+                }
 
-        // Record cache miss
-        this.metricsService.recordCacheOperation({
-          operation: 'miss',
-          key: cacheKey,
-          duration: Date.now() - startTime,
-          timestamp: new Date(),
-        });
+                // Record cache miss
+                this.metricsService.recordCacheOperation({
+                  operation: 'miss',
+                  key: cacheKey,
+                  duration: Date.now() - startTime,
+                  timestamp: new Date(),
+                });
 
-        // Execute resolver
-        const result = await resolve.call(this, source, args, context, info);
+                // Execute resolver
+                const result = await resolve(source, args, context, info);
 
-        // Cache the result
-        await this.setInCache(cacheKey, result, directiveArgs);
+                // Cache the result
+                await this.setInCache(cacheKey, result, directiveArgs);
 
-        this.logger.debug('Cache miss - result cached', {
-          key: cacheKey,
-          field: info.fieldName,
-          ttl: directiveArgs.ttl || this.defaultTtl,
-          correlationId: context.correlationId,
-        });
+                this.logger.debug('Cache miss - result cached', {
+                  key: cacheKey,
+                  field: info.fieldName,
+                  ttl: directiveArgs.ttl || this.defaultTtl,
+                  correlationId: context.correlationId,
+                });
 
-        return result;
-      } catch (error) {
-        this.logger.error('Cache directive error', {
-          error: error.message,
-          field: info.fieldName,
-          correlationId: context.correlationId,
-        });
+                return result;
+              } catch (error: unknown) {
+                this.logger.error('Cache directive error', {
+                  error: (error as Error).message,
+                  field: info.fieldName,
+                  correlationId: context.correlationId,
+                });
 
-        // If caching fails, still execute the resolver
-        return resolve.call(this, source, args, context, info);
-      }
-    }.bind(this);
+                // If caching fails, still execute the resolver
+                return resolve(source, args, context, info);
+              }
+            };
+          }
+          return fieldConfig;
+        },
+      });
   }
 
   /**
@@ -352,9 +356,5 @@ export function createCacheDirective(
   configService: ConfigService,
   metricsService: MetricsService
 ) {
-  return class extends CacheDirective {
-    constructor() {
-      super(configService, metricsService);
-    }
-  };
+  return new CacheDirective(configService, metricsService);
 }

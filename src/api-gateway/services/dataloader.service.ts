@@ -30,7 +30,11 @@ export class DataLoaderService {
   private readonly cacheKeyGenerators: CacheKeyGenerators;
 
   constructor(private readonly configService: ConfigService) {
-    this.redis = new Redis(this.configService.get<string>('redisUrl'));
+    const redisUrl = this.configService.get<string>('redisUrl');
+    if (!redisUrl) {
+      throw new Error('Redis URL is not configured');
+    }
+    this.redis = new Redis(redisUrl);
     this.cacheKeyGenerators = this.createCacheKeyGenerators();
   }
 
@@ -227,16 +231,22 @@ export class DataLoaderService {
           if (cached) {
             try {
               results[index] = JSON.parse(cached);
-            } catch (error) {
+            } catch (error: unknown) {
               this.logger.warn(
-                `Failed to parse cached result for ${cacheKeys[index]}: ${error.message}`
+                `Failed to parse cached result for ${cacheKeys[index]}: ${(error as Error).message}`
               );
-              uncachedKeys.push(keys[index]);
-              uncachedIndices.push(index);
+              const key = keys[index];
+              if (key !== undefined) {
+                uncachedKeys.push(key);
+                uncachedIndices.push(index);
+              }
             }
           } else {
-            uncachedKeys.push(keys[index]);
-            uncachedIndices.push(index);
+            const key = keys[index];
+            if (key !== undefined) {
+              uncachedKeys.push(key);
+              uncachedIndices.push(index);
+            }
           }
         });
 
@@ -248,11 +258,15 @@ export class DataLoaderService {
           const cachePromises: Promise<string>[] = [];
           freshResults.forEach((result, index) => {
             const originalIndex = uncachedIndices[index];
-            results[originalIndex] = result;
+            const uncachedKey = uncachedKeys[index];
+
+            if (originalIndex !== undefined) {
+              results[originalIndex] = result;
+            }
 
             // Cache successful results
-            if (!(result instanceof Error)) {
-              const cacheKey = `${entityType}:${uncachedKeys[index]}`;
+            if (!(result instanceof Error) && uncachedKey !== undefined) {
+              const cacheKey = `${entityType}:${uncachedKey}`;
               cachePromises.push(
                 this.redis.setex(cacheKey, 300, JSON.stringify(result)) // 5 minute cache
               );

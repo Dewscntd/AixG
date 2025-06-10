@@ -7,6 +7,7 @@
 
 import { ApolloServerPlugin, GraphQLRequestListener } from '@apollo/server';
 import { Logger } from '@nestjs/common';
+import { GraphQLError } from 'graphql';
 import { MetricsService, OperationMetrics } from '../services/metrics.service';
 import { GraphQLContext } from '../types/context';
 
@@ -16,6 +17,7 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
   constructor(private readonly metricsService: MetricsService) {}
 
   async requestDidStart(): Promise<GraphQLRequestListener<GraphQLContext>> {
+    const plugin = this; // Capture reference to plugin instance
     let operationStartTime: number;
     let operationName: string;
     let operationType: 'query' | 'mutation' | 'subscription';
@@ -25,7 +27,7 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
     return {
       // Record operation start
       async didResolveOperation(requestContext) {
-        const { request, context } = requestContext;
+        const { request, contextValue: context } = requestContext;
 
         operationStartTime = Date.now();
         operationName = request.operationName || 'anonymous';
@@ -41,10 +43,10 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
         }
 
         // Calculate query complexity and depth (simplified)
-        complexity = this.calculateQueryComplexity(query);
-        depth = this.calculateQueryDepth(query);
+        complexity = plugin.calculateQueryComplexity(query);
+        depth = plugin.calculateQueryDepth(query);
 
-        this.logger.debug('Operation started', {
+        plugin.logger.debug('Operation started', {
           operationName,
           operationType,
           complexity,
@@ -56,27 +58,30 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
 
       // Record operation completion
       async willSendResponse(requestContext) {
-        const { context, response } = requestContext;
+        const { contextValue: context, response } = requestContext;
 
         if (operationStartTime) {
           const duration = Date.now() - operationStartTime;
-          const success =
-            !response.body.kind === 'single' ||
-            !(response.body as any).singleResult?.errors?.length;
+          const success = response.body.kind === 'single' &&
+            !(response.body.singleResult?.errors?.length);
 
-          const metrics: OperationMetrics = {
+          const metrics: Partial<OperationMetrics> = {
             operationName,
             operationType,
             duration,
             complexity,
             depth,
             success,
-            userId: context.user?.id,
             timestamp: new Date(),
           };
 
+          // Only add userId if it exists
+          if (context.user?.id) {
+            metrics.userId = context.user.id;
+          }
+
           // Record metrics
-          this.metricsService.recordOperation(metrics);
+          plugin.metricsService.recordOperation(metrics as OperationMetrics);
 
           // Add performance headers
           response.http.headers.set('X-Response-Time', `${duration}ms`);
@@ -86,7 +91,7 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
           );
           response.http.headers.set('X-Query-Depth', depth.toString());
 
-          this.logger.debug('Operation completed', {
+          plugin.logger.debug('Operation completed', {
             operationName,
             duration,
             success,
@@ -97,39 +102,51 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
 
       // Record operation errors
       async didEncounterErrors(requestContext) {
-        const { errors, context } = requestContext;
+        const { errors, contextValue: context } = requestContext;
 
         for (const error of errors) {
-          this.metricsService.recordError(error, {
+          const errorMetrics: any = {
             operationName,
-            userId: context.user?.id,
             context: {
               correlationId: context.correlationId,
               operationType,
               complexity,
               depth,
             },
-          });
+          };
+
+          // Only add userId if it exists
+          if (context.user?.id) {
+            errorMetrics.userId = context.user.id;
+          }
+
+          plugin.metricsService.recordError(error, errorMetrics);
         }
 
         // Update operation metrics with error information
-        if (operationStartTime) {
+        if (operationStartTime && errors.length > 0) {
           const duration = Date.now() - operationStartTime;
-          const errorCode = this.extractErrorCode(errors[0]);
+          const errorCode = plugin.extractErrorCode(errors[0] as Error);
 
-          const metrics: OperationMetrics = {
+          const metrics: Partial<OperationMetrics> = {
             operationName,
             operationType,
             duration,
             complexity,
             depth,
             success: false,
-            errorCode,
-            userId: context.user?.id,
             timestamp: new Date(),
           };
 
-          this.metricsService.recordOperation(metrics);
+          // Only add optional properties if they exist
+          if (errorCode) {
+            metrics.errorCode = errorCode;
+          }
+          if (context.user?.id) {
+            metrics.userId = context.user.id;
+          }
+
+          plugin.metricsService.recordOperation(metrics as OperationMetrics);
         }
       },
     };
@@ -175,9 +192,10 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
   private extractErrorCode(error: Error): string | undefined {
     if (!error) return undefined;
 
-    // Check extensions for error code
-    if (error.extensions?.code) {
-      return error.extensions.code;
+    // Check extensions for error code (GraphQLError has extensions)
+    const graphqlError = error as GraphQLError;
+    if (graphqlError.extensions?.code) {
+      return graphqlError.extensions.code as string;
     }
 
     // Check error message for common patterns

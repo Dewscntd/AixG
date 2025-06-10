@@ -16,15 +16,17 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
   constructor(private readonly dataLoaderService: DataLoaderService) {}
 
   async requestDidStart(): Promise<GraphQLRequestListener<GraphQLContext>> {
+    const plugin = this; // Capture reference to plugin instance
+
     return {
       // Initialize DataLoaders for each request
       async didResolveOperation(requestContext) {
-        const { context } = requestContext;
+        const { contextValue: context } = requestContext;
 
         // DataLoaders are already created in the context factory
         // This is where we could add additional initialization if needed
 
-        this.logger.debug('DataLoaders initialized for request', {
+        plugin.logger.debug('DataLoaders initialized for request', {
           correlationId: context.correlationId,
           userId: context.user?.id,
         });
@@ -32,11 +34,11 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
 
       // Monitor DataLoader performance
       async willSendResponse(requestContext) {
-        const { context, response } = requestContext;
+        const { contextValue: context, response } = requestContext;
 
         try {
           // Collect DataLoader statistics
-          const stats = this.collectDataLoaderStats(context);
+          const stats = plugin.collectDataLoaderStats(context);
 
           // Add performance headers
           if (stats.totalLoads > 0) {
@@ -55,33 +57,33 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
           }
 
           // Log performance metrics
-          this.logger.debug('DataLoader performance stats', {
+          plugin.logger.debug('DataLoader performance stats', {
             correlationId: context.correlationId,
             ...stats,
           });
 
           // Warn about potential N+1 queries
           if (stats.totalLoads > 100) {
-            this.logger.warn('High number of DataLoader loads detected', {
+            plugin.logger.warn('High number of DataLoader loads detected', {
               correlationId: context.correlationId,
               totalLoads: stats.totalLoads,
               operationName: requestContext.request.operationName,
             });
           }
-        } catch (error) {
-          this.logger.warn(
-            `Failed to collect DataLoader stats: ${error.message}`
+        } catch (error: unknown) {
+          plugin.logger.warn(
+            `Failed to collect DataLoader stats: ${(error as Error).message}`
           );
         }
       },
 
       // Handle DataLoader errors
       async didEncounterErrors(requestContext) {
-        const { errors, context } = requestContext;
+        const { errors, contextValue: context } = requestContext;
 
         for (const error of errors) {
-          if (this.isDataLoaderError(error)) {
-            this.logger.error('DataLoader error encountered', {
+          if (plugin.isDataLoaderError(error)) {
+            plugin.logger.error('DataLoader error encountered', {
               error: error.message,
               correlationId: context.correlationId,
               operationName: requestContext.request.operationName,
@@ -135,8 +137,8 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
           }
         }
       });
-    } catch (error) {
-      this.logger.warn(`Failed to collect DataLoader stats: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.warn(`Failed to collect DataLoader stats: ${(error as Error).message}`);
     }
 
     return {

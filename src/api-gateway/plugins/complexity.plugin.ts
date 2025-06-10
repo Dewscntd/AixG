@@ -37,35 +37,37 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
   }
 
   async requestDidStart(): Promise<GraphQLRequestListener<GraphQLContext>> {
+    const plugin = this; // Capture reference to plugin instance
+
     return {
       // Analyze query complexity before execution
       async didResolveOperation(requestContext) {
-        const { request, context } = requestContext;
+        const { request, contextValue: context } = requestContext;
 
         // Skip complexity analysis for introspection queries if allowed
         if (
-          this.config.introspection &&
-          this.isIntrospectionQuery(request.query)
+          plugin.config.introspection &&
+          plugin.isIntrospectionQuery(request.query)
         ) {
           return;
         }
 
         try {
-          const complexity = this.calculateComplexity(
+          const complexity = plugin.calculateComplexity(
             request.query || '',
             request.variables || {}
           );
 
           // Check if complexity exceeds maximum
-          if (complexity > this.config.maximumComplexity) {
-            const error = this.config.createError(
-              this.config.maximumComplexity,
+          if (complexity > plugin.config.maximumComplexity) {
+            const error = plugin.config.createError(
+              plugin.config.maximumComplexity,
               complexity
             );
 
-            this.logger.warn('Query complexity exceeded', {
+            plugin.logger.warn('Query complexity exceeded', {
               complexity,
-              maximum: this.config.maximumComplexity,
+              maximum: plugin.config.maximumComplexity,
               operationName: request.operationName,
               userId: context.user?.id,
               correlationId: context.correlationId,
@@ -75,9 +77,9 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
           }
 
           // Log complexity for monitoring
-          this.logger.debug('Query complexity analyzed', {
+          plugin.logger.debug('Query complexity analyzed', {
             complexity,
-            maximum: this.config.maximumComplexity,
+            maximum: plugin.config.maximumComplexity,
             operationName: request.operationName,
             correlationId: context.correlationId,
           });
@@ -87,13 +89,13 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
             ...context.metadata,
             queryComplexity: complexity,
           };
-        } catch (error) {
+        } catch (error: unknown) {
           if (error instanceof GraphQLError) {
             throw error;
           }
 
-          this.logger.error('Failed to analyze query complexity', {
-            error: error.message,
+          plugin.logger.error('Failed to analyze query complexity', {
+            error: (error as Error).message,
             operationName: request.operationName,
             correlationId: context.correlationId,
           });
@@ -128,6 +130,7 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
 
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
+      if (!token) continue;
 
       switch (token.type) {
         case 'field':
@@ -175,11 +178,16 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
 
     // Find fields with arguments
     while ((match = fieldRegex.exec(query)) !== null) {
-      tokens.push({
-        type: 'field',
-        value: match[1],
-        args: match[2],
-      });
+      if (match[1]) {
+        const token: { type: string; value: string; args?: string } = {
+          type: 'field',
+          value: match[1],
+        };
+        if (match[2]) {
+          token.args = match[2];
+        }
+        tokens.push(token);
+      }
     }
 
     // Find braces
@@ -258,13 +266,17 @@ export class ComplexityPlugin implements ApolloServerPlugin<GraphQLContext> {
       while ((match = argRegex.exec(argsString)) !== null) {
         const [, key, value] = match;
 
-        // Handle variables
-        if (value.startsWith('$')) {
-          const varName = value.substring(1);
-          args[key] = variables[varName];
-        } else {
-          // Parse simple values
-          args[key] = this.parseValue(value.trim());
+        if (key && value) {
+          // Handle variables
+          if (value.startsWith('$')) {
+            const varName = value.substring(1);
+            if (varName && varName in variables) {
+              args[key] = variables[varName];
+            }
+          } else {
+            // Parse simple values
+            args[key] = this.parseValue(value.trim());
+          }
         }
       }
     } catch (error) {

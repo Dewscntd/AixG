@@ -130,19 +130,35 @@ export class LoggingInterceptor implements NestInterceptor {
     const operationName = info?.operation?.name?.value || 'anonymous';
     const operationType = this.getOperationType(info);
 
-    return {
+    const logEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       correlationId: context.correlationId,
-      operationName,
-      operationType,
-      userId: context.user?.id,
-      userRoles: context.user?.roles,
       success: false, // Will be updated later
-      complexity: context.metadata?.queryComplexity,
-      depth: context.metadata?.queryDepth,
       clientIP: this.getClientIP(context),
       userAgent: this.getUserAgent(context),
     };
+
+    // Only add optional properties if they have values
+    if (operationName) {
+      logEntry.operationName = operationName;
+    }
+    if (operationType) {
+      logEntry.operationType = operationType;
+    }
+    if (context.user?.id) {
+      logEntry.userId = context.user.id;
+    }
+    if (context.user?.roles) {
+      logEntry.userRoles = context.user.roles;
+    }
+    if (context.metadata?.queryComplexity !== undefined) {
+      logEntry.complexity = context.metadata.queryComplexity;
+    }
+    if (context.metadata?.queryDepth !== undefined) {
+      logEntry.depth = context.metadata.queryDepth;
+    }
+
+    return logEntry;
   }
 
   /**
@@ -245,15 +261,17 @@ export class LoggingInterceptor implements NestInterceptor {
 
     const forwarded = context.req.headers['x-forwarded-for'];
     if (forwarded) {
-      return Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+      const forwardedIP = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+      return forwardedIP || 'unknown';
     }
 
     const realIP = context.req.headers['x-real-ip'];
     if (realIP) {
-      return Array.isArray(realIP) ? realIP[0] : realIP;
+      const realIPValue = Array.isArray(realIP) ? realIP[0] : realIP;
+      return realIPValue || 'unknown';
     }
 
-    return context.req.connection?.remoteAddress || 'unknown';
+    return (context.req as { socket?: { remoteAddress?: string } }).socket?.remoteAddress || 'unknown';
   }
 
   /**
