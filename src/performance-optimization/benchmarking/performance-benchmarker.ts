@@ -91,7 +91,7 @@ export class PerformanceBenchmarker extends EventEmitter {
       try {
         await this.runSingleIteration(benchmarkFunction);
       } catch (error) {
-        this.logger.warn(`Warmup iteration ${i + 1} failed: ${error.message}`);
+        this.logger.warn(`Warmup iteration ${i + 1} failed: ${(error as Error).message}`);
       }
     }
 
@@ -124,7 +124,7 @@ export class PerformanceBenchmarker extends EventEmitter {
             memorySnapshots.push(endMemory - startMemory);
           } catch (error) {
             errors++;
-            this.logger.warn(`Benchmark iteration failed: ${error.message}`);
+            this.logger.warn(`Benchmark iteration failed: ${(error as Error).message}`);
           }
         });
 
@@ -156,7 +156,7 @@ export class PerformanceBenchmarker extends EventEmitter {
         } catch (error) {
           errors++;
           this.logger.warn(
-            `Benchmark iteration ${i + 1} failed: ${error.message}`
+            `Benchmark iteration ${i + 1} failed: ${(error as Error).message}`
           );
         }
       }
@@ -195,20 +195,14 @@ export class PerformanceBenchmarker extends EventEmitter {
     benchmarkFunction: () => Promise<T> | T,
     timeout: number = 30000
   ): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error('Benchmark iteration timeout'));
-      }, timeout);
-
-      try {
-        const result = await benchmarkFunction();
-        clearTimeout(timeoutId);
-        resolve(result);
-      } catch (error) {
-        clearTimeout(timeoutId);
-        reject(error);
-      }
-    });
+    return Promise.race([
+      Promise.resolve(benchmarkFunction()),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Benchmark iteration timeout'));
+        }, timeout);
+      })
+    ]);
   }
 
   /**
@@ -358,7 +352,7 @@ export class PerformanceBenchmarker extends EventEmitter {
    */
   private getLatestResult(name: string): BenchmarkResult | null {
     const history = this.benchmarkHistory.get(name);
-    return history && history.length > 0 ? history[history.length - 1] : null;
+    return history && history.length > 0 ? history[history.length - 1] ?? null : null;
   }
 
   /**
@@ -443,7 +437,7 @@ export class PerformanceBenchmarker extends EventEmitter {
     report += `**Memory**: ${(os.totalmem() / 1024 / 1024 / 1024).toFixed(
       2
     )} GB\n`;
-    report += `**CPU**: ${os.cpus()[0].model} (${os.cpus().length} cores)\n\n`;
+    report += `**CPU**: ${os.cpus()[0]?.model || 'Unknown'} (${os.cpus().length} cores)\n\n`;
 
     for (const name of names) {
       const history = this.benchmarkHistory.get(name);
@@ -580,10 +574,10 @@ export class PerformanceBenchmarker extends EventEmitter {
         arch: os.arch(),
         nodeVersion: process.version,
         totalMemory: os.totalmem(),
-        cpuModel: os.cpus()[0].model,
+        cpuModel: os.cpus()[0]?.model || 'Unknown',
         cpuCount: os.cpus().length,
       },
-      benchmarks: {} as Record<string, any>,
+      benchmarks: {} as Record<string, unknown>,
     };
 
     for (const name of names) {
@@ -620,19 +614,20 @@ export class PerformanceBenchmarker extends EventEmitter {
       const importData = JSON.parse(data);
 
       for (const [name, benchmarkData] of Object.entries(
-        importData.benchmarks as Record<string, any>
+        importData.benchmarks as Record<string, unknown>
       )) {
-        if (benchmarkData.history) {
-          this.benchmarkHistory.set(name, benchmarkData.history);
+        const data = benchmarkData as { history?: BenchmarkResult[]; baseline?: BenchmarkResult };
+        if (data.history) {
+          this.benchmarkHistory.set(name, data.history);
         }
-        if (benchmarkData.baseline) {
-          this.baselines.set(name, benchmarkData.baseline);
+        if (data.baseline) {
+          this.baselines.set(name, data.baseline);
         }
       }
 
       this.logger.log(`Benchmark data imported from ${filePath}`);
     } catch (error) {
-      this.logger.error(`Failed to import benchmark data: ${error.message}`);
+      this.logger.error(`Failed to import benchmark data: ${(error as Error).message}`);
       throw error;
     }
   }

@@ -145,7 +145,7 @@ export class CDNOptimizer {
       );
       return results;
     } catch (error) {
-      this.logger.error(`Video optimization failed: ${error.message}`);
+      this.logger.error(`Video optimization failed: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -161,7 +161,7 @@ export class CDNOptimizer {
     return new Promise((resolve, reject) => {
       const manifestPath = path.join(outputDir, 'playlist.m3u8');
 
-      let command = ffmpeg(inputPath).outputOptions([
+      let command = (ffmpeg as any)(inputPath).outputOptions([
         '-f hls',
         '-hls_time 6',
         '-hls_playlist_type vod',
@@ -190,7 +190,7 @@ export class CDNOptimizer {
           this.logger.log('HLS generation completed');
           resolve(manifestPath);
         })
-        .on('error', error => {
+        .on('error', (error: Error) => {
           this.logger.error(`HLS generation failed: ${error.message}`);
           reject(error);
         })
@@ -212,7 +212,7 @@ export class CDNOptimizer {
         `video_${format.quality}.${format.format}`
       );
 
-      let command = ffmpeg(inputPath)
+      let command = (ffmpeg as any)(inputPath)
         .output(outputPath)
         .videoCodec(format.codec);
 
@@ -244,7 +244,7 @@ export class CDNOptimizer {
           this.logger.log(`Transcoding completed: ${outputPath}`);
           resolve(outputPath);
         })
-        .on('error', error => {
+        .on('error', (error: Error) => {
           this.logger.error(`Transcoding failed: ${error.message}`);
           reject(error);
         })
@@ -263,7 +263,7 @@ export class CDNOptimizer {
     return new Promise((resolve, reject) => {
       const thumbnails: string[] = [];
 
-      ffmpeg(inputPath)
+      (ffmpeg as any)(inputPath)
         .on('end', () => {
           this.logger.log(`Generated ${thumbnails.length} thumbnails`);
           resolve(thumbnails);
@@ -328,7 +328,7 @@ export class CDNOptimizer {
           `CloudFront invalidation created: ${result.Invalidation?.Id}`
         );
       } catch (error) {
-        this.logger.error(`CDN invalidation failed: ${error.message}`);
+        this.logger.error(`CDN invalidation failed: ${(error as Error).message}`);
         throw error;
       }
     }
@@ -386,7 +386,7 @@ export class CDNOptimizer {
           topUrls: [], // Would need additional analytics
         };
       } catch (error) {
-        this.logger.error(`Failed to get CDN metrics: ${error.message}`);
+        this.logger.error(`Failed to get CDN metrics: ${(error as Error).message}`);
         throw error;
       }
     }

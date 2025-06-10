@@ -28,7 +28,7 @@ interface CacheMetrics {
 }
 
 interface CacheEntry {
-  value: any;
+  value: string;
   compressed: boolean;
   timestamp: number;
   ttl: number;
@@ -62,7 +62,6 @@ export class AdvancedCacheService {
 
     // Initialize L2 cache (Redis)
     this.redis = new Redis(redisUrl, {
-      retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
     });
@@ -110,7 +109,7 @@ export class AdvancedCacheService {
         this.metrics.l2Hits++;
 
         const entry: CacheEntry = JSON.parse(l2Data);
-        const value = await this.deserializeValue(entry);
+        const value = await this.deserializeValue<T>(entry);
 
         // Promote to L1 cache
         this.l1Cache.set(key, entry);
@@ -123,7 +122,7 @@ export class AdvancedCacheService {
       this.updateResponseTime(startTime);
       return null;
     } catch (error) {
-      this.logger.error(`Cache get error for key ${key}: ${error.message}`);
+      this.logger.error(`Cache get error for key ${key}: ${(error as Error).message}`);
       return null;
     }
   }
@@ -181,7 +180,7 @@ export class AdvancedCacheService {
         `Cached key ${key} (${size} bytes, compressed: ${compressed})`
       );
     } catch (error) {
-      this.logger.error(`Cache set error for key ${key}: ${error.message}`);
+      this.logger.error(`Cache set error for key ${key}: ${(error as Error).message}`);
     }
   }
 
@@ -201,7 +200,7 @@ export class AdvancedCacheService {
 
       this.logger.debug(`Deleted key ${key} from cache`);
     } catch (error) {
-      this.logger.error(`Cache delete error for key ${key}: ${error.message}`);
+      this.logger.error(`Cache delete error for key ${key}: ${(error as Error).message}`);
     }
   }
 
@@ -231,7 +230,7 @@ export class AdvancedCacheService {
       );
     } catch (error) {
       this.logger.error(
-        `Cache invalidation error for tags ${tags}: ${error.message}`
+        `Cache invalidation error for tags ${tags}: ${(error as Error).message}`
       );
     }
   }
@@ -242,7 +241,7 @@ export class AdvancedCacheService {
   async warmCache(
     warmupData: Array<{
       key: string;
-      value: any;
+      value: unknown;
       ttl?: number;
       tags?: string[];
     }>
@@ -254,7 +253,7 @@ export class AdvancedCacheService {
         await this.set(key, value, ttl, tags);
       } catch (error) {
         this.logger.warn(
-          `Failed to warm cache for key ${key}: ${error.message}`
+          `Failed to warm cache for key ${key}: ${(error as Error).message}`
         );
       }
     });
@@ -312,7 +311,7 @@ export class AdvancedCacheService {
 
       this.logger.log('All cache layers cleared');
     } catch (error) {
-      this.logger.error(`Cache clear error: ${error.message}`);
+      this.logger.error(`Cache clear error: ${(error as Error).message}`);
     }
   }
 
@@ -340,7 +339,7 @@ export class AdvancedCacheService {
     // Get L2 size from Redis
     const redisInfo = await this.redis.info('memory');
     const memoryMatch = redisInfo.match(/used_memory:(\d+)/);
-    const l2SizeBytes = memoryMatch ? parseInt(memoryMatch[1]) : 0;
+    const l2SizeBytes = memoryMatch ? parseInt(memoryMatch[1] ?? '0') : 0;
 
     // Get total key count
     const totalKeys = await this.redis.dbsize();
@@ -438,7 +437,7 @@ export class AdvancedCacheService {
 
       await this.warmCache(warmupData);
     } catch (error) {
-      this.logger.error(`Cache warming failed: ${error.message}`);
+      this.logger.error(`Cache warming failed: ${(error as Error).message}`);
     }
   }
 

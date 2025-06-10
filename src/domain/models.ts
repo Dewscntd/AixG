@@ -3,8 +3,58 @@
 type UUID = string;
 type HebrewString = string;
 type Timestamp = number;
+type TeamId = string;
+type PlayerId = string;
 
 type TeamFormation = '4-3-3' | '4-4-2' | '3-5-2';
+
+// Missing Type Definitions
+export interface FrameMetadata {
+  frameNumber: number;
+  timestamp: Timestamp;
+  resolution: [number, number];
+  quality: 'low' | 'medium' | 'high';
+  detectedObjects: number;
+}
+
+export interface MatchEvent {
+  id: string;
+  type: 'goal' | 'foul' | 'card' | 'substitution' | 'offside';
+  timestamp: Timestamp;
+  playerId?: PlayerId;
+  teamId: TeamId;
+  position: SpatialPosition;
+  metadata: Record<string, unknown>;
+}
+
+export interface Player {
+  id: PlayerId;
+  name: HebrewString;
+  jerseyNumber: number;
+  position: 'goalkeeper' | 'defender' | 'midfielder' | 'forward';
+  teamId: TeamId;
+}
+
+export interface VideoMetadata {
+  videoId: VideoId;
+  filename: string;
+  duration: number;
+  resolution: [number, number];
+  frameRate: number;
+  codec: string;
+  size: number;
+  uploadedAt: Date;
+}
+
+export interface MatchCriteria {
+  teamIds?: TeamId[];
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+  venue?: string;
+  competition?: string;
+}
 
 // EventType removed as it's not used in the codebase
 // If needed in the future, it can be re-added
@@ -72,7 +122,14 @@ export class Match {
 
   addMatchEvent(event: MatchEvent): void {
     this.timeline.push(event);
-    this.pendingEvents.push(event);
+    // Convert MatchEvent to DomainEvent for pending events
+    const domainEvent = new VideoProcessed(
+      new VideoId('temp'),
+      this.id,
+      event.timestamp,
+      1
+    );
+    this.pendingEvents.push(domainEvent);
     this.analytics.updateWithEvent(event);
   }
 
@@ -113,6 +170,8 @@ export interface DomainEvent {
 }
 
 export class MatchCreated implements DomainEvent {
+  public readonly eventType = 'MATCH_CREATED' as const;
+
   constructor(
     public readonly matchId: MatchId,
     public readonly occurredOn: Timestamp,
@@ -238,11 +297,15 @@ export type AnalyticsUpdatedEvent = EventSchema<'ANALYTICS_UPDATED'> & {
   formationChanges: TeamFormation[];
 };
 
+type MatchCreatedEvent = EventSchema<'MATCH_CREATED'> & {
+  matchId: MatchId;
+};
+
 type DomainEventSchema =
   | VideoUploadedEvent
   | MLProcessingCompleteEvent
   | AnalyticsUpdatedEvent
-  | MatchCreated;
+  | MatchCreatedEvent;
 
 // Saga Implementation
 export class VideoProcessingSaga {
@@ -284,6 +347,13 @@ export class VideoProcessingSaga {
           this.matchId,
           'COMPLETED'
         );
+      case 'MATCH_CREATED':
+        return new VideoProcessingSaga(
+          this.correlationId,
+          this.videoId,
+          this.matchId,
+          'STARTED'
+        );
       default:
         return this;
     }
@@ -299,7 +369,7 @@ export interface ServiceDefinition {
   database: {
     writeModel: 'Document' | 'Relational' | 'TimeSeries';
     readModel: 'OLAP' | 'Search' | 'Cache';
-    tech: 'PostgreSQL' | 'MongoDB' | 'TimescaleDB';
+    tech: 'PostgreSQL' | 'MongoDB' | 'TimescaleDB' | 'Redis' | 'Elasticsearch';
   };
   techStack: string[];
 }

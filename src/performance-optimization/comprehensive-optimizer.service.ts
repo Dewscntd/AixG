@@ -111,7 +111,20 @@ export class ComprehensiveOptimizer
   async runOptimizationCycle(): Promise<OptimizationReport> {
     if (this.isOptimizing) {
       this.logger.warn('Optimization cycle already in progress');
-      return this.optimizationHistory[this.optimizationHistory.length - 1];
+      return this.optimizationHistory[this.optimizationHistory.length - 1] ?? {
+        timestamp: Date.now(),
+        duration: 0,
+        optimizations: [],
+        beforeMetrics: {},
+        afterMetrics: {},
+        improvement: {
+          latencyReduction: 0,
+          throughputIncrease: 0,
+          memoryReduction: 0,
+          cacheHitRatioIncrease: 0,
+        },
+        recommendations: [],
+      };
     }
 
     this.isOptimizing = true;
@@ -179,7 +192,7 @@ export class ComprehensiveOptimizer
 
       return report;
     } catch (error) {
-      this.logger.error(`Optimization cycle failed: ${error.message}`);
+      this.logger.error(`Optimization cycle failed: ${(error as Error).message}`);
       throw error;
     } finally {
       this.isOptimizing = false;
@@ -222,7 +235,7 @@ export class ComprehensiveOptimizer
         description: 'Database optimization failed',
         impact: 'No database improvements applied',
         status: 'failed',
-        error: error.message,
+        error: (error as Error).message,
       });
     }
   }
@@ -275,7 +288,7 @@ export class ComprehensiveOptimizer
         description: 'Cache optimization failed',
         impact: 'No cache improvements applied',
         status: 'failed',
-        error: error.message,
+        error: (error as Error).message,
       });
     }
   }
@@ -292,7 +305,7 @@ export class ComprehensiveOptimizer
       const summary = this.performanceMonitor.getPerformanceSummary();
 
       if (
-        summary.current?.system.memoryUsage.percentage >
+        (summary.current?.system.memoryUsage.percentage ?? 0) >
         this.config.performanceThresholds.maxMemoryUsage
       ) {
         // Trigger garbage collection
@@ -324,7 +337,7 @@ export class ComprehensiveOptimizer
         description: 'Memory optimization failed',
         impact: 'No memory improvements applied',
         status: 'failed',
-        error: error.message,
+        error: (error as Error).message,
       });
     }
   }
@@ -352,7 +365,7 @@ export class ComprehensiveOptimizer
         description: 'ML optimization failed',
         impact: 'No ML improvements applied',
         status: 'failed',
-        error: error.message,
+        error: (error as Error).message,
       });
     }
   }
@@ -370,7 +383,7 @@ export class ComprehensiveOptimizer
 
       // Check CPU usage
       if (
-        summary.current?.system.cpuUsage >
+        (summary.current?.system.cpuUsage ?? 0) >
         this.config.performanceThresholds.maxCpuUsage
       ) {
         optimizations.push({
@@ -382,7 +395,7 @@ export class ComprehensiveOptimizer
       }
 
       // Check load average
-      if (summary.current?.system.loadAverage[0] > 2.0) {
+      if ((summary.current?.system.loadAverage?.[0] ?? 0) > 2.0) {
         optimizations.push({
           type: 'load_optimization',
           description: 'High system load detected',
@@ -396,7 +409,7 @@ export class ComprehensiveOptimizer
         description: 'System optimization failed',
         impact: 'No system improvements applied',
         status: 'failed',
-        error: error.message,
+        error: (error as Error).message,
       });
     }
   }
@@ -476,7 +489,7 @@ export class ComprehensiveOptimizer
 
     // Performance-based recommendations
     if (
-      summary.current?.requestLatency.p95 >
+      (summary.current?.requestLatency?.p95 ?? 0) >
       this.config.performanceThresholds.maxLatencyP95
     ) {
       recommendations.push('Consider implementing additional caching layers');
@@ -505,7 +518,7 @@ export class ComprehensiveOptimizer
     }
 
     // System-based recommendations
-    if (summary.current?.system.memoryUsage.percentage > 80) {
+    if ((summary.current?.system.memoryUsage?.percentage ?? 0) > 80) {
       recommendations.push(
         'High memory usage - consider memory optimization or scaling'
       );

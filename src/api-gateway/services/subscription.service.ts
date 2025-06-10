@@ -7,16 +7,15 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PubSub } from 'graphql-subscriptions';
 import Redis from 'ioredis';
 import { RedisPubSub } from 'graphql-redis-subscriptions';
 
 export interface SubscriptionEvent {
   type: string;
-  payload: any;
-  userId?: string;
-  teamId?: string;
-  matchId?: string;
+  payload: unknown;
+  userId?: string | undefined;
+  teamId?: string | undefined;
+  matchId?: string | undefined;
   timestamp: Date;
 }
 
@@ -30,12 +29,15 @@ export interface SubscriptionFilter {
 @Injectable()
 export class SubscriptionService {
   private readonly logger = new Logger(SubscriptionService.name);
-  private readonly pubSub: PubSub;
+  private readonly pubSub: RedisPubSub;
   private readonly redis: Redis;
   private readonly subscriptionCounts = new Map<string, number>();
 
   constructor(private readonly configService: ConfigService) {
     const redisUrl = this.configService.get<string>('redisUrl');
+    if (!redisUrl) {
+      throw new Error('Redis URL is required for subscription service');
+    }
 
     // Create Redis clients for pub/sub
     const publisher = new Redis(redisUrl);
@@ -182,7 +184,8 @@ export class SubscriptionService {
       type: 'MATCH_ANALYSIS_PROGRESS',
       payload: data,
       matchId: data.matchId,
-      userId: data.userId,
+      userId: data.userId ?? undefined,
+      timestamp: new Date(),
     });
   }
 
@@ -199,7 +202,8 @@ export class SubscriptionService {
       type: 'LIVE_METRICS',
       payload: data,
       matchId: data.matchId,
-      userId: data.userId,
+      userId: data.userId ?? undefined,
+      timestamp: new Date(),
     });
   }
 
@@ -216,7 +220,8 @@ export class SubscriptionService {
     await this.publish({
       type: 'VIDEO_PROCESSING',
       payload: data,
-      userId: data.userId,
+      userId: data.userId ?? undefined,
+      timestamp: new Date(),
     });
   }
 
@@ -233,7 +238,8 @@ export class SubscriptionService {
       type: 'TEAM_UPDATES',
       payload: data,
       teamId: data.teamId,
-      userId: data.userId,
+      userId: data.userId ?? undefined,
+      timestamp: new Date(),
     });
   }
 
@@ -251,6 +257,7 @@ export class SubscriptionService {
       type: 'USER_NOTIFICATIONS',
       payload: data,
       userId: data.userId,
+      timestamp: new Date(),
     });
   }
 
@@ -277,7 +284,7 @@ export class SubscriptionService {
       return { redis: true, pubsub: true };
     } catch (error) {
       this.logger.error(
-        `Subscription service health check failed: ${error.message}`
+        `Subscription service health check failed: ${(error as Error).message}`
       );
       return { redis: false, pubsub: false };
     }
@@ -292,7 +299,7 @@ export class SubscriptionService {
       this.logger.log('Subscription service cleanup completed');
     } catch (error) {
       this.logger.error(
-        `Failed to cleanup subscription service: ${error.message}`
+        `Failed to cleanup subscription service: ${(error as Error).message}`
       );
     }
   }

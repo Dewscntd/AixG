@@ -23,9 +23,9 @@ export interface OperationMetrics {
 
 export interface ErrorMetrics {
   error: Error;
-  operationName?: string;
-  userId?: string;
-  context?: Record<string, any>;
+  operationName?: string | undefined;
+  userId?: string | undefined;
+  context?: Record<string, unknown> | undefined;
   timestamp: Date;
 }
 
@@ -49,7 +49,7 @@ export class MetricsService {
   private readonly logger = new Logger(MetricsService.name);
   private readonly redis: Redis;
   private readonly metricsEnabled: boolean;
-  private readonly systemMetricsInterval: NodeJS.Timeout;
+  private readonly systemMetricsInterval?: NodeJS.Timeout;
 
   // In-memory counters for performance
   private operationCounts = new Map<string, number>();
@@ -57,7 +57,11 @@ export class MetricsService {
   private lastFlush = Date.now();
 
   constructor(private readonly configService: ConfigService) {
-    this.redis = new Redis(this.configService.get<string>('redisUrl'));
+    const redisUrl = this.configService.get<string>('redisUrl');
+    if (!redisUrl) {
+      throw new Error('Redis URL is required for metrics service');
+    }
+    this.redis = new Redis(redisUrl);
     this.metricsEnabled = this.configService.get<boolean>(
       'metricsEnabled',
       true
@@ -89,7 +93,7 @@ export class MetricsService {
 
       // Store detailed metrics in Redis (async)
       this.storeOperationMetrics(metrics).catch(error => {
-        this.logger.warn(`Failed to store operation metrics: ${error.message}`);
+        this.logger.warn(`Failed to store operation metrics: ${(error as Error).message}`);
       });
 
       // Log slow operations
@@ -100,7 +104,7 @@ export class MetricsService {
         );
       }
     } catch (error) {
-      this.logger.error(`Failed to record operation metrics: ${error.message}`);
+      this.logger.error(`Failed to record operation metrics: ${(error as Error).message}`);
     }
   }
 
@@ -116,15 +120,15 @@ export class MetricsService {
 
       const errorMetrics: ErrorMetrics = {
         error,
-        operationName: context?.operationName,
-        userId: context?.userId,
-        context: context?.context,
+        operationName: context?.operationName ?? undefined,
+        userId: context?.userId ?? undefined,
+        context: context?.context ?? undefined,
         timestamp: new Date(),
       };
 
       // Store error metrics (async)
       this.storeErrorMetrics(errorMetrics).catch(err => {
-        this.logger.warn(`Failed to store error metrics: ${err.message}`);
+        this.logger.warn(`Failed to store error metrics: ${(err as Error).message}`);
       });
 
       // Log error
@@ -134,7 +138,7 @@ export class MetricsService {
         stack: error.stack,
       });
     } catch (err) {
-      this.logger.error(`Failed to record error metrics: ${err.message}`);
+      this.logger.error(`Failed to record error metrics: ${(err as Error).message}`);
     }
   }
 
@@ -150,10 +154,10 @@ export class MetricsService {
 
       // Store cache metrics (async)
       this.storeCacheMetrics(metrics).catch(error => {
-        this.logger.warn(`Failed to store cache metrics: ${error.message}`);
+        this.logger.warn(`Failed to store cache metrics: ${(error as Error).message}`);
       });
     } catch (error) {
-      this.logger.error(`Failed to record cache metrics: ${error.message}`);
+      this.logger.error(`Failed to record cache metrics: ${(error as Error).message}`);
     }
   }
 
@@ -186,7 +190,7 @@ export class MetricsService {
         },
       };
     } catch (error) {
-      this.logger.error(`Failed to get metrics summary: ${error.message}`);
+      this.logger.error(`Failed to get metrics summary: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -209,7 +213,7 @@ export class MetricsService {
       return { redis: true, collection: this.metricsEnabled };
     } catch (error) {
       this.logger.error(
-        `Metrics service health check failed: ${error.message}`
+        `Metrics service health check failed: ${(error as Error).message}`
       );
       return { redis: false, collection: this.metricsEnabled };
     }
@@ -267,10 +271,10 @@ export class MetricsService {
       };
 
       this.storeSystemMetrics(metrics).catch(error => {
-        this.logger.warn(`Failed to store system metrics: ${error.message}`);
+        this.logger.warn(`Failed to store system metrics: ${(error as Error).message}`);
       });
     } catch (error) {
-      this.logger.error(`Failed to collect system metrics: ${error.message}`);
+      this.logger.error(`Failed to collect system metrics: ${(error as Error).message}`);
     }
   }
 
@@ -304,7 +308,7 @@ export class MetricsService {
 
       this.logger.debug(`Flushed metrics for ${timeWindow}ms window`);
     } catch (error) {
-      this.logger.error(`Failed to flush metrics: ${error.message}`);
+      this.logger.error(`Failed to flush metrics: ${(error as Error).message}`);
     }
   }
 }
