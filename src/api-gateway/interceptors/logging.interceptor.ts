@@ -261,7 +261,9 @@ export class LoggingInterceptor implements NestInterceptor {
 
     const forwarded = context.req.headers['x-forwarded-for'];
     if (forwarded) {
-      const forwardedIP = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+      const forwardedIP = Array.isArray(forwarded)
+        ? forwarded[0]
+        : forwarded.split(',')[0];
       return forwardedIP || 'unknown';
     }
 
@@ -271,7 +273,10 @@ export class LoggingInterceptor implements NestInterceptor {
       return realIPValue || 'unknown';
     }
 
-    return (context.req as { socket?: { remoteAddress?: string } }).socket?.remoteAddress || 'unknown';
+    return (
+      (context.req as { socket?: { remoteAddress?: string } }).socket
+        ?.remoteAddress || 'unknown'
+    );
   }
 
   /**

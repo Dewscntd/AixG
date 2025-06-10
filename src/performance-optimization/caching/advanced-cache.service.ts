@@ -122,7 +122,9 @@ export class AdvancedCacheService {
       this.updateResponseTime(startTime);
       return null;
     } catch (error) {
-      this.logger.error(`Cache get error for key ${key}: ${(error as Error).message}`);
+      this.logger.error(
+        `Cache get error for key ${key}: ${(error as Error).message}`
+      );
       return null;
     }
   }
@@ -180,7 +182,9 @@ export class AdvancedCacheService {
         `Cached key ${key} (${size} bytes, compressed: ${compressed})`
       );
     } catch (error) {
-      this.logger.error(`Cache set error for key ${key}: ${(error as Error).message}`);
+      this.logger.error(
+        `Cache set error for key ${key}: ${(error as Error).message}`
+      );
     }
   }
 
@@ -200,7 +204,9 @@ export class AdvancedCacheService {
 
       this.logger.debug(`Deleted key ${key} from cache`);
     } catch (error) {
-      this.logger.error(`Cache delete error for key ${key}: ${(error as Error).message}`);
+      this.logger.error(
+        `Cache delete error for key ${key}: ${(error as Error).message}`
+      );
     }
   }
 

@@ -233,7 +233,9 @@ export class DataLoaderService {
               results[index] = JSON.parse(cached);
             } catch (error: unknown) {
               this.logger.warn(
-                `Failed to parse cached result for ${cacheKeys[index]}: ${(error as Error).message}`
+                `Failed to parse cached result for ${cacheKeys[index]}: ${
+                  (error as Error).message
+                }`
               );
               const key = keys[index];
               if (key !== undefined) {

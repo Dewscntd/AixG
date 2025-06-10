@@ -145,7 +145,9 @@ export class CDNOptimizer {
       );
       return results;
     } catch (error) {
-      this.logger.error(`Video optimization failed: ${(error as Error).message}`);
+      this.logger.error(
+        `Video optimization failed: ${(error as Error).message}`
+      );
       throw error;
     }
   }
@@ -328,7 +330,9 @@ export class CDNOptimizer {
           `CloudFront invalidation created: ${result.Invalidation?.Id}`
         );
       } catch (error) {
-        this.logger.error(`CDN invalidation failed: ${(error as Error).message}`);
+        this.logger.error(
+          `CDN invalidation failed: ${(error as Error).message}`
+        );
         throw error;
       }
     }
@@ -386,7 +390,9 @@ export class CDNOptimizer {
           topUrls: [], // Would need additional analytics
         };
       } catch (error) {
-        this.logger.error(`Failed to get CDN metrics: ${(error as Error).message}`);
+        this.logger.error(
+          `Failed to get CDN metrics: ${(error as Error).message}`
+        );
         throw error;
       }
     }

@@ -139,7 +139,9 @@ export class DataLoaderPlugin implements ApolloServerPlugin<GraphQLContext> {
         }
       });
     } catch (error: unknown) {
-      this.logger.warn(`Failed to collect DataLoader stats: ${(error as Error).message}`);
+      this.logger.warn(
+        `Failed to collect DataLoader stats: ${(error as Error).message}`
+      );
     }
 
     return {

@@ -162,7 +162,9 @@ export class AuthDirectiveTransformer {
 
     // User has roles array, check if any role meets the required level
     const userLevel = Math.max(
-      ...user.roles.map(role => levels[role.toUpperCase() as keyof typeof levels] || 0)
+      ...user.roles.map(
+        role => levels[role.toUpperCase() as keyof typeof levels] || 0
+      )
     );
     const required = levels[requiredLevel as keyof typeof levels] || 0;
 

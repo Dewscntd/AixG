@@ -91,7 +91,9 @@ export class PerformanceBenchmarker extends EventEmitter {
       try {
         await this.runSingleIteration(benchmarkFunction);
       } catch (error) {
-        this.logger.warn(`Warmup iteration ${i + 1} failed: ${(error as Error).message}`);
+        this.logger.warn(
+          `Warmup iteration ${i + 1} failed: ${(error as Error).message}`
+        );
       }
     }
 
@@ -124,7 +126,9 @@ export class PerformanceBenchmarker extends EventEmitter {
             memorySnapshots.push(endMemory - startMemory);
           } catch (error) {
             errors++;
-            this.logger.warn(`Benchmark iteration failed: ${(error as Error).message}`);
+            this.logger.warn(
+              `Benchmark iteration failed: ${(error as Error).message}`
+            );
           }
         });
 
@@ -201,7 +205,7 @@ export class PerformanceBenchmarker extends EventEmitter {
         setTimeout(() => {
           reject(new Error('Benchmark iteration timeout'));
         }, timeout);
-      })
+      }),
     ]);
   }
 
@@ -352,7 +356,9 @@ export class PerformanceBenchmarker extends EventEmitter {
    */
   private getLatestResult(name: string): BenchmarkResult | null {
     const history = this.benchmarkHistory.get(name);
-    return history && history.length > 0 ? history[history.length - 1] ?? null : null;
+    return history && history.length > 0
+      ? history[history.length - 1] ?? null
+      : null;
   }
 
   /**
@@ -437,7 +443,9 @@ export class PerformanceBenchmarker extends EventEmitter {
     report += `**Memory**: ${(os.totalmem() / 1024 / 1024 / 1024).toFixed(
       2
     )} GB\n`;
-    report += `**CPU**: ${os.cpus()[0]?.model || 'Unknown'} (${os.cpus().length} cores)\n\n`;
+    report += `**CPU**: ${os.cpus()[0]?.model || 'Unknown'} (${
+      os.cpus().length
+    } cores)\n\n`;
 
     for (const name of names) {
       const history = this.benchmarkHistory.get(name);
@@ -616,7 +624,10 @@ export class PerformanceBenchmarker extends EventEmitter {
       for (const [name, benchmarkData] of Object.entries(
         importData.benchmarks as Record<string, unknown>
       )) {
-        const data = benchmarkData as { history?: BenchmarkResult[]; baseline?: BenchmarkResult };
+        const data = benchmarkData as {
+          history?: BenchmarkResult[];
+          baseline?: BenchmarkResult;
+        };
         if (data.history) {
           this.benchmarkHistory.set(name, data.history);
         }
@@ -627,7 +638,9 @@ export class PerformanceBenchmarker extends EventEmitter {
 
       this.logger.log(`Benchmark data imported from ${filePath}`);
     } catch (error) {
-      this.logger.error(`Failed to import benchmark data: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to import benchmark data: ${(error as Error).message}`
+      );
       throw error;
     }
   }

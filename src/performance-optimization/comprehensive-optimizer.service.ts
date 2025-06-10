@@ -111,20 +111,22 @@ export class ComprehensiveOptimizer
   async runOptimizationCycle(): Promise<OptimizationReport> {
     if (this.isOptimizing) {
       this.logger.warn('Optimization cycle already in progress');
-      return this.optimizationHistory[this.optimizationHistory.length - 1] ?? {
-        timestamp: Date.now(),
-        duration: 0,
-        optimizations: [],
-        beforeMetrics: {},
-        afterMetrics: {},
-        improvement: {
-          latencyReduction: 0,
-          throughputIncrease: 0,
-          memoryReduction: 0,
-          cacheHitRatioIncrease: 0,
-        },
-        recommendations: [],
-      };
+      return (
+        this.optimizationHistory[this.optimizationHistory.length - 1] ?? {
+          timestamp: Date.now(),
+          duration: 0,
+          optimizations: [],
+          beforeMetrics: {},
+          afterMetrics: {},
+          improvement: {
+            latencyReduction: 0,
+            throughputIncrease: 0,
+            memoryReduction: 0,
+            cacheHitRatioIncrease: 0,
+          },
+          recommendations: [],
+        }
+      );
     }
 
     this.isOptimizing = true;
@@ -192,7 +194,9 @@ export class ComprehensiveOptimizer
 
       return report;
     } catch (error) {
-      this.logger.error(`Optimization cycle failed: ${(error as Error).message}`);
+      this.logger.error(
+        `Optimization cycle failed: ${(error as Error).message}`
+      );
       throw error;
     } finally {
       this.isOptimizing = false;

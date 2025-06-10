@@ -57,7 +57,11 @@ export class CacheDirective {
     return (schema: GraphQLSchema) =>
       mapSchema(schema, {
         [MapperKind.OBJECT_FIELD]: (fieldConfig, _fieldName, _typeName) => {
-          const cacheDirective = getDirective(schema, fieldConfig, 'cache')?.[0];
+          const cacheDirective = getDirective(
+            schema,
+            fieldConfig,
+            'cache'
+          )?.[0];
           if (cacheDirective) {
             const { resolve = defaultFieldResolver } = fieldConfig;
             const directiveArgs = cacheDirective as CacheDirectiveArgs;

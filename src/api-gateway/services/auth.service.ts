@@ -62,7 +62,9 @@ export class AuthService {
 
       return await this.validateToken(token);
     } catch (error: unknown) {
-      this.logger.warn(`Request validation failed: ${(error as Error).message}`);
+      this.logger.warn(
+        `Request validation failed: ${(error as Error).message}`
+      );
       return undefined;
     }
   }
@@ -217,7 +219,9 @@ export class AuthService {
       const result = await this.redis.get(`blacklist:${token}`);
       return result === '1';
     } catch (error: unknown) {
-      this.logger.warn(`Failed to check token blacklist: ${(error as Error).message}`);
+      this.logger.warn(
+        `Failed to check token blacklist: ${(error as Error).message}`
+      );
       return false;
     }
   }
@@ -237,7 +241,9 @@ export class AuthService {
       try {
         return JSON.parse(cachedUser);
       } catch (error: unknown) {
-        this.logger.warn(`Failed to parse cached user: ${(error as Error).message}`);
+        this.logger.warn(
+          `Failed to parse cached user: ${(error as Error).message}`
+        );
       }
     }
 
@@ -281,7 +287,9 @@ export class AuthService {
 
       return { redis: true, jwt: true };
     } catch (error: unknown) {
-      this.logger.error(`Auth service health check failed: ${(error as Error).message}`);
+      this.logger.error(
+        `Auth service health check failed: ${(error as Error).message}`
+      );
       return { redis: false, jwt: false };
     }
   }

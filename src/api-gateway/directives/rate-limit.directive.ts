@@ -42,7 +42,11 @@ export class RateLimitDirective {
     return (schema: GraphQLSchema) =>
       mapSchema(schema, {
         [MapperKind.OBJECT_FIELD]: (fieldConfig, _fieldName, _typeName) => {
-          const rateLimitDirective = getDirective(schema, fieldConfig, 'rateLimit')?.[0];
+          const rateLimitDirective = getDirective(
+            schema,
+            fieldConfig,
+            'rateLimit'
+          )?.[0];
           if (rateLimitDirective) {
             const { resolve = defaultFieldResolver } = fieldConfig;
             const directiveArgs = rateLimitDirective as RateLimitDirectiveArgs;
@@ -197,7 +201,9 @@ export class RateLimitDirective {
     // Check for forwarded IP headers
     const forwarded = context.req.headers['x-forwarded-for'];
     if (forwarded) {
-      const forwardedIP = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+      const forwardedIP = Array.isArray(forwarded)
+        ? forwarded[0]
+        : forwarded.split(',')[0];
       return forwardedIP || 'unknown';
     }
 

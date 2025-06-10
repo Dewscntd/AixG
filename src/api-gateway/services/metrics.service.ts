@@ -93,7 +93,9 @@ export class MetricsService {
 
       // Store detailed metrics in Redis (async)
       this.storeOperationMetrics(metrics).catch(error => {
-        this.logger.warn(`Failed to store operation metrics: ${(error as Error).message}`);
+        this.logger.warn(
+          `Failed to store operation metrics: ${(error as Error).message}`
+        );
       });
 
       // Log slow operations
@@ -104,7 +106,9 @@ export class MetricsService {
         );
       }
     } catch (error) {
-      this.logger.error(`Failed to record operation metrics: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to record operation metrics: ${(error as Error).message}`
+      );
     }
   }
 
@@ -128,7 +132,9 @@ export class MetricsService {
 
       // Store error metrics (async)
       this.storeErrorMetrics(errorMetrics).catch(err => {
-        this.logger.warn(`Failed to store error metrics: ${(err as Error).message}`);
+        this.logger.warn(
+          `Failed to store error metrics: ${(err as Error).message}`
+        );
       });
 
       // Log error
@@ -138,7 +144,9 @@ export class MetricsService {
         stack: error.stack,
       });
     } catch (err) {
-      this.logger.error(`Failed to record error metrics: ${(err as Error).message}`);
+      this.logger.error(
+        `Failed to record error metrics: ${(err as Error).message}`
+      );
     }
   }
 
@@ -154,10 +162,14 @@ export class MetricsService {
 
       // Store cache metrics (async)
       this.storeCacheMetrics(metrics).catch(error => {
-        this.logger.warn(`Failed to store cache metrics: ${(error as Error).message}`);
+        this.logger.warn(
+          `Failed to store cache metrics: ${(error as Error).message}`
+        );
       });
     } catch (error) {
-      this.logger.error(`Failed to record cache metrics: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to record cache metrics: ${(error as Error).message}`
+      );
     }
   }
 
@@ -190,7 +202,9 @@ export class MetricsService {
         },
       };
     } catch (error) {
-      this.logger.error(`Failed to get metrics summary: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to get metrics summary: ${(error as Error).message}`
+      );
       throw error;
     }
   }
@@ -271,10 +285,14 @@ export class MetricsService {
       };
 
       this.storeSystemMetrics(metrics).catch(error => {
-        this.logger.warn(`Failed to store system metrics: ${(error as Error).message}`);
+        this.logger.warn(
+          `Failed to store system metrics: ${(error as Error).message}`
+        );
       });
     } catch (error) {
-      this.logger.error(`Failed to collect system metrics: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to collect system metrics: ${(error as Error).message}`
+      );
     }
   }
 

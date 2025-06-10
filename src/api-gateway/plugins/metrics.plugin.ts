@@ -63,8 +63,9 @@ export class MetricsPlugin implements ApolloServerPlugin<GraphQLContext> {
 
         if (operationStartTime) {
           const duration = Date.now() - operationStartTime;
-          const success = response.body.kind === 'single' &&
-            !(response.body.singleResult?.errors?.length);
+          const success =
+            response.body.kind === 'single' &&
+            !response.body.singleResult?.errors?.length;
 
           const metrics: Partial<OperationMetrics> = {
             operationName,

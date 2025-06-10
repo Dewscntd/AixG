@@ -221,10 +221,7 @@ describe('XGCalculationService', () => {
       const individual1 = calculateXG(shots[0]!);
       const individual2 = calculateXG(shots[1]!);
 
-      expect(totalXG).toBeCloseTo(
-        individual1.value + individual2.value,
-        4
-      );
+      expect(totalXG).toBeCloseTo(individual1.value + individual2.value, 4);
     });
 
     it('should handle empty shot array', () => {
