@@ -1,0 +1,242 @@
+import { AggregateRoot } from '../../integration-framework/domain/base/aggregate-root';
+import { CoachingSessionId } from '../value-objects/coaching-session-id';
+import { MatchContext } from '../value-objects/match-context';
+import { CoachProfile } from '../value-objects/coach-profile';
+import { AnalysisScope } from '../value-objects/analysis-scope';
+import { TacticalQuery } from '../value-objects/tactical-query';
+import { TacticalInsight } from '../entities/tactical-insight';
+import { TrainingPlan } from '../entities/training-plan';
+import { PlayerId } from '../value-objects/player-id';
+import { TacticalAnalysisRequestedEvent } from '../events/tactical-analysis-requested.event';
+import { TrainingPlanGeneratedEvent } from '../events/training-plan-generated.event';
+import { CoachingSessionStartedEvent } from '../events/coaching-session-started.event';
+
+/**
+ * CoachingSession Aggregate - Core entity for AI-powered coaching assistance
+ * 
+ * Implements Hebrew-native tactical intelligence with personalized coaching insights.
+ * Follows DDD principles with rich domain behavior for tactical analysis.
+ */
+export class CoachingSessionAggregate extends AggregateRoot {
+  private readonly insights: Map<string, TacticalInsight> = new Map();
+  private readonly trainingPlans: Map<PlayerId, TrainingPlan> = new Map();
+  private sessionState: 'STARTED' | 'ACTIVE' | 'COMPLETED' = 'STARTED';
+
+  constructor(
+    private readonly id: CoachingSessionId,
+    private readonly matchContext: MatchContext,
+    private readonly coachProfile: CoachProfile,
+    private readonly analysisScope: AnalysisScope,
+    private readonly startedAt: Date = new Date()
+  ) {
+    super();
+  }
+
+  /**
+   * Factory method to create new coaching session
+   */
+  static create(
+    matchContext: MatchContext,
+    coachProfile: CoachProfile,
+    analysisScope: AnalysisScope
+  ): CoachingSessionAggregate {
+    const id = CoachingSessionId.generate();
+    const session = new CoachingSessionAggregate(
+      id,
+      matchContext,
+      coachProfile,
+      analysisScope
+    );
+
+    // Publish domain event
+    session.addDomainEvent(new CoachingSessionStartedEvent(
+      id,
+      matchContext.getMatchId(),
+      coachProfile.getCoachId(),
+      new Date()
+    ));
+
+    session.sessionState = 'ACTIVE';
+    return session;
+  }
+
+  /**
+   * Request tactical analysis with Hebrew NLP processing
+   */
+  async requestTacticalAnalysis(query: TacticalQuery): Promise<TacticalInsight> {
+    // Business rule: Session must be active
+    if (this.sessionState !== 'ACTIVE') {
+      throw new Error('Cannot request analysis - coaching session not active');
+    }
+
+    // Business rule: Query must be in supported language
+    if (!query.isLanguageSupported()) {
+      throw new Error(`Language ${query.getLanguage()} not supported`);
+    }
+
+    // Create tactical insight with Hebrew-aware processing
+    const insight = TacticalInsight.create(
+      query,
+      this.matchContext,
+      this.coachProfile.getPreferredLanguage(),
+      this.analysisScope
+    );
+
+    // Store insight
+    this.insights.set(insight.getId().value, insight);
+
+    // Publish domain event for async processing
+    this.addDomainEvent(new TacticalAnalysisRequestedEvent(
+      this.id,
+      query.getId(),
+      insight.getId(),
+      query.getType(),
+      new Date()
+    ));
+
+    return insight;
+  }
+
+  /**
+   * Generate personalized player development plan
+   */
+  generatePlayerDevelopmentPlan(playerId: PlayerId): TrainingPlan {
+    // Business rule: Player must be in current match context
+    if (!this.matchContext.hasPlayer(playerId)) {
+      throw new Error(`Player ${playerId.value} not found in match context`);
+    }
+
+    // Business rule: Cannot generate multiple plans for same player in session
+    if (this.trainingPlans.has(playerId)) {
+      throw new Error(`Training plan already exists for player ${playerId.value}`);
+    }
+
+    // Create training plan based on coach style and analysis scope
+    const plan = TrainingPlan.createForPlayer(
+      playerId,
+      this.analysisScope,
+      this.coachProfile.getCoachingStyle(),
+      this.coachProfile.getPreferredLanguage()
+    );
+
+    // Store plan
+    this.trainingPlans.set(playerId, plan);
+
+    // Publish domain event
+    this.addDomainEvent(new TrainingPlanGeneratedEvent(
+      this.id,
+      playerId,
+      plan.getId(),
+      plan.getFocusAreas(),
+      plan.getDurationWeeks(),
+      new Date()
+    ));
+
+    return plan;
+  }
+
+  /**
+   * Get Hebrew-localized session summary
+   */
+  getSessionSummary(): string {
+    const language = this.coachProfile.getPreferredLanguage();
+    
+    if (language === 'hebrew') {
+      return this.generateHebrewSummary();
+    }
+    
+    return this.generateEnglishSummary();
+  }
+
+  /**
+   * Complete coaching session
+   */
+  completeSession(): void {
+    // Business rule: Can only complete active session
+    if (this.sessionState !== 'ACTIVE') {
+      throw new Error('Cannot complete - session not active');
+    }
+
+    this.sessionState = 'COMPLETED';
+  }
+
+  /**
+   * Get all insights generated in this session
+   */
+  getInsights(): TacticalInsight[] {
+    return Array.from(this.insights.values());
+  }
+
+  /**
+   * Get training plans generated in this session
+   */
+  getTrainingPlans(): TrainingPlan[] {
+    return Array.from(this.trainingPlans.values());
+  }
+
+  /**
+   * Check if session can accept new requests
+   */
+  canAcceptRequests(): boolean {
+    return this.sessionState === 'ACTIVE';
+  }
+
+  /**
+   * Get session statistics
+   */
+  getSessionStats(): {
+    insightsGenerated: number;
+    trainingPlansCreated: number;
+    sessionDurationMinutes: number;
+    preferredLanguage: string;
+  } {
+    const durationMs = Date.now() - this.startedAt.getTime();
+    const durationMinutes = Math.floor(durationMs / (1000 * 60));
+
+    return {
+      insightsGenerated: this.insights.size,
+      trainingPlansCreated: this.trainingPlans.size,
+      sessionDurationMinutes: durationMinutes,
+      preferredLanguage: this.coachProfile.getPreferredLanguage()
+    };
+  }
+
+  // Getters
+  getId(): CoachingSessionId {
+    return this.id;
+  }
+
+  getMatchContext(): MatchContext {
+    return this.matchContext;
+  }
+
+  getCoachProfile(): CoachProfile {
+    return this.coachProfile;
+  }
+
+  getAnalysisScope(): AnalysisScope {
+    return this.analysisScope;
+  }
+
+  private generateHebrewSummary(): string {
+    const stats = this.getSessionStats();
+    return `
+סיכום מושב אימון:
+- תובנות טקטיות שנוצרו: ${stats.insightsGenerated}
+- תוכניות אימון אישיות: ${stats.trainingPlansCreated}
+- משך המושב: ${stats.sessionDurationMinutes} דקות
+- מטרת הניתוח: ${this.analysisScope.getHebrewDescription()}
+    `.trim();
+  }
+
+  private generateEnglishSummary(): string {
+    const stats = this.getSessionStats();
+    return `
+Coaching Session Summary:
+- Tactical insights generated: ${stats.insightsGenerated}
+- Training plans created: ${stats.trainingPlansCreated}
+- Session duration: ${stats.sessionDurationMinutes} minutes
+- Analysis scope: ${this.analysisScope.getDescription()}
+    `.trim();
+  }
+}

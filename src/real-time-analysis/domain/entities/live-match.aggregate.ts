@@ -1,0 +1,281 @@
+import { AggregateRoot } from '../../integration-framework/domain/base/aggregate-root';
+import { MatchId } from '../value-objects/match-id';
+import { CameraId } from '../value-objects/camera-id';
+import { LiveStream } from '../entities/live-stream';
+import { RealTimeMetricsAccumulator } from '../entities/real-time-metrics-accumulator';
+import { TacticalAlertEngine } from '../entities/tactical-alert-engine';
+import { VideoFrame } from '../value-objects/video-frame';
+import { FrameAnalysis } from '../value-objects/frame-analysis';
+import { LiveMatchMetrics } from '../value-objects/live-match-metrics';
+import { TacticalAlert } from '../entities/tactical-alert';
+import { LiveAnalysisStartedEvent } from '../events/live-analysis-started.event';
+import { FrameProcessedEvent } from '../events/frame-processed.event';
+import { TacticalAlertTriggeredEvent } from '../events/tactical-alert-triggered.event';
+
+/**
+ * LiveMatch Aggregate - Enhanced real-time match analysis
+ * 
+ * Implements edge computing and real-time tactical analysis with sub-100ms processing.
+ * Provides live coaching insights and tactical alerts during matches.
+ */
+export class LiveMatchAggregate extends AggregateRoot {
+  private readonly liveStreams: Map<CameraId, LiveStream>;
+  private readonly metricsAccumulator: RealTimeMetricsAccumulator;
+  private readonly alertEngine: TacticalAlertEngine;
+  private analysisState: 'STOPPED' | 'STARTING' | 'ACTIVE' | 'PAUSED' = 'STOPPED';
+  private readonly startedAt: Date;
+
+  constructor(
+    private readonly id: MatchId,
+    streams: Map<CameraId, LiveStream>,
+    metricsAccumulator: RealTimeMetricsAccumulator,
+    alertEngine: TacticalAlertEngine
+  ) {
+    super();
+    this.liveStreams = streams;
+    this.metricsAccumulator = metricsAccumulator;
+    this.alertEngine = alertEngine;
+    this.startedAt = new Date();
+  }
+
+  /**
+   * Factory method to create live match analysis
+   */
+  static create(
+    matchId: MatchId,
+    cameraStreams: CameraId[]
+  ): LiveMatchAggregate {
+    const streams = new Map<CameraId, LiveStream>();
+    
+    // Initialize live streams for each camera
+    cameraStreams.forEach(cameraId => {
+      streams.set(cameraId, LiveStream.create(cameraId, matchId));
+    });
+
+    // Initialize real-time components
+    const metricsAccumulator = RealTimeMetricsAccumulator.create(matchId);
+    const alertEngine = TacticalAlertEngine.create(matchId);
+
+    return new LiveMatchAggregate(
+      matchId,
+      streams,
+      metricsAccumulator,
+      alertEngine
+    );
+  }
+
+  /**
+   * Start live analysis with edge computing
+   */
+  startLiveAnalysis(): void {
+    // Business rule: Can only start if stopped
+    if (this.analysisState !== 'STOPPED') {
+      throw new Error(`Cannot start analysis - current state: ${this.analysisState}`);
+    }
+
+    this.analysisState = 'STARTING';
+
+    // Initialize all components
+    this.metricsAccumulator.reset();
+    this.alertEngine.activate();
+
+    // Activate all live streams
+    this.liveStreams.forEach(stream => stream.activate());
+
+    this.analysisState = 'ACTIVE';
+
+    // Publish domain event
+    this.addDomainEvent(new LiveAnalysisStartedEvent(
+      this.id,
+      this.liveStreams.size,
+      Array.from(this.liveStreams.keys()),
+      new Date()
+    ));
+  }
+
+  /**
+   * Process single frame from camera with real-time constraints
+   */
+  async processFrame(cameraId: CameraId, frame: VideoFrame): Promise<void> {
+    // Business rule: Analysis must be active
+    if (this.analysisState !== 'ACTIVE') {
+      throw new Error(`Cannot process frame - analysis not active: ${this.analysisState}`);
+    }
+
+    // Business rule: Camera must be registered
+    const stream = this.liveStreams.get(cameraId);
+    if (!stream) {
+      throw new Error(`Camera ${cameraId.value} not registered for this match`);
+    }
+
+    const processingStartTime = performance.now();
+
+    try {
+      // Analyze frame with edge ML inference
+      const analysis = await this.analyzeFrame(frame, cameraId);
+      
+      // Update real-time metrics
+      this.metricsAccumulator.accumulate(analysis);
+      
+      // Check for tactical alerts
+      const currentMetrics = this.metricsAccumulator.getCurrentSnapshot();
+      const alerts = await this.alertEngine.evaluate(currentMetrics, analysis);
+      
+      // Publish alerts if any triggered
+      if (alerts.length > 0) {
+        await this.publishAlerts(alerts);
+      }
+
+      // Calculate processing latency
+      const processingLatency = performance.now() - processingStartTime;
+      
+      // Publish frame processed event
+      this.addDomainEvent(new FrameProcessedEvent(
+        this.id,
+        cameraId,
+        frame.getTimestamp(),
+        processingLatency,
+        analysis.getConfidence(),
+        analysis.getExtractedMetrics(),
+        new Date()
+      ));
+
+      // Business rule: Processing must be under 100ms for real-time
+      if (processingLatency > 100) {
+        console.warn(`Frame processing exceeded 100ms threshold: ${processingLatency}ms`);
+      }
+
+    } catch (error) {
+      console.error(`Error processing frame from camera ${cameraId.value}:`, error);
+      // Continue processing other frames rather than failing the entire analysis
+    }
+  }
+
+  /**
+   * Get current live metrics snapshot
+   */
+  getCurrentMetrics(): LiveMatchMetrics {
+    if (this.analysisState !== 'ACTIVE') {
+      throw new Error('Cannot get metrics - analysis not active');
+    }
+
+    return this.metricsAccumulator.getCurrentSnapshot();
+  }
+
+  /**
+   * Pause live analysis (can be resumed)
+   */
+  pauseAnalysis(): void {
+    if (this.analysisState !== 'ACTIVE') {
+      throw new Error(`Cannot pause - analysis not active: ${this.analysisState}`);
+    }
+
+    this.analysisState = 'PAUSED';
+    this.liveStreams.forEach(stream => stream.pause());
+    this.alertEngine.deactivate();
+  }
+
+  /**
+   * Resume paused analysis
+   */
+  resumeAnalysis(): void {
+    if (this.analysisState !== 'PAUSED') {
+      throw new Error(`Cannot resume - analysis not paused: ${this.analysisState}`);
+    }
+
+    this.analysisState = 'ACTIVE';
+    this.liveStreams.forEach(stream => stream.resume());
+    this.alertEngine.activate();
+  }
+
+  /**
+   * Stop live analysis completely
+   */
+  stopAnalysis(): void {
+    if (this.analysisState === 'STOPPED') {
+      return; // Already stopped
+    }
+
+    this.analysisState = 'STOPPED';
+    this.liveStreams.forEach(stream => stream.stop());
+    this.alertEngine.deactivate();
+  }
+
+  /**
+   * Get analysis performance statistics
+   */
+  getPerformanceStats(): {
+    averageProcessingLatency: number;
+    framesProcessed: number;
+    alertsTriggered: number;
+    analysisDurationMinutes: number;
+    activeStreams: number;
+  } {
+    const durationMs = Date.now() - this.startedAt.getTime();
+    const durationMinutes = Math.floor(durationMs / (1000 * 60));
+
+    return {
+      averageProcessingLatency: this.metricsAccumulator.getAverageLatency(),
+      framesProcessed: this.metricsAccumulator.getFrameCount(),
+      alertsTriggered: this.alertEngine.getAlertCount(),
+      analysisDurationMinutes: durationMinutes,
+      activeStreams: Array.from(this.liveStreams.values())
+        .filter(stream => stream.isActive()).length
+    };
+  }
+
+  /**
+   * Check if analysis is running
+   */
+  isAnalysisActive(): boolean {
+    return this.analysisState === 'ACTIVE';
+  }
+
+  /**
+   * Get live streams for monitoring
+   */
+  getLiveStreams(): ReadonlyMap<CameraId, LiveStream> {
+    return new Map(this.liveStreams);
+  }
+
+  // Getters
+  getId(): MatchId {
+    return this.id;
+  }
+
+  getAnalysisState(): string {
+    return this.analysisState;
+  }
+
+  /**
+   * Private method to analyze frame using edge ML
+   */
+  private async analyzeFrame(frame: VideoFrame, cameraId: CameraId): Promise<FrameAnalysis> {
+    // This will be implemented by the infrastructure layer
+    // Domain defines the contract and business rules
+    return FrameAnalysis.create(frame, cameraId, {
+      confidence: 0.85,
+      detectedPlayers: [],
+      ballPosition: null,
+      formation: null,
+      events: []
+    });
+  }
+
+  /**
+   * Private method to publish tactical alerts
+   */
+  private async publishAlerts(alerts: TacticalAlert[]): Promise<void> {
+    for (const alert of alerts) {
+      this.addDomainEvent(new TacticalAlertTriggeredEvent(
+        this.id,
+        alert.getId(),
+        alert.getType(),
+        alert.getPriority(),
+        alert.getTriggerMetrics(),
+        alert.getRecommendedActions(),
+        new Date()
+      ));
+    }
+  }
+}

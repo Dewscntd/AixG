@@ -1,0 +1,73 @@
+import { AggregateRoot } from '../../../integration-framework/domain/base/aggregate-root';
+import { ExternalSystemType } from '../../../integration-framework/domain/value-objects/external-system-type';
+import { SyncConfiguration } from '../value-objects/sync-configuration';
+import { IConnector, IAsyncConnector } from '../interfaces/connector.interface';
+import { ConnectionStatus } from '../../../integration-framework/domain/value-objects/connection-status';
+import { DataTypeEnum } from '../enums/data-type.enum';
+import { SyncResult } from '../value-objects/sync-result';
+import { SyncCompletedEvent } from '../events/sync-completed.event';
+
+/**
+ * Sync Task Aggregate - Core orchestrator for sync operations
+ * 
+ * Manages execution of sync operations leveraging domain events for fault tolerance and monitoring.
+ */
+export class SyncTaskAggregate extends AggregateRoot {
+  private readonly systemType: ExternalSystemType;
+  private readonly connector: IConnector;
+  private readonly configuration: SyncConfiguration;
+
+  constructor(systemType: ExternalSystemType, connector: IConnector, configuration: SyncConfiguration) {
+    super();
+    this.systemType = systemType;
+    this.connector = connector;
+    this.configuration = configuration;
+  }
+
+  /**
+   * Execute synchronization task
+   */
+  async executeSync(lastSyncTimestamp?: Date): Promise<SyncResult> {
+    // Validate configuration
+    const validConfiguration = await this.connector.validateConfiguration(this.configuration);
+    if (!validConfiguration) {
+      throw new Error('Invalid configuration provided for sync task');
+    }
+
+    // Establish connection
+    const connectionStatus = await this.connector.connect(this.configuration);
+    if (connectionStatus !== ConnectionStatus.CONNECTED) {
+      throw new Error('Failed to establish connection to external system');
+    }
+
+    try {
+      // Execute sync
+      const result = await this.connector.sync(this.configuration.dataTypes, lastSyncTimestamp);
+
+      // Publish domain event for sync completion
+      this.addDomainEvent(new SyncCompletedEvent(
+        this.systemType,
+        result.successfulDataTypes,
+        result.failedDataTypes,
+        result.recordsProcessed,
+        new Date()
+      ));
+
+      return result;
+    } finally {
+      // Ensure disconnection after task
+      await this.connector.disconnect();
+    }
+  }
+
+  /**
+   * Execute real-time subscription if supported
+   */
+  async executeRealtimeSubscription(subscriptionCallback: (data: any) => void): Promise<string | null> {
+    if ('subscribe' in this.connector) {
+      return await (this.connector as IAsyncConnector).subscribe(this.configuration.dataTypes, subscriptionCallback);
+    }
+    return null;
+  }
+}
+
