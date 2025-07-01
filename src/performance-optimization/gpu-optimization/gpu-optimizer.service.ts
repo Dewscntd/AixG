@@ -91,7 +91,7 @@ export class GPUOptimizerService {
       return result;
     } catch (error) {
       this.logger.error('GPU optimization failed:', error);
-      throw new Error(`GPU optimization failed: ${error.message}`);
+      throw new Error(`GPU optimization failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -128,7 +128,7 @@ export class GPUOptimizerService {
       return mockMetrics;
     } catch (error) {
       this.logger.error('Failed to get GPU metrics:', error);
-      throw new Error(`Failed to get GPU metrics: ${error.message}`);
+      throw new Error(`Failed to get GPU metrics: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

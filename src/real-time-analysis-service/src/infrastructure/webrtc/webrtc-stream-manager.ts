@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import * as SimplePeer from 'simple-peer';
+import SimplePeer from 'simple-peer';
 import { StreamId } from '../../domain/value-objects/stream-id';
 import {
   VideoFrame,
@@ -46,7 +46,7 @@ export class WebRTCStreamManager extends EventEmitter {
     } catch (error) {
       this.emit(
         'error',
-        new Error(`Failed to initialize WebRTC: ${error.message}`)
+        new Error(`Failed to initialize WebRTC: ${error instanceof Error ? error.message : String(error)}`)
       );
       throw error;
     }
@@ -91,7 +91,7 @@ export class WebRTCStreamManager extends EventEmitter {
     } catch (error) {
       this.emit(
         'error',
-        new Error(`Failed to create peer connection: ${error.message}`)
+        new Error(`Failed to create peer connection: ${error instanceof Error ? error.message : String(error)}`)
       );
       throw error;
     }
@@ -111,7 +111,7 @@ export class WebRTCStreamManager extends EventEmitter {
       this.streams.set(peerId, stream);
       this.emit('streamAdded', { peerId, streamId: stream.id });
     } catch (error) {
-      this.emit('error', new Error(`Failed to add stream: ${error.message}`));
+      this.emit('error', new Error(`Failed to add stream: ${error instanceof Error ? error.message : String(error)}`));
       throw error;
     }
   }
@@ -126,9 +126,9 @@ export class WebRTCStreamManager extends EventEmitter {
     }
 
     try {
-      peer.signal(signalData);
+      peer.signal(signalData as any);
     } catch (error) {
-      this.emit('error', new Error(`Failed to signal peer: ${error.message}`));
+      this.emit('error', new Error(`Failed to signal peer: ${error instanceof Error ? error.message : String(error)}`));
       throw error;
     }
   }

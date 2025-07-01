@@ -1,4 +1,4 @@
-import { PerformanceTestSuite } from './performance-test-suite';
+import { PerformanceTestSuiteConfig } from './performance-test-suite';
 import { BenchmarkConfig } from '../benchmarking/performance-benchmarker';
 // PerformanceBenchmarker import removed as it's not used
 
@@ -7,7 +7,7 @@ import { BenchmarkConfig } from '../benchmarking/performance-benchmarker';
  * Includes all critical performance tests with enhanced configurations
  */
 
-export const FootAnalyticsComprehensiveTestSuite: PerformanceTestSuite = {
+export const FootAnalyticsComprehensiveTestSuite: PerformanceTestSuiteConfig = {
   name: 'FootAnalytics Comprehensive Performance Test Suite',
   tests: [
     {

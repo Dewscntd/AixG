@@ -13,7 +13,7 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UploadVideoUseCase } from '../application/use-cases/upload-video.use-case';
+import { UploadVideoUseCase, UploadVideoCommand } from '../application/use-cases/upload-video.use-case';
 import { ResumeUploadUseCase } from '../application/use-cases/resume-upload.use-case';
 import { GetUploadProgressUseCase } from '../application/use-cases/get-upload-progress.use-case';
 import {
@@ -82,16 +82,18 @@ export class VideoUploadController {
         },
       });
 
-      const result = await this.uploadVideoUseCase.execute({
+      const command: UploadVideoCommand = {
         stream,
         filename: file.originalname,
         mimeType: file.mimetype,
         size: file.size,
         uploadedBy: uploadDto.uploadedBy,
-        matchId: uploadDto.matchId,
-        teamId: uploadDto.teamId,
-        tags: uploadDto.tags,
-      });
+        ...(uploadDto.matchId && { matchId: uploadDto.matchId }),
+        ...(uploadDto.teamId && { teamId: uploadDto.teamId }),
+        ...(uploadDto.tags && { tags: uploadDto.tags }),
+      };
+
+      const result = await this.uploadVideoUseCase.execute(command);
 
       this.logger.log(`Video upload completed: ${result.videoId}`);
 
@@ -101,14 +103,17 @@ export class VideoUploadController {
         message: 'Video uploaded successfully',
       };
     } catch (error) {
-      this.logger.error(`Video upload failed: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Video upload failed: ${errorMessage}`, errorStack);
 
       if (error instanceof HttpException) {
         throw error;
       }
 
       throw new HttpException(
-        `Upload failed: ${error.message}`,
+        `Upload failed: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -142,10 +147,13 @@ export class VideoUploadController {
         message: result.isComplete ? 'Upload completed' : 'Upload resumed',
       };
     } catch (error) {
-      this.logger.error(`Resume upload failed: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Resume upload failed: ${errorMessage}`, errorStack);
 
       throw new HttpException(
-        `Resume upload failed: ${error.message}`,
+        `Resume upload failed: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -164,13 +172,16 @@ export class VideoUploadController {
         message: 'Upload progress retrieved successfully',
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Get upload progress failed: ${error.message}`,
-        error.stack
+        `Get upload progress failed: ${errorMessage}`,
+        errorStack
       );
 
       throw new HttpException(
-        `Failed to get upload progress: ${error.message}`,
+        `Failed to get upload progress: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }

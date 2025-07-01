@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { VideoRepository } from '../../domain/ports/video.repository';
-import { StorageService } from '../../domain/ports/storage.service';
-import { EventPublisher } from '../../domain/ports/event.publisher';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { VideoRepository, VIDEO_REPOSITORY } from '../../domain/ports/video.repository';
+import { StorageService, STORAGE_SERVICE } from '../../domain/ports/storage.service';
+import { EventPublisher, EVENT_PUBLISHER } from '../../domain/ports/event.publisher';
 import { Video } from '../../domain/entities/video.entity';
 import { UploadMetadata } from '../../domain/value-objects/upload-metadata.value-object';
 import { AsyncValidationService } from '../services/async-validation.service';
@@ -28,9 +28,9 @@ export class UploadVideoUseCase {
   private readonly logger = new Logger(UploadVideoUseCase.name);
 
   constructor(
-    private readonly videoRepository: VideoRepository,
-    private readonly storageService: StorageService,
-    private readonly eventPublisher: EventPublisher,
+    @Inject(VIDEO_REPOSITORY) private readonly videoRepository: VideoRepository,
+    @Inject(STORAGE_SERVICE) private readonly storageService: StorageService,
+    @Inject(EVENT_PUBLISHER) private readonly eventPublisher: EventPublisher,
     private readonly asyncValidationService: AsyncValidationService
   ) {}
 

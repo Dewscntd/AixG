@@ -6,8 +6,8 @@ import { Client, Producer } from 'pulsar-client';
 @Injectable()
 export class PulsarEventPublisher implements EventPublisher, OnModuleDestroy {
   private readonly logger = new Logger(PulsarEventPublisher.name);
-  private client: Client;
-  private producer: Producer;
+  private client!: Client;
+  private producer!: Producer;
   private isInitialized = false;
 
   constructor() {
@@ -16,17 +16,22 @@ export class PulsarEventPublisher implements EventPublisher, OnModuleDestroy {
 
   private async initializeClient(): Promise<void> {
     try {
-      this.client = new Client({
+      const clientConfig: any = {
         serviceUrl: process.env.PULSAR_SERVICE_URL || 'pulsar://localhost:6650',
         operationTimeoutSeconds: 30,
         ioThreads: 4,
         messageListenerThreads: 4,
         concurrentLookupRequest: 50000,
         useTls: process.env.PULSAR_USE_TLS === 'true',
-        tlsTrustCertsFilePath: process.env.PULSAR_TLS_CERT_PATH,
         tlsValidateHostname: false,
         tlsAllowInsecureConnection: process.env.NODE_ENV !== 'production',
-      });
+      };
+
+      if (process.env.PULSAR_TLS_CERT_PATH) {
+        clientConfig.tlsTrustCertsFilePath = process.env.PULSAR_TLS_CERT_PATH;
+      }
+
+      this.client = new Client(clientConfig);
 
       this.producer = await this.client.createProducer({
         topic: 'video-ingestion-events',
@@ -43,11 +48,13 @@ export class PulsarEventPublisher implements EventPublisher, OnModuleDestroy {
       this.isInitialized = true;
       this.logger.log('Pulsar client and producer initialized successfully');
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Failed to initialize Pulsar client: ${error.message}`,
-        error.stack
+        `Failed to initialize Pulsar client: ${errorMessage}`,
+        errorStack
       );
-      throw new Error(`Pulsar initialization failed: ${error.message}`);
+      throw new Error(`Pulsar initialization failed: ${errorMessage}`);
     }
   }
 
@@ -76,11 +83,13 @@ export class PulsarEventPublisher implements EventPublisher, OnModuleDestroy {
         `Event published: ${event.eventType} for aggregate ${event.aggregateId}`
       );
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Failed to publish event: ${error.message}`,
-        error.stack
+        `Failed to publish event: ${errorMessage}`,
+        errorStack
       );
-      throw new Error(`Event publishing failed: ${error.message}`);
+      throw new Error(`Event publishing failed: ${errorMessage}`);
     }
   }
 
@@ -97,11 +106,13 @@ export class PulsarEventPublisher implements EventPublisher, OnModuleDestroy {
         `Batch of ${events.length} events published successfully`
       );
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Failed to publish event batch: ${error.message}`,
-        error.stack
+        `Failed to publish event batch: ${errorMessage}`,
+        errorStack
       );
-      throw new Error(`Batch event publishing failed: ${error.message}`);
+      throw new Error(`Batch event publishing failed: ${errorMessage}`);
     }
   }
 
@@ -117,7 +128,9 @@ export class PulsarEventPublisher implements EventPublisher, OnModuleDestroy {
         this.logger.log('Pulsar client closed');
       }
     } catch (error) {
-      this.logger.error(`Error during cleanup: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error during cleanup: ${errorMessage}`, errorStack);
     }
   }
 

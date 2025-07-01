@@ -3,6 +3,7 @@ import { VideoRepository } from '../../domain/ports/video.repository';
 import { VideoValidationService } from '../../domain/services/video-validation.service';
 import { EventPublisher } from '../../domain/ports/event.publisher';
 import { StorageService } from '../../domain/ports/storage.service';
+import { VideoMetadata } from '../../domain/value-objects/video-metadata.value-object';
 
 export interface ValidationJob {
   videoId: string;
@@ -197,8 +198,9 @@ export class AsyncValidationService {
         }
 
         // Complete validation
+        const finalMetadata = metadata || this.createDefaultMetadata();
         video.completeValidation(
-          metadata,
+          finalMetadata,
           validationResult.errors,
           validationResult.warnings
         );
@@ -299,7 +301,7 @@ export class AsyncValidationService {
 
     let insertIndex = this.validationQueue.length;
     for (let i = 0; i < this.validationQueue.length; i++) {
-      const existingPriority = priorityOrder[this.validationQueue[i].priority];
+      const existingPriority = priorityOrder[this.validationQueue[i]?.priority || 'low'];
       if (jobPriority < existingPriority) {
         insertIndex = i;
         break;
@@ -319,13 +321,18 @@ export class AsyncValidationService {
     message: string,
     error?: string
   ): void {
-    this.progressMap.set(videoId, {
+    const progressData: ValidationProgress = {
       videoId,
       stage,
       progress,
       message,
-      error,
-    });
+    };
+
+    if (error !== undefined) {
+      progressData.error = error;
+    }
+
+    this.progressMap.set(videoId, progressData);
   }
 
   /**
@@ -343,6 +350,22 @@ export class AsyncValidationService {
   private async cleanupTempFile(filePath: string): Promise<void> {
     // In real implementation, this would delete the temporary file
     this.logger.debug(`Cleaning up temporary file: ${filePath}`);
+  }
+
+  /**
+   * Create default metadata when extraction fails
+   */
+  private createDefaultMetadata(): VideoMetadata {
+    return new VideoMetadata({
+      duration: 0,
+      resolution: { width: 0, height: 0 },
+      frameRate: 0,
+      bitrate: 0,
+      codec: 'unknown',
+      format: 'unknown',
+      fileSize: 0,
+      checksum: 'unknown',
+    });
   }
 
   /**

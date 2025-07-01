@@ -25,8 +25,12 @@ export abstract class DomainEvent {
     this.aggregateId = aggregateId;
     this.occurredOn = new Date();
     this.version = version;
-    this.correlationId = correlationId;
-    this.causationId = causationId;
+    if (correlationId !== undefined) {
+      this.correlationId = correlationId;
+    }
+    if (causationId !== undefined) {
+      this.causationId = causationId;
+    }
   }
 
   /**

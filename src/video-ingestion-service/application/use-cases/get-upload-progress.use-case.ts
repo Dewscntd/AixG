@@ -59,7 +59,7 @@ export class GetUploadProgressUseCase {
         estimatedTimeRemaining = Math.ceil(remainingBytes / uploadRate);
       }
 
-      return {
+      const result: UploadProgressResult = {
         videoId: video.id.value,
         uploadId: query.uploadId,
         progress: storageProgress,
@@ -67,12 +67,17 @@ export class GetUploadProgressUseCase {
         filename: video.uploadMetadata.filename,
         fileSize: video.uploadMetadata.size,
         uploadedBytes,
-        estimatedTimeRemaining,
         errors: video.validationErrors,
         warnings: video.validationWarnings,
       };
+
+      if (estimatedTimeRemaining !== undefined) {
+        result.estimatedTimeRemaining = estimatedTimeRemaining;
+      }
+
+      return result;
     } catch (error) {
-      throw new Error(`Failed to get upload progress: ${error.message}`);
+      throw new Error(`Failed to get upload progress: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

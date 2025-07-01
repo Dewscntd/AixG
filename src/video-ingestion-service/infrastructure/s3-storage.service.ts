@@ -13,11 +13,19 @@ export class S3StorageService implements StorageService {
   private readonly bucketName: string;
 
   constructor() {
-    this.s3 = new S3({
+    const s3Config: Record<string, string> = {
       region: process.env.AWS_REGION || 'eu-west-1',
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    });
+    };
+
+    if (process.env.AWS_ACCESS_KEY_ID) {
+      s3Config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    }
+
+    if (process.env.AWS_SECRET_ACCESS_KEY) {
+      s3Config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    }
+
+    this.s3 = new S3(s3Config);
     this.bucketName = process.env.S3_VIDEO_BUCKET || 'footanalytics-videos';
   }
 
@@ -63,8 +71,10 @@ export class S3StorageService implements StorageService {
         metadata: uploadParams.Metadata,
       });
     } catch (error) {
-      this.logger.error(`Upload failed: ${error.message}`, error.stack);
-      throw new Error(`S3 upload failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Upload failed: ${errorMessage}`, errorStack);
+      throw new Error(`S3 upload failed: ${errorMessage}`);
     }
   }
 
@@ -88,8 +98,10 @@ export class S3StorageService implements StorageService {
 
       throw new Error('Resumable upload not yet implemented for S3');
     } catch (error) {
-      this.logger.error(`Resume upload failed: ${error.message}`, error.stack);
-      throw new Error(`S3 resume upload failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Resume upload failed: ${errorMessage}`, errorStack);
+      throw new Error(`S3 resume upload failed: ${errorMessage}`);
     }
   }
 
@@ -107,11 +119,13 @@ export class S3StorageService implements StorageService {
       // In real implementation, query the actual progress
       return 100; // Assume completed for now
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Get upload progress failed: ${error.message}`,
-        error.stack
+        `Get upload progress failed: ${errorMessage}`,
+        errorStack
       );
-      throw new Error(`Failed to get upload progress: ${error.message}`);
+      throw new Error(`Failed to get upload progress: ${errorMessage}`);
     }
   }
 
@@ -128,8 +142,10 @@ export class S3StorageService implements StorageService {
 
       throw new Error('Delete upload not yet implemented');
     } catch (error) {
-      this.logger.error(`Delete upload failed: ${error.message}`, error.stack);
-      throw new Error(`Failed to delete upload: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Delete upload failed: ${errorMessage}`, errorStack);
+      throw new Error(`Failed to delete upload: ${errorMessage}`);
     }
   }
 
@@ -150,11 +166,13 @@ export class S3StorageService implements StorageService {
 
       return url;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Generate presigned URL failed: ${error.message}`,
-        error.stack
+        `Generate presigned URL failed: ${errorMessage}`,
+        errorStack
       );
-      throw new Error(`Failed to generate presigned URL: ${error.message}`);
+      throw new Error(`Failed to generate presigned URL: ${errorMessage}`);
     }
   }
 
@@ -195,7 +213,7 @@ export class S3StorageService implements StorageService {
             this.push(Buffer.from(value));
           }
         } catch (error) {
-          this.destroy(error);
+          this.destroy(error instanceof Error ? error : new Error(String(error)));
         }
       },
     });

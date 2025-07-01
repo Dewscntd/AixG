@@ -15,3 +15,6 @@ export interface StorageService {
   deleteUpload(uploadId: string): Promise<void>;
   generatePresignedUrl(key: string, expiresIn?: number): Promise<string>;
 }
+
+// Injection token for StorageService
+export const STORAGE_SERVICE = Symbol('StorageService');

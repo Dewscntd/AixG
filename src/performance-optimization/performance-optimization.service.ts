@@ -76,7 +76,17 @@ export class PerformanceOptimizationService implements OnModuleInit {
   async runOptimizationCycle(): Promise<OptimizationReport> {
     if (this.isOptimizing) {
       this.logger.warn('Optimization cycle already in progress');
-      return this.optimizationHistory[this.optimizationHistory.length - 1];
+      return this.optimizationHistory[this.optimizationHistory.length - 1] ?? {
+        timestamp: new Date(),
+        optimizations: [],
+        performanceMetrics: {
+          before: {},
+          after: {},
+          improvement: 0,
+        },
+        recommendations: [],
+        nextOptimizationScheduled: new Date(),
+      };
     }
 
     this.isOptimizing = true;
@@ -149,7 +159,7 @@ export class PerformanceOptimizationService implements OnModuleInit {
 
       return report;
     } catch (error) {
-      this.logger.error(`Optimization cycle failed: ${error.message}`);
+      this.logger.error(`Optimization cycle failed: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     } finally {
       this.isOptimizing = false;
@@ -190,7 +200,7 @@ export class PerformanceOptimizationService implements OnModuleInit {
         });
       }
     } catch (error) {
-      this.logger.error(`Database optimization failed: ${error.message}`);
+      this.logger.error(`Database optimization failed: ${error instanceof Error ? error.message : String(error)}`);
       optimizations.push({
         type: 'database_optimization',
         description: 'Database optimization failed',
@@ -243,7 +253,7 @@ export class PerformanceOptimizationService implements OnModuleInit {
         });
       }
     } catch (error) {
-      this.logger.error(`Cache optimization failed: ${error.message}`);
+      this.logger.error(`Cache optimization failed: ${error instanceof Error ? error.message : String(error)}`);
       optimizations.push({
         type: 'cache_optimization',
         description: 'Cache optimization failed',
@@ -283,7 +293,7 @@ export class PerformanceOptimizationService implements OnModuleInit {
         });
       }
     } catch (error) {
-      this.logger.error(`CDN optimization failed: ${error.message}`);
+      this.logger.error(`CDN optimization failed: ${error instanceof Error ? error.message : String(error)}`);
       optimizations.push({
         type: 'cdn_optimization',
         description: 'CDN optimization failed',
@@ -305,7 +315,7 @@ export class PerformanceOptimizationService implements OnModuleInit {
       const summary = this.performanceMonitor.getPerformanceSummary();
 
       if (
-        summary.current?.system.memoryUsage.percentage >
+        (summary.current?.system.memoryUsage.percentage ?? 0) >
         this.config.performanceThresholds.maxMemoryUsage
       ) {
         // Trigger garbage collection
@@ -332,7 +342,7 @@ export class PerformanceOptimizationService implements OnModuleInit {
         });
       }
     } catch (error) {
-      this.logger.error(`Memory optimization failed: ${error.message}`);
+      this.logger.error(`Memory optimization failed: ${error instanceof Error ? error.message : String(error)}`);
       optimizations.push({
         type: 'memory_optimization',
         description: 'Memory optimization failed',
@@ -366,7 +376,7 @@ export class PerformanceOptimizationService implements OnModuleInit {
         });
       }
     } catch (error) {
-      this.logger.error(`GPU optimization failed: ${error.message}`);
+      this.logger.error(`GPU optimization failed: ${error instanceof Error ? error.message : String(error)}`);
       optimizations.push({
         type: 'gpu_optimization',
         description: 'GPU optimization failed',
@@ -418,7 +428,7 @@ export class PerformanceOptimizationService implements OnModuleInit {
 
     // Add recommendations based on current performance
     if (
-      summary.current?.requestLatency.p95 >
+      (summary.current?.requestLatency.p95 ?? 0) >
       this.config.performanceThresholds.maxLatencyP95
     ) {
       recommendations.push('Consider implementing additional caching layers');
@@ -481,8 +491,7 @@ export class PerformanceOptimizationService implements OnModuleInit {
     const summary = this.performanceMonitor.getPerformanceSummary();
     const lastOptimization =
       this.optimizationHistory.length > 0
-        ? this.optimizationHistory[this.optimizationHistory.length - 1]
-            .timestamp
+        ? this.optimizationHistory[this.optimizationHistory.length - 1]?.timestamp ?? null
         : null;
 
     const score = summary.healthScore;

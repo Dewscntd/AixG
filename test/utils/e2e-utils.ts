@@ -220,7 +220,7 @@ export class E2ETestUtils {
     await this.page.check('[data-testid="include-events"]');
 
     // Start download
-    const downloadPromise = this.page.waitForDownload();
+    const downloadPromise = this.page.waitForEvent('download');
     await this.page.click('[data-testid="download-button"]');
     const download = await downloadPromise;
 

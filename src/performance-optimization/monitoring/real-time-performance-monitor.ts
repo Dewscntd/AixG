@@ -126,7 +126,7 @@ export class RealTimePerformanceMonitor extends EventEmitter {
    */
   getCurrentMetrics(): RealTimeMetrics | null {
     return this.metrics.length > 0
-      ? this.metrics[this.metrics.length - 1]
+      ? this.metrics[this.metrics.length - 1] ?? null
       : null;
   }
 
@@ -214,8 +214,9 @@ export class RealTimePerformanceMonitor extends EventEmitter {
     const memUsage = process.memoryUsage();
     const cpuUsage = await this.getCPUUsage();
     const latencyStats = this.calculateLatencyPercentiles();
+    const gpuMetrics = await this.getGPUMetrics();
 
-    return {
+    const metrics: RealTimeMetrics = {
       timestamp: new Date(),
       system: {
         cpuUsage,
@@ -241,8 +242,13 @@ export class RealTimePerformanceMonitor extends EventEmitter {
         throughput: this.calculateThroughput(),
         errorRate: 0, // Would be calculated from actual error tracking
       },
-      gpu: await this.getGPUMetrics(),
     };
+
+    if (gpuMetrics) {
+      metrics.gpu = gpuMetrics;
+    }
+
+    return metrics;
   }
 
   /**

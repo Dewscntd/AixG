@@ -94,7 +94,7 @@ export const SnapshotTestUtils = {
   /**
    * Normalizes analytics data for consistent snapshots
    */
-  normalizeAnalyticsData: (data: any) => ({
+  normalizeAnalyticsData: (data: any): any => ({
     ...data,
     // Round metrics to consistent precision
     xG:

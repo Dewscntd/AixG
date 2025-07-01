@@ -5,7 +5,7 @@ import * as os from 'os';
 import * as fs from 'fs/promises';
 // path import removed as it's not used
 
-interface BenchmarkConfig {
+export interface BenchmarkConfig {
   name: string;
   description: string;
   iterations: number;

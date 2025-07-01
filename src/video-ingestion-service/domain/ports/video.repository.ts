@@ -7,3 +7,6 @@ export interface VideoRepository {
   findByUploadId(uploadId: string): Promise<Video | null>;
   update(video: Video): Promise<Video>;
 }
+
+// Injection token for VideoRepository
+export const VIDEO_REPOSITORY = Symbol('VideoRepository');

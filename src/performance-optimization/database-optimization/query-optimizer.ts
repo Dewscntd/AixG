@@ -72,7 +72,7 @@ export class QueryOptimizer extends EventEmitter {
     waitingClients: 0,
     averageWaitTime: 0,
   };
-  private monitoringInterval?: NodeJS.Timeout;
+  private monitoringInterval?: NodeJS.Timeout | null;
   private isMonitoring = false;
 
   constructor(
@@ -243,7 +243,7 @@ export class QueryOptimizer extends EventEmitter {
     const seqScans = plan.filter(
       p => p.nodeType === 'Seq Scan' && p.actualRows > 1000
     );
-    if (seqScans.length > 0) {
+    if (seqScans.length > 0 && seqScans[0]?.relationName) {
       suggestions.push({
         type: 'index',
         priority: 'high',
@@ -358,8 +358,7 @@ export class QueryOptimizer extends EventEmitter {
       executionTimes.reduce((sum, time) => sum + time, 0) /
       executionTimes.length;
     const p95Index = Math.floor(executionTimes.length * 0.95);
-    const p95ExecutionTime =
-      executionTimes[p95Index] || executionTimes[executionTimes.length - 1];
+    const p95ExecutionTime = executionTimes[p95Index] ?? executionTimes[executionTimes.length - 1] ?? 0;
 
     // Determine trend (compare last 10 vs previous 10)
     let trend: 'improving' | 'degrading' | 'stable' = 'stable';
@@ -502,7 +501,7 @@ export class QueryOptimizer extends EventEmitter {
         0
       );
 
-      if (avgTime > this.slowQueryThreshold) {
+      if (avgTime > this.slowQueryThreshold && metrics[0]?.query) {
         slowQueryCount += metrics.length;
         slowQueries.push({
           query: `${metrics[0].query.substring(0, 100)}...`,
@@ -546,7 +545,7 @@ export class QueryOptimizer extends EventEmitter {
         await this.collectRealTimeMetrics();
         await this.checkForAnomalies();
       } catch (error) {
-        this.logger.error(`Real-time monitoring error: ${error.message}`);
+        this.logger.error(`Real-time monitoring error: ${error instanceof Error ? error.message : String(error)}`);
       }
     }, 5000); // Check every 5 seconds
   }
@@ -557,7 +556,7 @@ export class QueryOptimizer extends EventEmitter {
   stopRealTimeMonitoring(): void {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
-      this.monitoringInterval = undefined;
+      this.monitoringInterval = null;
       this.isMonitoring = false;
       this.logger.log('Stopped real-time database monitoring');
     }
@@ -789,14 +788,14 @@ export class QueryOptimizer extends EventEmitter {
           const lastMetric = metrics[metrics.length - 1];
 
           // Simple heuristic: if query contains WHERE clause, suggest index
-          if (lastMetric.query.toLowerCase().includes('where')) {
+          if (lastMetric?.query?.toLowerCase().includes('where')) {
             try {
               // This is a simplified example - real implementation would analyze query structure
               const suggestion = `-- Auto-generated index suggestion for query hash ${queryHash}`;
               applied.push(suggestion);
             } catch (error) {
               errors.push(
-                `Failed to create index for query ${queryHash}: ${error.message}`
+                `Failed to create index for query ${queryHash}: ${error instanceof Error ? error.message : String(error)}`
               );
             }
           }
@@ -811,12 +810,12 @@ export class QueryOptimizer extends EventEmitter {
           skipped.push(`Configuration change suggested: ${setting} = ${value}`);
         } catch (error) {
           errors.push(
-            `Failed to apply configuration ${setting}: ${error.message}`
+            `Failed to apply configuration ${setting}: ${error instanceof Error ? error.message : String(error)}`
           );
         }
       }
     } catch (error) {
-      errors.push(`Auto-optimization error: ${error.message}`);
+      errors.push(`Auto-optimization error: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     return { applied, skipped, errors };

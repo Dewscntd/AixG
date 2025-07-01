@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { VideoFrame } from '../../domain/value-objects/video-frame';
+import { VideoFrame, VideoFrameFormat } from '../../domain/value-objects/video-frame';
 import { EdgeMLInference } from '../../domain/entities/live-analysis-pipeline';
 
 /**
@@ -124,7 +124,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
       this.isInitialized = true;
     } catch (error) {
       throw new Error(
-        `Failed to initialize Edge ML Inference: ${error.message}`
+        `Failed to initialize Edge ML Inference: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -179,7 +179,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
         },
       };
     } catch (error) {
-      throw new Error(`ML analysis failed: ${error.message}`);
+      throw new Error(`ML analysis failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -275,7 +275,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
         this.models.set(modelConfig.name, model);
       } catch (error) {
         this.logger.warn(
-          `Failed to load model ${modelConfig.name}: ${error.message}`
+          `Failed to load model ${modelConfig.name}: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
@@ -304,7 +304,7 @@ export class EdgeMLInferenceService implements EdgeMLInference {
       640,
       480,
       Buffer.alloc(640 * 480 * 3),
-      'rgb24'
+      VideoFrameFormat.RGB24
     );
 
     const dummyData = await this.preprocessFrame(dummyFrame);

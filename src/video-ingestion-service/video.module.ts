@@ -2,13 +2,13 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 // Domain Ports
-import { VideoRepository } from './domain/ports/video.repository';
-import { StorageService } from './domain/ports/storage.service';
-import { EventPublisher } from './domain/ports/event.publisher';
+import { VIDEO_REPOSITORY } from './domain/ports/video.repository';
+import { STORAGE_SERVICE } from './domain/ports/storage.service';
+import { EVENT_PUBLISHER } from './domain/ports/event.publisher';
 
 // Domain Services
 import {
-  VideoValidationService,
+  VIDEO_VALIDATION_SERVICE,
   DefaultVideoValidationService,
 } from './domain/services/video-validation.service';
 
@@ -42,13 +42,13 @@ import { VideoUploadController } from './controllers/upload.controller';
 
     // Domain Services
     {
-      provide: VideoValidationService,
+      provide: VIDEO_VALIDATION_SERVICE,
       useClass: DefaultVideoValidationService,
     },
 
     // Infrastructure Services - Use environment variable to choose implementation
     {
-      provide: VideoRepository,
+      provide: VIDEO_REPOSITORY,
       useFactory: () => {
         const useInMemory = process.env.USE_IN_MEMORY_REPOSITORY === 'true';
         return useInMemory
@@ -57,11 +57,11 @@ import { VideoUploadController } from './controllers/upload.controller';
       },
     },
     {
-      provide: StorageService,
+      provide: STORAGE_SERVICE,
       useClass: S3StorageService,
     },
     {
-      provide: EventPublisher,
+      provide: EVENT_PUBLISHER,
       useClass: PulsarEventPublisher,
     },
   ],
@@ -72,7 +72,7 @@ import { VideoUploadController } from './controllers/upload.controller';
     GetUploadProgressUseCase,
 
     // Export repositories for testing
-    VideoRepository,
+    VIDEO_REPOSITORY,
   ],
 })
 export class VideoIngestionModule {}

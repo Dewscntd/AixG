@@ -54,8 +54,12 @@ export class LiveStream {
     const stream = new LiveStream(id, 300, metadata);
     stream._status = status;
     stream._frameCount = frameCount;
-    stream._startedAt = startedAt;
-    stream._stoppedAt = stoppedAt;
+    if (startedAt) {
+      stream._startedAt = startedAt;
+    }
+    if (stoppedAt) {
+      stream._stoppedAt = stoppedAt;
+    }
     return stream;
   }
 

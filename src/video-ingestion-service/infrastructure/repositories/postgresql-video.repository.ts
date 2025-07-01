@@ -109,8 +109,10 @@ export class PostgreSQLVideoRepository implements VideoRepository {
 
       return video;
     } catch (error) {
-      this.logger.error(`Failed to save video: ${error.message}`, error.stack);
-      throw new Error(`Failed to save video: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to save video: ${errorMessage}`, errorStack);
+      throw new Error(`Failed to save video: ${errorMessage}`);
     } finally {
       client.release();
     }
@@ -129,11 +131,13 @@ export class PostgreSQLVideoRepository implements VideoRepository {
 
       return this.mapRowToVideo(result.rows[0]);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Failed to find video by ID: ${error.message}`,
-        error.stack
+        `Failed to find video by ID: ${errorMessage}`,
+        errorStack
       );
-      throw new Error(`Failed to find video: ${error.message}`);
+      throw new Error(`Failed to find video: ${errorMessage}`);
     } finally {
       client.release();
     }
@@ -152,11 +156,13 @@ export class PostgreSQLVideoRepository implements VideoRepository {
 
       return this.mapRowToVideo(result.rows[0]);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Failed to find video by upload ID: ${error.message}`,
-        error.stack
+        `Failed to find video by upload ID: ${errorMessage}`,
+        errorStack
       );
-      throw new Error(`Failed to find video: ${error.message}`);
+      throw new Error(`Failed to find video: ${errorMessage}`);
     } finally {
       client.release();
     }
@@ -208,11 +214,13 @@ export class PostgreSQLVideoRepository implements VideoRepository {
 
       return video;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Failed to update video: ${error.message}`,
-        error.stack
+        `Failed to update video: ${errorMessage}`,
+        errorStack
       );
-      throw new Error(`Failed to update video: ${error.message}`);
+      throw new Error(`Failed to update video: ${errorMessage}`);
     } finally {
       client.release();
     }

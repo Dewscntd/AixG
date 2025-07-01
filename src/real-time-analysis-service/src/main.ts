@@ -19,7 +19,7 @@ async function bootstrap() {
 
     // Get configuration service
     const configService = app.get(ConfigService);
-    const port = configService.get<number>('port');
+    const port = configService.get<number>('port') || 3002;
     const nodeEnv = configService.get<string>('nodeEnv');
 
     // Setup global validation pipe

@@ -30,7 +30,7 @@ export class RealTimeAnalysisGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  private server: Server;
+  private server!: Server;
 
   private readonly logger = new Logger(RealTimeAnalysisGateway.name);
   private connectedClients: Map<string, Socket> = new Map();
@@ -111,11 +111,11 @@ export class RealTimeAnalysisGateway
       });
     } catch (error) {
       this.logger.error(
-        `Failed to subscribe client ${client.id} to stream: ${error.message}`
+        `Failed to subscribe client ${client.id} to stream: ${error instanceof Error ? error.message : String(error)}`
       );
       client.emit('error', {
         message: 'Failed to subscribe to stream',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -147,11 +147,11 @@ export class RealTimeAnalysisGateway
       });
     } catch (error) {
       this.logger.error(
-        `Failed to unsubscribe client ${client.id} from stream: ${error.message}`
+        `Failed to unsubscribe client ${client.id} from stream: ${error instanceof Error ? error.message : String(error)}`
       );
       client.emit('error', {
         message: 'Failed to unsubscribe from stream',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -185,11 +185,11 @@ export class RealTimeAnalysisGateway
       });
     } catch (error) {
       this.logger.error(
-        `Failed to get stream metrics for client ${client.id}: ${error.message}`
+        `Failed to get stream metrics for client ${client.id}: ${error instanceof Error ? error.message : String(error)}`
       );
       client.emit('error', {
         message: 'Failed to get stream metrics',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -214,11 +214,11 @@ export class RealTimeAnalysisGateway
       });
     } catch (error) {
       this.logger.error(
-        `WebRTC signaling failed for client ${client.id}: ${error.message}`
+        `WebRTC signaling failed for client ${client.id}: ${error instanceof Error ? error.message : String(error)}`
       );
       client.emit('error', {
         message: 'WebRTC signaling failed',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }

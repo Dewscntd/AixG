@@ -45,6 +45,12 @@ interface OptimizationReport {
   recommendations: string[];
 }
 
+// Type union for different alert types
+type AlertUnion =
+  | { rule: { severity: 'critical' | 'warning' | 'info' }; severity?: never }  // Alert from performance-monitor
+  | { severity: 'critical' | 'warning' | 'info'; rule?: never }               // RealTimeAlert from query-optimizer
+  | { type: 'warning' | 'critical'; severity?: never; rule?: never };         // PerformanceAlert from real-time-performance-monitor
+
 /**
  * Comprehensive Performance Optimizer
  * Orchestrates all performance optimization components
@@ -638,12 +644,12 @@ export class ComprehensiveOptimizer
   async getPerformanceStatus(): Promise<{
     status: 'healthy' | 'warning' | 'critical';
     summary: any;
-    activeAlerts: any[];
+    activeAlerts: AlertUnion[];
     lastOptimization: OptimizationReport | null;
     recommendations: string[];
   }> {
     const summary = this.performanceMonitor.getPerformanceSummary();
-    const activeAlerts = [
+    const activeAlerts: AlertUnion[] = [
       ...summary.activeAlerts,
       ...this.queryOptimizer.getActiveAlerts(),
     ];
@@ -658,9 +664,23 @@ export class ComprehensiveOptimizer
     // Determine overall status
     let status: 'healthy' | 'warning' | 'critical' = 'healthy';
 
-    if (activeAlerts.some(alert => alert.severity === 'critical')) {
+    // Helper function to get severity from different alert types
+    const getSeverity = (alert: AlertUnion): 'critical' | 'warning' | 'info' => {
+      if ('rule' in alert && alert.rule) {
+        return alert.rule.severity;
+      }
+      if ('severity' in alert && alert.severity) {
+        return alert.severity;
+      }
+      if ('type' in alert && alert.type) {
+        return alert.type === 'critical' ? 'critical' : 'warning';
+      }
+      return 'info';
+    };
+
+    if (activeAlerts.some(alert => getSeverity(alert) === 'critical')) {
       status = 'critical';
-    } else if (activeAlerts.some(alert => alert.severity === 'warning')) {
+    } else if (activeAlerts.some(alert => getSeverity(alert) === 'warning')) {
       status = 'warning';
     }
 
@@ -668,7 +688,7 @@ export class ComprehensiveOptimizer
       status,
       summary,
       activeAlerts,
-      lastOptimization,
+      lastOptimization: lastOptimization || null,
       recommendations,
     };
   }

@@ -80,15 +80,20 @@ export class ResumeUploadUseCase {
         await this.publishDomainEvents(video);
       }
 
-      return {
+      const result: ResumeUploadResult = {
         videoId: video.id.value,
         uploadId: command.uploadId,
         progress: newProgress,
         isComplete,
-        uploadUrl: isComplete ? storageResult.url : undefined,
       };
+
+      if (isComplete && storageResult.url) {
+        result.uploadUrl = storageResult.url;
+      }
+
+      return result;
     } catch (error) {
-      throw new Error(`Failed to resume upload: ${error.message}`);
+      throw new Error(`Failed to resume upload: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

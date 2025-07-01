@@ -122,8 +122,9 @@ export class AdvancedCacheService {
       this.updateResponseTime(startTime);
       return null;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Cache get error for key ${key}: ${(error as Error).message}`
+        `Cache get error for key ${key}: ${errorMessage}`
       );
       return null;
     }
@@ -182,8 +183,9 @@ export class AdvancedCacheService {
         `Cached key ${key} (${size} bytes, compressed: ${compressed})`
       );
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Cache set error for key ${key}: ${(error as Error).message}`
+        `Cache set error for key ${key}: ${errorMessage}`
       );
     }
   }
@@ -204,8 +206,9 @@ export class AdvancedCacheService {
 
       this.logger.debug(`Deleted key ${key} from cache`);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Cache delete error for key ${key}: ${(error as Error).message}`
+        `Cache delete error for key ${key}: ${errorMessage}`
       );
     }
   }
@@ -235,8 +238,9 @@ export class AdvancedCacheService {
         `Invalidated ${keysToInvalidate.size} keys by tags: ${tags.join(', ')}`
       );
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Cache invalidation error for tags ${tags}: ${(error as Error).message}`
+        `Cache invalidation error for tags ${tags}: ${errorMessage}`
       );
     }
   }
@@ -258,8 +262,9 @@ export class AdvancedCacheService {
       try {
         await this.set(key, value, ttl, tags);
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         this.logger.warn(
-          `Failed to warm cache for key ${key}: ${(error as Error).message}`
+          `Failed to warm cache for key ${key}: ${errorMessage}`
         );
       }
     });
@@ -317,7 +322,8 @@ export class AdvancedCacheService {
 
       this.logger.log('All cache layers cleared');
     } catch (error) {
-      this.logger.error(`Cache clear error: ${(error as Error).message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Cache clear error: ${errorMessage}`);
     }
   }
 
@@ -443,7 +449,8 @@ export class AdvancedCacheService {
 
       await this.warmCache(warmupData);
     } catch (error) {
-      this.logger.error(`Cache warming failed: ${(error as Error).message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Cache warming failed: ${errorMessage}`);
     }
   }
 

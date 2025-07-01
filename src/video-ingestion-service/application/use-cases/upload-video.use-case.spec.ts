@@ -2,7 +2,7 @@ import { UploadVideoUseCase } from './upload-video.use-case';
 import { VideoRepository } from '../../domain/ports/video.repository';
 import { StorageService } from '../../domain/ports/storage.service';
 import { EventPublisher } from '../../domain/ports/event.publisher';
-import { VideoValidationService } from '../../domain/services/video-validation.service';
+import { AsyncValidationService } from '../services/async-validation.service';
 import { InMemoryVideoRepository } from '../../infrastructure/repositories/in-memory-video.repository';
 import { StorageResult } from '../../domain/value-objects/storage-result.value-object';
 import { VideoUploadedEvent } from '../../domain/events/video-uploaded.event';
@@ -12,7 +12,7 @@ describe('UploadVideoUseCase', () => {
   let videoRepository: VideoRepository;
   let storageService: jest.Mocked<StorageService>;
   let eventPublisher: jest.Mocked<EventPublisher>;
-  let validationService: jest.Mocked<VideoValidationService>;
+  let asyncValidationService: jest.Mocked<AsyncValidationService>;
 
   beforeEach(() => {
     videoRepository = new InMemoryVideoRepository();
@@ -30,16 +30,17 @@ describe('UploadVideoUseCase', () => {
       publishBatch: jest.fn(),
     };
 
-    validationService = {
-      validateVideo: jest.fn(),
-      extractMetadata: jest.fn(),
-    };
+    asyncValidationService = {
+      addValidationJob: jest.fn(),
+      getValidationProgress: jest.fn(),
+      getQueueStatus: jest.fn(),
+    } as any;
 
     useCase = new UploadVideoUseCase(
       videoRepository,
       storageService,
       eventPublisher,
-      validationService
+      asyncValidationService
     );
   });
 

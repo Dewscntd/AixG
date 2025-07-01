@@ -261,7 +261,7 @@ test.describe('FootAnalytics UI Workflow E2E', () => {
       await page.check('[data-testid="hebrew-labels"]');
 
       // Start download
-      const downloadPromise = page.waitForDownload();
+      const downloadPromise = page.waitForEvent('download');
       await page.click('[data-testid="download-report"]');
       const download = await downloadPromise;
 

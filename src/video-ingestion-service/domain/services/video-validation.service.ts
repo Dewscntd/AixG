@@ -11,6 +11,9 @@ export interface VideoValidationService {
   extractMetadata(filePath: string): Promise<VideoMetadata>;
 }
 
+// Injection token for VideoValidationService
+export const VIDEO_VALIDATION_SERVICE = Symbol('VideoValidationService');
+
 export class DefaultVideoValidationService implements VideoValidationService {
   private readonly MIN_DURATION = 30; // 30 seconds
   private readonly MAX_DURATION = 7200; // 2 hours
@@ -109,9 +112,10 @@ export class DefaultVideoValidationService implements VideoValidationService {
         warnings,
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         isValid: false,
-        errors: [`Failed to validate video: ${error.message}`],
+        errors: [`Failed to validate video: ${errorMessage}`],
         warnings: [],
       };
     }
@@ -137,7 +141,8 @@ export class DefaultVideoValidationService implements VideoValidationService {
         checksum: mockMetadata.checksum,
       });
     } catch (error) {
-      throw new Error(`Failed to extract video metadata: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to extract video metadata: ${errorMessage}`);
     }
   }
 
@@ -228,8 +233,8 @@ export class DefaultVideoValidationService implements VideoValidationService {
 
     const parts = frameRateStr.split('/');
     if (parts.length === 2) {
-      const numerator = parseInt(parts[0]);
-      const denominator = parseInt(parts[1]);
+      const numerator = parseInt(parts[0] || '0', 10);
+      const denominator = parseInt(parts[1] || '1', 10);
       return denominator > 0 ? numerator / denominator : 0;
     }
 

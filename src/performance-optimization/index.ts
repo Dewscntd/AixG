@@ -5,7 +5,7 @@
 
 // Main Services
 export { PerformanceOptimizationService } from './performance-optimization.service';
-export { ComprehensiveOptimizerService } from './comprehensive-optimizer.service';
+export { ComprehensiveOptimizer } from './comprehensive-optimizer.service';
 
 // Specific optimization modules (when available)
 // export * from './caching';

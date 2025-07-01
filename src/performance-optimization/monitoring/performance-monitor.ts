@@ -88,7 +88,7 @@ export class PerformanceMonitor extends EventEmitter {
   private readonly maxHistorySize = 100;
   private readonly alerts: Map<string, Alert> = new Map();
   private readonly alertRules: AlertRule[] = [];
-  private monitoringInterval?: NodeJS.Timeout;
+  private monitoringInterval?: NodeJS.Timeout | null;
   private isMonitoring = false;
 
   constructor() {
@@ -126,7 +126,7 @@ export class PerformanceMonitor extends EventEmitter {
         // Emit metrics event
         this.emit('metrics', metrics);
       } catch (error) {
-        this.logger.error(`Error collecting metrics: ${error.message}`);
+        this.logger.error(`Error collecting metrics: ${error instanceof Error ? error.message : String(error)}`);
       }
     }, intervalMs);
   }
@@ -143,7 +143,7 @@ export class PerformanceMonitor extends EventEmitter {
 
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
-      this.monitoringInterval = undefined;
+      this.monitoringInterval = null;
     }
 
     this.logger.log('Performance monitoring stopped');
@@ -185,15 +185,20 @@ export class PerformanceMonitor extends EventEmitter {
     // Message queue metrics (mock - would integrate with queue monitoring)
     const messageQueue = this.collectMessageQueueMetrics();
 
-    return {
+    const metrics: PerformanceMetrics = {
       timestamp,
       requestLatency,
       system,
-      gpu,
       database,
       cache,
       messageQueue,
     };
+
+    if (gpu) {
+      metrics.gpu = gpu;
+    }
+
+    return metrics;
   }
 
   /**

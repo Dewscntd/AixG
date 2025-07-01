@@ -10,7 +10,6 @@ describe('Performance Optimization Performance Tests', () => {
   let realTimeMonitor: RealTimePerformanceMonitor;
   let gpuOptimizer: GPUOptimizerService;
   let cacheService: AdvancedCacheService;
-  // let queryOptimizer: QueryOptimizer;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -54,7 +53,6 @@ describe('Performance Optimization Performance Tests', () => {
     );
     gpuOptimizer = module.get<GPUOptimizerService>(GPUOptimizerService);
     cacheService = module.get<AdvancedCacheService>(AdvancedCacheService);
-    queryOptimizer = module.get<QueryOptimizer>(QueryOptimizer);
   });
 
   describe('Real-time Performance Monitoring', () => {
@@ -233,7 +231,7 @@ describe('Performance Optimization Performance Tests', () => {
       const startTime = Date.now();
 
       // Act
-      const result = await performanceOptimizationService.runOptimization();
+      const result = await performanceOptimizationService.runOptimizationCycle();
       const endTime = Date.now();
 
       // Assert
@@ -251,7 +249,7 @@ describe('Performance Optimization Performance Tests', () => {
 
       // Act
       for (let i = 0; i < concurrentOptimizations; i++) {
-        promises.push(performanceOptimizationService.runOptimization());
+        promises.push(performanceOptimizationService.runOptimizationCycle());
       }
 
       const startTime = Date.now();
@@ -283,7 +281,7 @@ describe('Performance Optimization Performance Tests', () => {
         while (isRunning) {
           try {
             const response =
-              await performanceOptimizationService.getPerformanceMetrics();
+              await performanceOptimizationService.getCurrentPerformanceStatus();
             responses.push(response);
           } catch (error) {
             // Log error but continue
@@ -326,7 +324,7 @@ describe('Performance Optimization Performance Tests', () => {
 
       // Act
       for (let i = 0; i < iterations; i++) {
-        await performanceOptimizationService.getPerformanceMetrics();
+        await performanceOptimizationService.getCurrentPerformanceStatus();
 
         // Force garbage collection if available
         if (global.gc) {

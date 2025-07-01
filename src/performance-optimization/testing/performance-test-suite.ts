@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as autocannon from 'autocannon';
+import autocannon from 'autocannon';
 // performance and os imports removed as they're not used
 
 interface LoadTestConfig {
@@ -48,7 +48,7 @@ interface LoadTestResult {
   finish: Date;
 }
 
-interface PerformanceTestSuiteConfig {
+export interface PerformanceTestSuiteConfig {
   name: string;
   tests: PerformanceTest[];
   baseline?: LoadTestResult;
@@ -120,7 +120,7 @@ export class PerformanceTestSuite {
         await this.sleep(5000);
       } catch (error) {
         failed++;
-        this.logger.error(`Test error: ${test.name} - ${error.message}`);
+        this.logger.error(`Test error: ${test.name} - ${error instanceof Error ? error.message : String(error)}`);
         recommendations.push(`Fix test execution error in ${test.name}`);
       }
     }
@@ -150,18 +150,26 @@ export class PerformanceTestSuite {
    */
   async runLoadTest(config: LoadTestConfig): Promise<LoadTestResult> {
     return new Promise((resolve, reject) => {
-      const instance = autocannon({
+      const autocannonConfig: any = {
         url: config.url,
         connections: config.connections,
         duration: config.duration,
         pipelining: config.pipelining,
-        headers: config.headers,
-        body: config.body,
         method: config.method || 'GET',
         timeout: 30,
-      });
+      };
 
-      instance.on('done', result => {
+      if (config.headers) {
+        autocannonConfig.headers = config.headers;
+      }
+
+      if (config.body) {
+        autocannonConfig.body = config.body;
+      }
+
+      const instance = autocannon(autocannonConfig);
+
+      instance.on('done', (result: any) => {
         const processedResult: LoadTestResult = {
           requests: {
             total: result.requests.total,
@@ -328,7 +336,7 @@ export class PerformanceTestSuite {
         await this.sleep(10000); // Wait 10 seconds between tests
       } catch (error) {
         this.logger.error(
-          `Stress test failed at ${connections} connections: ${error.message}`
+          `Stress test failed at ${connections} connections: ${error instanceof Error ? error.message : String(error)}`
         );
         breakingPoint = connections;
         break;
@@ -392,6 +400,10 @@ export class PerformanceTestSuite {
     const firstResult = results[0];
     const lastResult = results[results.length - 1];
 
+    if (!firstResult || !lastResult) {
+      return { latencyDrift: 0, throughputDrift: 0, memoryLeak: false };
+    }
+
     // Calculate drift percentages
     const latencyDrift =
       ((lastResult.latency.p95 - firstResult.latency.p95) /
@@ -417,7 +429,14 @@ export class PerformanceTestSuite {
       breakingPoint: number;
       results: Array<{ connections: number; result: LoadTestResult }>;
     },
-    enduranceResults?: { results: LoadTestResult[]; stability: any }
+    enduranceResults?: {
+      results: LoadTestResult[];
+      stability: {
+        latencyDrift: number;
+        throughputDrift: number;
+        memoryLeak: boolean;
+      };
+    }
   ): string {
     let report = '# Performance Test Report\n\n';
 
