@@ -9,6 +9,12 @@ from ..domain.events.domain_event import DomainEvent
 from ..infrastructure.event_publisher import EventPublisher
 from ..infrastructure.checkpoint_manager import CheckpointManager
 from ..infrastructure.progress_notifier import ProgressNotifier
+from ..infrastructure.integrated_ml_service import (
+    ml_service, 
+    create_enhanced_player_detection_stage,
+    create_enhanced_ball_tracking_stage,
+    create_enhanced_action_recognition_stage
+)
 
 
 class PipelineOrchestrator:

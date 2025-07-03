@@ -11,12 +11,12 @@ import { HebrewNLPService } from '../../ai-coaching/infrastructure/services/hebr
 
 /**
  * Unified FootAnalytics Service
- * 
+ *
  * Demonstrates the integration of all three strategic features:
  * 1. Advanced Integration Framework
  * 2. AI Coaching Assistant (Hebrew-native)
  * 3. Real-Time Analysis Acceleration
- * 
+ *
  * This service shows how the features work together to provide
  * a comprehensive football analytics platform for Israeli clubs.
  */
@@ -41,7 +41,7 @@ export class UnifiedFootAnalyticsService {
   }> {
     try {
       console.log('🚀 Starting comprehensive match analysis...');
-      
+
       // 1. INTEGRATION FRAMEWORK: Set up data sources
       const integrationStatus = await this.setupDataIntegration(matchId);
       console.log('✅ Integration framework initialized');
@@ -70,9 +70,8 @@ export class UnifiedFootAnalyticsService {
         integrationStatus,
         aiCoachingInsights,
         realTimeMetrics,
-        hebrewResponse
+        hebrewResponse,
       };
-
     } catch (error) {
       console.error('❌ Error in comprehensive analysis:', error);
       throw new Error(`Comprehensive analysis failed: ${error.message}`);
@@ -88,16 +87,20 @@ export class UnifiedFootAnalyticsService {
     const ifaDataSource = DataSourceAggregate.create(
       ExternalSystemType.IFA(),
       {
-        supportedDataTypes: ['MATCH_SCHEDULE', 'PLAYER_REGISTRY', 'REFEREE_ASSIGNMENTS'],
+        supportedDataTypes: [
+          'MATCH_SCHEDULE',
+          'PLAYER_REGISTRY',
+          'REFEREE_ASSIGNMENTS',
+        ],
         syncSchedule: { intervalMs: 300000 }, // 5 minutes
         apiEndpoint: 'https://api.ifa.org.il/v1',
-        rateLimits: { requestsPerMinute: 60 }
+        rateLimits: { requestsPerMinute: 60 },
       },
       {
         apiKey: process.env.IFA_API_KEY,
         secret: process.env.IFA_API_SECRET,
         endpoint: 'https://api.ifa.org.il/v1',
-        authType: 'OAUTH2'
+        authType: 'OAUTH2',
       }
     );
 
@@ -108,13 +111,13 @@ export class UnifiedFootAnalyticsService {
         supportedDataTypes: ['LIVE_SCORES', 'TEAM_STATS', 'MATCH_HISTORY'],
         syncSchedule: { intervalMs: 60000 }, // 1 minute for live data
         apiEndpoint: 'https://api.ligaleumit.co.il/v2',
-        rateLimits: { requestsPerMinute: 120 }
+        rateLimits: { requestsPerMinute: 120 },
       },
       {
         apiKey: process.env.LIGA_API_KEY,
         secret: process.env.LIGA_API_SECRET,
         endpoint: 'https://api.ligaleumit.co.il/v2',
-        authType: 'API_KEY'
+        authType: 'API_KEY',
       }
     );
 
@@ -122,44 +125,63 @@ export class UnifiedFootAnalyticsService {
     const gpsDataSource = DataSourceAggregate.create(
       ExternalSystemType.GPS_TRACKING(),
       {
-        supportedDataTypes: ['PLAYER_POSITIONS', 'PHYSICAL_METRICS', 'HEAT_MAPS'],
+        supportedDataTypes: [
+          'PLAYER_POSITIONS',
+          'PHYSICAL_METRICS',
+          'HEAT_MAPS',
+        ],
         syncSchedule: { intervalMs: 1000 }, // Real-time (1 second)
         apiEndpoint: 'https://api.statsports.com/v3',
-        rateLimits: { requestsPerMinute: 600 }
+        rateLimits: { requestsPerMinute: 600 },
       },
       {
         apiKey: process.env.GPS_API_KEY,
         secret: process.env.GPS_API_SECRET,
         endpoint: 'https://api.statsports.com/v3',
-        authType: 'BEARER_TOKEN'
+        authType: 'BEARER_TOKEN',
       }
     );
 
     // Start sync sessions
     const ifaSync = ifaDataSource.initiateSync([
       { dataType: 'MATCH_SCHEDULE', filters: { matchId: matchId.value } },
-      { dataType: 'PLAYER_REGISTRY', filters: { matchId: matchId.value } }
+      { dataType: 'PLAYER_REGISTRY', filters: { matchId: matchId.value } },
     ]);
 
     const ligaSync = ligaDataSource.initiateSync([
       { dataType: 'LIVE_SCORES', filters: { matchId: matchId.value } },
-      { dataType: 'TEAM_STATS', filters: { matchId: matchId.value } }
+      { dataType: 'TEAM_STATS', filters: { matchId: matchId.value } },
     ]);
 
     const gpsSync = gpsDataSource.initiateSync([
-      { dataType: 'PLAYER_POSITIONS', filters: { matchId: matchId.value, realTime: true } },
-      { dataType: 'PHYSICAL_METRICS', filters: { matchId: matchId.value } }
+      {
+        dataType: 'PLAYER_POSITIONS',
+        filters: { matchId: matchId.value, realTime: true },
+      },
+      { dataType: 'PHYSICAL_METRICS', filters: { matchId: matchId.value } },
     ]);
 
     return {
       dataSources: {
-        ifa: { id: ifaDataSource.getId().value, status: 'connected', sync: ifaSync.getId().value },
-        liga: { id: ligaDataSource.getId().value, status: 'connected', sync: ligaSync.getId().value },
-        gps: { id: gpsDataSource.getId().value, status: 'connected', sync: gpsSync.getId().value }
+        ifa: {
+          id: ifaDataSource.getId().value,
+          status: 'connected',
+          sync: ifaSync.getId().value,
+        },
+        liga: {
+          id: ligaDataSource.getId().value,
+          status: 'connected',
+          sync: ligaSync.getId().value,
+        },
+        gps: {
+          id: gpsDataSource.getId().value,
+          status: 'connected',
+          sync: gpsSync.getId().value,
+        },
       },
       totalDataSources: 3,
       realTimeStreams: 1,
-      estimatedDataPoints: 150000 // per match
+      estimatedDataPoints: 150000, // per match
     };
   }
 
@@ -173,7 +195,7 @@ export class UnifiedFootAnalyticsService {
       CameraId.fromString('main-camera-01'),
       CameraId.fromString('tactical-camera-02'),
       CameraId.fromString('goal-camera-03'),
-      CameraId.fromString('sideline-camera-04')
+      CameraId.fromString('sideline-camera-04'),
     ];
 
     // Create live match aggregate with edge computing
@@ -188,18 +210,24 @@ export class UnifiedFootAnalyticsService {
 
     for (const frame of sampleFrames) {
       const startTime = performance.now();
-      
+
       // Process frame (this would typically be done by edge computing nodes)
       await liveMatch.processFrame(cameraIds[0], frame);
-      
+
       const latency = performance.now() - startTime;
       processingResults.push({ frameId: frame.getId(), latency });
-      
+
       // Verify sub-100ms requirement
       if (latency < 100) {
-        console.log(`✅ Frame processed in ${latency.toFixed(2)}ms (sub-100ms target met)`);
+        console.log(
+          `✅ Frame processed in ${latency.toFixed(2)}ms (sub-100ms target met)`
+        );
       } else {
-        console.warn(`⚠️ Frame processing took ${latency.toFixed(2)}ms (exceeds 100ms target)`);
+        console.warn(
+          `⚠️ Frame processing took ${latency.toFixed(
+            2
+          )}ms (exceeds 100ms target)`
+        );
       }
     }
 
@@ -214,11 +242,15 @@ export class UnifiedFootAnalyticsService {
         averageLatency: performanceStats.averageProcessingLatency,
         framesProcessed: performanceStats.framesProcessed,
         alertsTriggered: performanceStats.alertsTriggered,
-        realTimeCompliance: processingResults.filter(r => r.latency < 100).length / processingResults.length
+        realTimeCompliance:
+          processingResults.filter(r => r.latency < 100).length /
+          processingResults.length,
       },
       edgeComputingStatus: 'active',
       targetLatency: '< 100ms',
-      actualAverageLatency: `${performanceStats.averageProcessingLatency.toFixed(2)}ms`
+      actualAverageLatency: `${performanceStats.averageProcessingLatency.toFixed(
+        2
+      )}ms`,
     };
   }
 
@@ -234,7 +266,9 @@ export class UnifiedFootAnalyticsService {
       console.log(`🧠 Processing Hebrew query: "${hebrewQuery}"`);
 
       // 1. Hebrew NLP Analysis
-      const queryAnalysis = await this.hebrewNLP.analyzeTacticalQuery(hebrewQuery);
+      const queryAnalysis = await this.hebrewNLP.analyzeTacticalQuery(
+        hebrewQuery
+      );
       console.log('✅ Hebrew NLP analysis completed');
 
       // 2. Create coaching session with Hebrew context
@@ -243,20 +277,20 @@ export class UnifiedFootAnalyticsService {
         preferredLanguage: 'hebrew',
         preferredTone: 'professional',
         coachingStyle: 'tactical',
-        experienceLevel: 'expert'
+        experienceLevel: 'expert',
       };
 
       const matchContext = {
         matchId,
         teams: ['הפועל תל אביב', 'מכבי חיפה'], // Hebrew team names
         league: 'ליגת העל', // Premier League in Hebrew
-        venue: 'בלומפילד' // Bloomfield Stadium in Hebrew
+        venue: 'בלומפילד', // Bloomfield Stadium in Hebrew
       };
 
       const analysisScope = {
         focusAreas: ['tactical_setup', 'player_performance'],
         timeRange: 'full_match',
-        detailLevel: 'comprehensive'
+        detailLevel: 'comprehensive',
       };
 
       // 3. Generate tactical insights in Hebrew
@@ -275,20 +309,20 @@ export class UnifiedFootAnalyticsService {
             text: e.getText(),
             concept: e.getConcept().getValue(),
             type: e.getConcept().getType(),
-            confidence: e.getConfidence()
+            confidence: e.getConfidence(),
           })),
           intent: queryAnalysis.getIntent(),
-          sentiment: queryAnalysis.getSentiment()
+          sentiment: queryAnalysis.getSentiment(),
         },
         tacticalInsights,
-        coachingRecommendations: this.generateHebrewCoachingRecommendations(tacticalInsights),
+        coachingRecommendations:
+          this.generateHebrewCoachingRecommendations(tacticalInsights),
         languageProcessing: {
           dialect: 'modern_hebrew',
           terminologyMatches: queryAnalysis.getEntities().length,
-          processingTime: '< 2 seconds'
-        }
+          processingTime: '< 2 seconds',
+        },
       };
-
     } catch (error) {
       console.error('❌ Error processing Hebrew coaching query:', error);
       throw error;
@@ -317,7 +351,7 @@ export class UnifiedFootAnalyticsService {
 המלצה: מעבר למערך 4-2-3-1 לחיזוק ההגנה
         `.trim(),
         confidence: 0.89,
-        actionable: true
+        actionable: true,
       });
     }
 
@@ -332,7 +366,7 @@ export class UnifiedFootAnalyticsService {
 המלצה: הגדלת מעורבות בהתקפה
       `.trim(),
       confidence: 0.92,
-      actionable: true
+      actionable: true,
     });
 
     // Real-time Tactical Alert
@@ -347,7 +381,7 @@ export class UnifiedFootAnalyticsService {
       `.trim(),
       confidence: 0.76,
       urgent: true,
-      timeToAct: 8000 // milliseconds
+      timeToAct: 8000, // milliseconds
     });
 
     return insights;
@@ -362,7 +396,7 @@ export class UnifiedFootAnalyticsService {
       'הגדלת קצב המשחק במעברים מהגנה להתקפה',
       'מיקוד בהתקפות מהאגף הימני שם יש יתרון מספרי',
       'ביצוע חילופים: הכנסת דוד במקום כהן בדקה 65',
-      'לחיצה גבוהה יותר על כדורי הגובה של היריב'
+      'לחיצה גבוהה יותר על כדורי הגובה של היריב',
     ];
   }
 
@@ -385,28 +419,40 @@ export class UnifiedFootAnalyticsService {
 ⚡ ביצועי זמן אמת:
 • זמן עיבוד ממוצע: ${realTimeMetrics.actualAverageLatency}
 • פריימים מעובדים: ${realTimeMetrics.currentMetrics.framesProcessed}
-• עמידה ביעד 100ms: ${(realTimeMetrics.currentMetrics.realTimeCompliance * 100).toFixed(1)}%
+• עמידה ביעד 100ms: ${(
+      realTimeMetrics.currentMetrics.realTimeCompliance * 100
+    ).toFixed(1)}%
 • התראות טקטיות: ${realTimeMetrics.currentMetrics.alertsTriggered}
 
 🧠 תובנות AI בעברית:
-${aiInsights.tacticalInsights.map((insight: any, index: number) => `
+${aiInsights.tacticalInsights
+  .map(
+    (insight: any, index: number) => `
 ${index + 1}. ${insight.titleHebrew}
    ${insight.contentHebrew}
    רמת ביטחון: ${(insight.confidence * 100).toFixed(1)}%
-`).join('')}
+`
+  )
+  .join('')}
 
 🎯 המלצות המאמן:
-${aiInsights.coachingRecommendations.map((rec: string, index: number) => `
+${aiInsights.coachingRecommendations
+  .map(
+    (rec: string, index: number) => `
 ${index + 1}. ${rec}
-`).join('')}
+`
+  )
+  .join('')}
 
 📈 ביצועי העיבוד:
 • ניתוח שפה עברית: ${aiInsights.languageProcessing.processingTime}
 • זיהוי מונחי כדורגל: ${aiInsights.languageProcessing.terminologyMatches} מונחים
-• דיוק הכוונה: ${(aiInsights.queryAnalysis.sentiment > 0 ? 'חיובי' : 'שלילי')}
+• דיוק הכוונה: ${aiInsights.queryAnalysis.sentiment > 0 ? 'חיובי' : 'שלילי'}
 
 ⚙️ מצב המערכת:
-• אדג' קומפיוטינג: ${realTimeMetrics.edgeComputingStatus === 'active' ? 'פעיל' : 'לא פעיל'}
+• אדג' קומפיוטינג: ${
+      realTimeMetrics.edgeComputingStatus === 'active' ? 'פעיל' : 'לא פעיל'
+    }
 • זרמי וידאו פעילים: ${realTimeMetrics.activeStreams}
 • עמידה ביעדי ביצועים: ✅
 
@@ -425,8 +471,8 @@ ${index + 1}. ${rec}
       getMetadata: () => ({
         resolution: [1920, 1080],
         quality: 'high',
-        cameraAngle: 'tactical'
-      })
+        cameraAngle: 'tactical',
+      }),
     }));
   }
 
@@ -446,21 +492,21 @@ ${index + 1}. ${rec}
         status: 'healthy',
         activeConnections: 3,
         syncLatency: '< 5 seconds',
-        dataQuality: 95.2
+        dataQuality: 95.2,
       },
       aiCoaching: {
         status: 'healthy',
         hebrewNLPAccuracy: 94.7,
         responseTime: '< 2 seconds',
-        insightsGenerated: 1247
+        insightsGenerated: 1247,
       },
       realTime: {
         status: 'healthy',
         averageLatency: '< 100ms',
         edgeNodesActive: 4,
-        frameProcessingRate: '30 FPS'
+        frameProcessingRate: '30 FPS',
       },
-      orchestrator: this.eventOrchestrator.getHealthStatus()
+      orchestrator: this.eventOrchestrator.getHealthStatus(),
     };
   }
 
@@ -473,7 +519,7 @@ ${index + 1}. ${rec}
       'מה המצב של השחקנים מבחינת כושר גופני?',
       'איפה החולשות ההגנתיות שלנו?',
       'מתי לבצע את החילוף הבא?',
-      'איך להגביר את הלחיצה?'
+      'איך להגביר את הלחיצה?',
     ];
 
     const responses = [];
@@ -482,7 +528,11 @@ ${index + 1}. ${rec}
         query,
         MatchId.fromString('demo-match-001')
       );
-      responses.push(`שאילתה: ${query}\nתשובה: ${result.tacticalInsights[0]?.contentHebrew || 'ניתוח בתהליך...'}\n---`);
+      responses.push(
+        `שאילתה: ${query}
+תשובה: ${result.tacticalInsights[0]?.contentHebrew || 'ניתוח בתהליך...'}
+---`
+      );
     }
 
     return responses;

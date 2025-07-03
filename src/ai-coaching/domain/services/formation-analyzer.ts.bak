@@ -1,0 +1,1063 @@
+/**
+ * Formation Analyzer Service
+ * Analyzes team formations and provides tactical insights
+ */
+
+import {
+  TacticalInsight,
+  InsightType,
+  InsightPriority,
+  InsightConfidence,
+} from '../entities/tactical-insight';
+import {
+  AnalysisScope,
+  AnalysisType,
+  MetricCategory,
+} from '../value-objects/analysis-scope';
+import { HebrewMorphology } from '../value-objects/hebrew-morphology';
+
+export enum FormationType {
+  FOUR_FOUR_TWO = '4-4-2',
+  FOUR_THREE_THREE = '4-3-3',
+  FOUR_TWO_THREE_ONE = '4-2-3-1',
+  THREE_FIVE_TWO = '3-5-2',
+  FIVE_THREE_TWO = '5-3-2',
+  FOUR_FIVE_ONE = '4-5-1',
+  THREE_FOUR_THREE = '3-4-3',
+  FOUR_ONE_FOUR_ONE = '4-1-4-1',
+  CUSTOM = 'custom',
+}
+
+export enum FieldZone {
+  DEFENSIVE_THIRD = 'defensive_third',
+  MIDDLE_THIRD = 'middle_third',
+  ATTACKING_THIRD = 'attacking_third',
+  LEFT_FLANK = 'left_flank',
+  RIGHT_FLANK = 'right_flank',
+  CENTRAL_CHANNEL = 'central_channel',
+  WIDE_AREAS = 'wide_areas',
+  PENALTY_AREA = 'penalty_area',
+  MIDFIELD_CIRCLE = 'midfield_circle',
+  CORNERS = 'corners',
+}
+
+export interface PlayerPosition {
+  playerId: string;
+  playerName: string;
+  position: string;
+  x: number; // 0-100 (left to right)
+  y: number; // 0-100 (defensive to attacking)
+  role: string;
+  responsibilities: string[];
+  heatMapData?: number[][];
+}
+
+export interface FormationStructure {
+  formation: FormationType;
+  positions: PlayerPosition[];
+  compactness: number; // 0-1
+  width: number; // 0-1
+  height: number; // 0-1
+  centroid: { x: number; y: number };
+  defensiveShape: string;
+  attackingShape: string;
+}
+
+export interface FormationWeakness {
+  zone: FieldZone;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  hebrewDescription: string;
+  exploitMethods: string[];
+  affectedPlayers: string[];
+  recommendedActions: string[];
+}
+
+export interface FormationStrength {
+  zone: FieldZone;
+  advantage: 'slight' | 'moderate' | 'significant' | 'dominant';
+  description: string;
+  hebrewDescription: string;
+  leverageMethods: string[];
+  keyPlayers: string[];
+  tacticalVariations: string[];
+}
+
+export interface FormationTransition {
+  fromPhase: 'defensive' | 'transitional' | 'attacking';
+  toPhase: 'defensive' | 'transitional' | 'attacking';
+  triggerEvents: string[];
+  playerMovements: Array<{
+    playerId: string;
+    fromPosition: { x: number; y: number };
+    toPosition: { x: number; y: number };
+    timing: number; // seconds
+  }>;
+  effectiveness: number; // 0-1
+  commonFailures: string[];
+}
+
+export interface FormationAnalysisResult {
+  structure: FormationStructure;
+  weaknesses: FormationWeakness[];
+  strengths: FormationStrength[];
+  transitions: FormationTransition[];
+  adaptability: number; // 0-1
+  predictability: number; // 0-1
+  overallRating: number; // 0-10
+  recommendations: TacticalInsight[];
+  hebrewAnalysis: string;
+  confidence: number;
+  analysisTimestamp: Date;
+}
+
+export class FormationAnalyzer {
+  private readonly formationTemplates = new Map<
+    FormationType,
+    FormationStructure
+  >();
+  private readonly tacticalPatterns = new Map<string, any>();
+  private readonly hebrewTacticalTerms = new Map<string, string>();
+
+  constructor() {
+    this.initializeFormationTemplates();
+    this.initializeTacticalPatterns();
+    this.initializeHebrewTerms();
+  }
+
+  private initializeFormationTemplates(): void {
+    // 4-4-2 Formation Template
+    this.formationTemplates.set(FormationType.FOUR_FOUR_TWO, {
+      formation: FormationType.FOUR_FOUR_TWO,
+      positions: [
+        {
+          playerId: 'gk',
+          playerName: 'Goalkeeper',
+          position: 'GK',
+          x: 50,
+          y: 5,
+          role: 'goalkeeper',
+          responsibilities: [
+            'shot_stopping',
+            'distribution',
+            'commanding_area',
+          ],
+        },
+        {
+          playerId: 'rb',
+          playerName: 'Right Back',
+          position: 'RB',
+          x: 80,
+          y: 20,
+          role: 'fullback',
+          responsibilities: ['defensive_cover', 'attacking_runs', 'crosses'],
+        },
+        {
+          playerId: 'rcb',
+          playerName: 'Right Center Back',
+          position: 'CB',
+          x: 65,
+          y: 15,
+          role: 'center_back',
+          responsibilities: ['aerial_duels', 'interceptions', 'clearances'],
+        },
+        {
+          playerId: 'lcb',
+          playerName: 'Left Center Back',
+          position: 'CB',
+          x: 35,
+          y: 15,
+          role: 'center_back',
+          responsibilities: ['aerial_duels', 'interceptions', 'build_up'],
+        },
+        {
+          playerId: 'lb',
+          playerName: 'Left Back',
+          position: 'LB',
+          x: 20,
+          y: 20,
+          role: 'fullback',
+          responsibilities: ['defensive_cover', 'attacking_runs', 'crosses'],
+        },
+        {
+          playerId: 'rm',
+          playerName: 'Right Midfielder',
+          position: 'RM',
+          x: 80,
+          y: 50,
+          role: 'wide_midfielder',
+          responsibilities: ['width', 'crosses', 'tracking_back'],
+        },
+        {
+          playerId: 'rcm',
+          playerName: 'Right Center Mid',
+          position: 'CM',
+          x: 60,
+          y: 45,
+          role: 'central_midfielder',
+          responsibilities: ['box_to_box', 'passing', 'defensive_support'],
+        },
+        {
+          playerId: 'lcm',
+          playerName: 'Left Center Mid',
+          position: 'CM',
+          x: 40,
+          y: 45,
+          role: 'central_midfielder',
+          responsibilities: ['box_to_box', 'passing', 'creativity'],
+        },
+        {
+          playerId: 'lm',
+          playerName: 'Left Midfielder',
+          position: 'LM',
+          x: 20,
+          y: 50,
+          role: 'wide_midfielder',
+          responsibilities: ['width', 'crosses', 'tracking_back'],
+        },
+        {
+          playerId: 'rs',
+          playerName: 'Right Striker',
+          position: 'ST',
+          x: 60,
+          y: 80,
+          role: 'striker',
+          responsibilities: ['finishing', 'pressing', 'link_up'],
+        },
+        {
+          playerId: 'ls',
+          playerName: 'Left Striker',
+          position: 'ST',
+          x: 40,
+          y: 80,
+          role: 'striker',
+          responsibilities: ['finishing', 'pressing', 'movement'],
+        },
+      ],
+      compactness: 0.7,
+      width: 0.8,
+      height: 0.75,
+      centroid: { x: 50, y: 42.5 },
+      defensiveShape: 'flat_back_four',
+      attackingShape: 'dual_striker_support',
+    });
+
+    // 4-3-3 Formation Template
+    this.formationTemplates.set(FormationType.FOUR_THREE_THREE, {
+      formation: FormationType.FOUR_THREE_THREE,
+      positions: [
+        {
+          playerId: 'gk',
+          playerName: 'Goalkeeper',
+          position: 'GK',
+          x: 50,
+          y: 5,
+          role: 'goalkeeper',
+          responsibilities: ['shot_stopping', 'distribution', 'sweeping'],
+        },
+        {
+          playerId: 'rb',
+          playerName: 'Right Back',
+          position: 'RB',
+          x: 80,
+          y: 20,
+          role: 'fullback',
+          responsibilities: ['overlapping', 'defensive_cover', 'width'],
+        },
+        {
+          playerId: 'rcb',
+          playerName: 'Right Center Back',
+          position: 'CB',
+          x: 60,
+          y: 15,
+          role: 'center_back',
+          responsibilities: ['aerial_duels', 'passing', 'covering'],
+        },
+        {
+          playerId: 'lcb',
+          playerName: 'Left Center Back',
+          position: 'CB',
+          x: 40,
+          y: 15,
+          role: 'center_back',
+          responsibilities: ['aerial_duels', 'build_up', 'covering'],
+        },
+        {
+          playerId: 'lb',
+          playerName: 'Left Back',
+          position: 'LB',
+          x: 20,
+          y: 20,
+          role: 'fullback',
+          responsibilities: ['overlapping', 'defensive_cover', 'width'],
+        },
+        {
+          playerId: 'dm',
+          playerName: 'Defensive Mid',
+          position: 'DM',
+          x: 50,
+          y: 35,
+          role: 'defensive_midfielder',
+          responsibilities: ['screening', 'interceptions', 'distribution'],
+        },
+        {
+          playerId: 'rcm',
+          playerName: 'Right Center Mid',
+          position: 'CM',
+          x: 65,
+          y: 50,
+          role: 'central_midfielder',
+          responsibilities: ['box_to_box', 'pressing', 'creativity'],
+        },
+        {
+          playerId: 'lcm',
+          playerName: 'Left Center Mid',
+          position: 'CM',
+          x: 35,
+          y: 50,
+          role: 'central_midfielder',
+          responsibilities: ['box_to_box', 'pressing', 'link_play'],
+        },
+        {
+          playerId: 'rw',
+          playerName: 'Right Winger',
+          position: 'RW',
+          x: 85,
+          y: 70,
+          role: 'winger',
+          responsibilities: ['pace', 'crosses', 'cutting_inside'],
+        },
+        {
+          playerId: 'st',
+          playerName: 'Striker',
+          position: 'ST',
+          x: 50,
+          y: 85,
+          role: 'striker',
+          responsibilities: ['finishing', 'hold_up', 'pressing'],
+        },
+        {
+          playerId: 'lw',
+          playerName: 'Left Winger',
+          position: 'LW',
+          x: 15,
+          y: 70,
+          role: 'winger',
+          responsibilities: ['pace', 'crosses', 'cutting_inside'],
+        },
+      ],
+      compactness: 0.6,
+      width: 0.9,
+      height: 0.8,
+      centroid: { x: 50, y: 45 },
+      defensiveShape: 'compact_midfield_triangle',
+      attackingShape: 'wide_front_three',
+    });
+  }
+
+  private initializeTacticalPatterns(): void {
+    this.tacticalPatterns.set('wing_overload', {
+      description: 'Concentration of players on one flank',
+      triggers: [
+        'wide_player_positioning',
+        'fullback_overlap',
+        'midfielder_drift',
+      ],
+      effectiveness: 0.75,
+      counters: ['switch_play', 'compact_defense', 'press_trigger'],
+    });
+
+    this.tacticalPatterns.set('central_congestion', {
+      description: 'Multiple players occupying central areas',
+      triggers: [
+        'narrow_formation',
+        'midfielder_clustering',
+        'striker_dropping',
+      ],
+      effectiveness: 0.65,
+      counters: ['wide_play', 'long_balls', 'quick_switches'],
+    });
+
+    this.tacticalPatterns.set('high_defensive_line', {
+      description: 'Defensive line positioned high up the pitch',
+      triggers: [
+        'center_back_positioning',
+        'pressing_intensity',
+        'compactness',
+      ],
+      effectiveness: 0.8,
+      counters: ['through_balls', 'pace_in_behind', 'long_shots'],
+    });
+  }
+
+  private initializeHebrewTerms(): void {
+    this.hebrewTacticalTerms.set('formation', 'מערך');
+    this.hebrewTacticalTerms.set('weakness', 'חולשה');
+    this.hebrewTacticalTerms.set('strength', 'חוזק');
+    this.hebrewTacticalTerms.set('defense', 'הגנה');
+    this.hebrewTacticalTerms.set('attack', 'התקפה');
+    this.hebrewTacticalTerms.set('midfield', 'קו אמצע');
+    this.hebrewTacticalTerms.set('transition', 'מעבר');
+    this.hebrewTacticalTerms.set('pressure', 'לחץ');
+    this.hebrewTacticalTerms.set('space', 'מרחב');
+    this.hebrewTacticalTerms.set('compactness', 'קומפקטיות');
+    this.hebrewTacticalTerms.set('width', 'רוחב');
+    this.hebrewTacticalTerms.set('depth', 'עומק');
+  }
+
+  public async analyzeFormation(
+    scope: AnalysisScope,
+    playerPositions: PlayerPosition[],
+    contextData?: {
+      matchMinute?: number;
+      gameState?: string;
+      oppositionFormation?: FormationType;
+      scoreline?: string;
+    }
+  ): Promise<FormationAnalysisResult> {
+    const formation = this.detectFormation(playerPositions);
+    const structure = this.analyzeStructure(formation, playerPositions);
+    const weaknesses = this.identifyWeaknesses(structure, contextData);
+    const strengths = this.identifyStrengths(structure, contextData);
+    const transitions = this.analyzeTransitions(structure, contextData);
+    const insights = await this.generateTacticalInsights(
+      structure,
+      weaknesses,
+      strengths,
+      scope
+    );
+    const hebrewAnalysis = this.generateHebrewAnalysis(
+      structure,
+      weaknesses,
+      strengths
+    );
+
+    return {
+      structure,
+      weaknesses,
+      strengths,
+      transitions,
+      adaptability: this.calculateAdaptability(structure, transitions),
+      predictability: this.calculatePredictability(structure, transitions),
+      overallRating: this.calculateOverallRating(
+        structure,
+        weaknesses,
+        strengths
+      ),
+      recommendations: insights,
+      hebrewAnalysis,
+      confidence: this.calculateConfidence(structure, playerPositions),
+      analysisTimestamp: new Date(),
+    };
+  }
+
+  private detectFormation(positions: PlayerPosition[]): FormationType {
+    const fieldPlayers = positions.filter(p => p.role !== 'goalkeeper');
+
+    // Calculate defensive, midfield, and attacking lines
+    const yPositions = fieldPlayers.map(p => p.y).sort((a, b) => a - b);
+    const defensiveLine = yPositions.slice(0, 4);
+    const attackingLine = yPositions.slice(-3);
+    const midfieldLine = yPositions.slice(4, -3);
+
+    // Simple formation detection based on player distribution
+    if (defensiveLine.every(y => y < 30) && attackingLine.every(y => y > 70)) {
+      if (midfieldLine.length === 4) return FormationType.FOUR_FOUR_TWO;
+      if (midfieldLine.length === 3) return FormationType.FOUR_THREE_THREE;
+      if (midfieldLine.length === 5) return FormationType.FOUR_TWO_THREE_ONE;
+    }
+
+    if (defensiveLine.length === 3) {
+      if (midfieldLine.length === 5) return FormationType.THREE_FIVE_TWO;
+      if (midfieldLine.length === 4) return FormationType.THREE_FOUR_THREE;
+    }
+
+    if (defensiveLine.length === 5) {
+      return FormationType.FIVE_THREE_TWO;
+    }
+
+    return FormationType.CUSTOM;
+  }
+
+  private analyzeStructure(
+    formation: FormationType,
+    positions: PlayerPosition[]
+  ): FormationStructure {
+    const template = this.formationTemplates.get(formation);
+
+    if (!template) {
+      return this.createCustomStructure(formation, positions);
+    }
+
+    // Calculate actual metrics from positions
+    const xPositions = positions.map(p => p.x);
+    const yPositions = positions.map(p => p.y);
+
+    const width = (Math.max(...xPositions) - Math.min(...xPositions)) / 100;
+    const height = (Math.max(...yPositions) - Math.min(...yPositions)) / 100;
+    const centroidX =
+      xPositions.reduce((sum, x) => sum + x, 0) / positions.length;
+    const centroidY =
+      yPositions.reduce((sum, y) => sum + y, 0) / positions.length;
+
+    // Calculate compactness using average distance from centroid
+    const avgDistanceFromCentroid =
+      positions.reduce((sum, pos) => {
+        const distance = Math.sqrt(
+          Math.pow(pos.x - centroidX, 2) + Math.pow(pos.y - centroidY, 2)
+        );
+        return sum + distance;
+      }, 0) / positions.length;
+
+    const compactness = Math.max(0, 1 - avgDistanceFromCentroid / 50);
+
+    return {
+      formation,
+      positions,
+      compactness,
+      width,
+      height,
+      centroid: { x: centroidX, y: centroidY },
+      defensiveShape: template.defensiveShape,
+      attackingShape: template.attackingShape,
+    };
+  }
+
+  private createCustomStructure(
+    formation: FormationType,
+    positions: PlayerPosition[]
+  ): FormationStructure {
+    const xPositions = positions.map(p => p.x);
+    const yPositions = positions.map(p => p.y);
+
+    return {
+      formation,
+      positions,
+      compactness: 0.6, // Default value
+      width: (Math.max(...xPositions) - Math.min(...xPositions)) / 100,
+      height: (Math.max(...yPositions) - Math.min(...yPositions)) / 100,
+      centroid: {
+        x: xPositions.reduce((sum, x) => sum + x, 0) / positions.length,
+        y: yPositions.reduce((sum, y) => sum + y, 0) / positions.length,
+      },
+      defensiveShape: 'custom_shape',
+      attackingShape: 'custom_shape',
+    };
+  }
+
+  private identifyWeaknesses(
+    structure: FormationStructure,
+    contextData?: any
+  ): FormationWeakness[] {
+    const weaknesses: FormationWeakness[] = [];
+
+    // Check for wide area vulnerabilities
+    const widePlayersLeft = structure.positions.filter(p => p.x < 30).length;
+    const widePlayersRight = structure.positions.filter(p => p.x > 70).length;
+
+    if (widePlayersLeft < 2) {
+      weaknesses.push({
+        zone: FieldZone.LEFT_FLANK,
+        severity: 'medium',
+        description:
+          'Limited presence on left flank creates space for opposition attacks',
+        hebrewDescription: 'נוכחות מוגבלת באגף שמאל יוצרת מרחב להתקפות יריב',
+        exploitMethods: [
+          'wide_attacks',
+          'overlapping_runs',
+          'switches_of_play',
+        ],
+        affectedPlayers: structure.positions
+          .filter(p => p.x < 40)
+          .map(p => p.playerId),
+        recommendedActions: [
+          'increase_wide_cover',
+          'midfielder_support',
+          'fullback_positioning',
+        ],
+      });
+    }
+
+    if (widePlayersRight < 2) {
+      weaknesses.push({
+        zone: FieldZone.RIGHT_FLANK,
+        severity: 'medium',
+        description:
+          'Limited presence on right flank creates space for opposition attacks',
+        hebrewDescription: 'נוכחות מוגבלת באגף ימין יוצרת מרחב להתקפות יריב',
+        exploitMethods: [
+          'wide_attacks',
+          'overlapping_runs',
+          'switches_of_play',
+        ],
+        affectedPlayers: structure.positions
+          .filter(p => p.x > 60)
+          .map(p => p.playerId),
+        recommendedActions: [
+          'increase_wide_cover',
+          'midfielder_support',
+          'fullback_positioning',
+        ],
+      });
+    }
+
+    // Check for central vulnerabilities
+    const centralMidfielders = structure.positions.filter(
+      p => p.x > 30 && p.x < 70 && p.y > 30 && p.y < 70
+    ).length;
+
+    if (centralMidfielders < 2) {
+      weaknesses.push({
+        zone: FieldZone.CENTRAL_CHANNEL,
+        severity: 'high',
+        description:
+          'Insufficient central midfield presence allows opposition control',
+        hebrewDescription:
+          'נוכחות לא מספקת בקו האמצע המרכזי מאפשרת שליטה ליריב',
+        exploitMethods: [
+          'central_penetration',
+          'through_balls',
+          'midfield_overloads',
+        ],
+        affectedPlayers: structure.positions
+          .filter(p => p.role.includes('midfielder'))
+          .map(p => p.playerId),
+        recommendedActions: [
+          'add_central_presence',
+          'pressing_coordination',
+          'compact_midfield',
+        ],
+      });
+    }
+
+    // Check compactness issues
+    if (structure.compactness < 0.5) {
+      weaknesses.push({
+        zone: FieldZone.MIDDLE_THIRD,
+        severity: 'medium',
+        description:
+          'Team shape is too spread out, creating gaps between lines',
+        hebrewDescription: 'צורת הקבוצה מפוזרת מדי, יוצרת פערים בין הקווים',
+        exploitMethods: ['quick_passing', 'penetrating_runs', 'third_man_runs'],
+        affectedPlayers: structure.positions.map(p => p.playerId),
+        recommendedActions: [
+          'increase_compactness',
+          'coordinate_pressing',
+          'reduce_distances',
+        ],
+      });
+    }
+
+    return weaknesses;
+  }
+
+  private identifyStrengths(
+    structure: FormationStructure,
+    contextData?: any
+  ): FormationStrength[] {
+    const strengths: FormationStrength[] = [];
+
+    // Check for numerical advantages
+    const defendingThird = structure.positions.filter(p => p.y < 33).length;
+    const attackingThird = structure.positions.filter(p => p.y > 67).length;
+
+    if (defendingThird >= 6) {
+      strengths.push({
+        zone: FieldZone.DEFENSIVE_THIRD,
+        advantage: 'significant',
+        description: 'Strong defensive presence provides excellent protection',
+        hebrewDescription: 'נוכחות הגנתית חזקה מספקת הגנה מעולה',
+        leverageMethods: [
+          'defensive_solidity',
+          'counter_attack_platform',
+          'set_piece_defense',
+        ],
+        keyPlayers: structure.positions
+          .filter(p => p.y < 33)
+          .map(p => p.playerId),
+        tacticalVariations: [
+          'deep_block',
+          'pressing_triggers',
+          'quick_transitions',
+        ],
+      });
+    }
+
+    if (attackingThird >= 4) {
+      strengths.push({
+        zone: FieldZone.ATTACKING_THIRD,
+        advantage: 'moderate',
+        description: 'Good attacking presence creates multiple goal threats',
+        hebrewDescription: 'נוכחות התקפית טובה יוצרת איומי שער מרובים',
+        leverageMethods: ['overloads', 'combination_play', 'pressing_high'],
+        keyPlayers: structure.positions
+          .filter(p => p.y > 67)
+          .map(p => p.playerId),
+        tacticalVariations: [
+          'high_press',
+          'quick_combinations',
+          'width_creation',
+        ],
+      });
+    }
+
+    // Check width advantages
+    if (structure.width > 0.8) {
+      strengths.push({
+        zone: FieldZone.WIDE_AREAS,
+        advantage: 'significant',
+        description: 'Excellent width stretches opposition and creates space',
+        hebrewDescription: 'רוחב מעולה מותח את היריב ויוצר מרחב',
+        leverageMethods: ['wide_overloads', 'crosses', 'switch_play'],
+        keyPlayers: structure.positions
+          .filter(p => p.x < 25 || p.x > 75)
+          .map(p => p.playerId),
+        tacticalVariations: ['wing_play', 'overlaps', 'cut_backs'],
+      });
+    }
+
+    // Check compactness advantages
+    if (structure.compactness > 0.8) {
+      strengths.push({
+        zone: FieldZone.MIDDLE_THIRD,
+        advantage: 'significant',
+        description: 'Excellent team compactness restricts opposition space',
+        hebrewDescription: 'קומפקטיות מעולה של הקבוצה מגבילה מרחב ליריב',
+        leverageMethods: ['pressing', 'quick_recovery', 'ball_retention'],
+        keyPlayers: structure.positions.map(p => p.playerId),
+        tacticalVariations: [
+          'high_press',
+          'coordinated_movement',
+          'quick_passing',
+        ],
+      });
+    }
+
+    return strengths;
+  }
+
+  private analyzeTransitions(
+    structure: FormationStructure,
+    contextData?: any
+  ): FormationTransition[] {
+    const transitions: FormationTransition[] = [];
+
+    // Defensive to attacking transition
+    transitions.push({
+      fromPhase: 'defensive',
+      toPhase: 'attacking',
+      triggerEvents: ['ball_recovery', 'interception', 'clearance'],
+      playerMovements: this.calculateTransitionMovements(
+        structure,
+        'defensive_to_attacking'
+      ),
+      effectiveness: this.estimateTransitionEffectiveness(
+        structure,
+        'defensive_to_attacking'
+      ),
+      commonFailures: ['slow_buildup', 'poor_first_pass', 'lack_of_movement'],
+    });
+
+    // Attacking to defensive transition
+    transitions.push({
+      fromPhase: 'attacking',
+      toPhase: 'defensive',
+      triggerEvents: ['ball_loss', 'unsuccessful_attack', 'opponent_counter'],
+      playerMovements: this.calculateTransitionMovements(
+        structure,
+        'attacking_to_defensive'
+      ),
+      effectiveness: this.estimateTransitionEffectiveness(
+        structure,
+        'attacking_to_defensive'
+      ),
+      commonFailures: ['slow_recovery', 'poor_pressing', 'structural_gaps'],
+    });
+
+    return transitions;
+  }
+
+  private calculateTransitionMovements(
+    structure: FormationStructure,
+    transitionType: string
+  ): Array<{
+    playerId: string;
+    fromPosition: { x: number; y: number };
+    toPosition: { x: number; y: number };
+    timing: number;
+  }> {
+    const movements: Array<{
+      playerId: string;
+      fromPosition: { x: number; y: number };
+      toPosition: { x: number; y: number };
+      timing: number;
+    }> = [];
+
+    if (transitionType === 'defensive_to_attacking') {
+      structure.positions.forEach(pos => {
+        if (pos.role.includes('midfielder') || pos.role.includes('striker')) {
+          movements.push({
+            playerId: pos.playerId,
+            fromPosition: { x: pos.x, y: pos.y },
+            toPosition: { x: pos.x, y: Math.min(pos.y + 15, 90) },
+            timing: pos.role.includes('striker') ? 2 : 4,
+          });
+        }
+      });
+    }
+
+    return movements;
+  }
+
+  private estimateTransitionEffectiveness(
+    structure: FormationStructure,
+    transitionType: string
+  ): number {
+    let effectiveness = 0.5;
+
+    if (transitionType === 'defensive_to_attacking') {
+      effectiveness += structure.compactness * 0.2;
+      effectiveness += structure.width > 0.7 ? 0.15 : -0.1;
+    }
+
+    if (transitionType === 'attacking_to_defensive') {
+      effectiveness += structure.compactness * 0.3;
+      effectiveness -= structure.width > 0.8 ? 0.1 : 0;
+    }
+
+    return Math.max(0.1, Math.min(0.9, effectiveness));
+  }
+
+  private async generateTacticalInsights(
+    structure: FormationStructure,
+    weaknesses: FormationWeakness[],
+    strengths: FormationStrength[],
+    scope: AnalysisScope
+  ): Promise<TacticalInsight[]> {
+    const insights: TacticalInsight[] = [];
+
+    // Generate insights for high-severity weaknesses
+    weaknesses
+      .filter(w => ['high', 'critical'].includes(w.severity))
+      .forEach(weakness => {
+        const insight = TacticalInsight.create(
+          InsightType.FORMATION_WEAKNESS,
+          `Formation vulnerability in ${weakness.zone}`,
+          `חולשת מערך ב${this.hebrewTacticalTerms.get('formation')} ${
+            weakness.zone
+          }`,
+          weakness.description,
+          weakness.hebrewDescription,
+          weakness.severity === 'critical'
+            ? InsightPriority.CRITICAL
+            : InsightPriority.HIGH,
+          InsightConfidence.HIGH,
+          {
+            teamId: scope.teamScope?.teamId,
+            isActionable: true,
+            metadata: {
+              zone: weakness.zone,
+              formation: structure.formation,
+              affectedPlayers: weakness.affectedPlayers,
+            },
+          }
+        );
+
+        insights.push(insight);
+      });
+
+    // Generate insights for significant strengths
+    strengths
+      .filter(s => ['significant', 'dominant'].includes(s.advantage))
+      .forEach(strength => {
+        const insight = TacticalInsight.create(
+          InsightType.TACTICAL_ADJUSTMENT,
+          `Leverage formation strength in ${strength.zone}`,
+          `ניצול חוזק המערך ב${strength.zone}`,
+          strength.description,
+          strength.hebrewDescription,
+          InsightPriority.MEDIUM,
+          InsightConfidence.HIGH,
+          {
+            teamId: scope.teamScope?.teamId,
+            isActionable: true,
+            metadata: {
+              zone: strength.zone,
+              formation: structure.formation,
+              keyPlayers: strength.keyPlayers,
+            },
+          }
+        );
+
+        insights.push(insight);
+      });
+
+    return insights;
+  }
+
+  private generateHebrewAnalysis(
+    structure: FormationStructure,
+    weaknesses: FormationWeakness[],
+    strengths: FormationStrength[]
+  ): string {
+    let analysis = `ניתוח מערך ${structure.formation}:\n\n`;
+
+    analysis += `המבנה הכללי:\n`;
+    analysis += `- קומפקטיות: ${(structure.compactness * 100).toFixed(0)}%\n`;
+    analysis += `- רוחב: ${(structure.width * 100).toFixed(0)}%\n`;
+    analysis += `- גובה: ${(structure.height * 100).toFixed(0)}%\n\n`;
+
+    if (strengths.length > 0) {
+      analysis += `נקודות חוזק עיקריות:\n`;
+      strengths.forEach((strength, index) => {
+        analysis += `${index + 1}. ${strength.hebrewDescription}\n`;
+      });
+      analysis += `\n`;
+    }
+
+    if (weaknesses.length > 0) {
+      analysis += `נקודות חולשה לתיקון:\n`;
+      weaknesses.forEach((weakness, index) => {
+        analysis += `${index + 1}. ${weakness.hebrewDescription}\n`;
+      });
+      analysis += `\n`;
+    }
+
+    analysis += `המלצות טקטיות:\n`;
+    analysis += `- שמירה על קומפקטיות בין הקווים\n`;
+    analysis += `- ניצול רוחב המגרש ביעילות\n`;
+    analysis += `- תיאום תנועות במעברים\n`;
+
+    return analysis;
+  }
+
+  private calculateAdaptability(
+    structure: FormationStructure,
+    transitions: FormationTransition[]
+  ): number {
+    let adaptability = 0.5;
+
+    adaptability += structure.compactness * 0.2;
+    adaptability +=
+      (transitions.reduce((sum, t) => sum + t.effectiveness, 0) /
+        transitions.length) *
+      0.3;
+
+    return Math.max(0, Math.min(1, adaptability));
+  }
+
+  private calculatePredictability(
+    structure: FormationStructure,
+    transitions: FormationTransition[]
+  ): number {
+    let predictability = 0.5;
+
+    // High compactness reduces predictability
+    predictability -= structure.compactness * 0.2;
+
+    // Good transitions reduce predictability
+    const avgTransitionEffectiveness =
+      transitions.reduce((sum, t) => sum + t.effectiveness, 0) /
+      transitions.length;
+    predictability -= avgTransitionEffectiveness * 0.3;
+
+    return Math.max(0, Math.min(1, predictability));
+  }
+
+  private calculateOverallRating(
+    structure: FormationStructure,
+    weaknesses: FormationWeakness[],
+    strengths: FormationStrength[]
+  ): number {
+    let rating = 5; // Base rating
+
+    // Add for strengths
+    rating += strengths.length * 0.5;
+
+    // Subtract for weaknesses
+    rating -= weaknesses.filter(w => w.severity === 'critical').length * 1.5;
+    rating -= weaknesses.filter(w => w.severity === 'high').length * 1;
+    rating -= weaknesses.filter(w => w.severity === 'medium').length * 0.5;
+
+    // Factor in structure metrics
+    rating += structure.compactness * 2;
+    rating += structure.width > 0.7 ? 1 : -0.5;
+
+    return Math.max(1, Math.min(10, rating));
+  }
+
+  private calculateConfidence(
+    structure: FormationStructure,
+    positions: PlayerPosition[]
+  ): number {
+    let confidence = 0.8; // Base confidence
+
+    // Higher confidence with more complete data
+    if (positions.length >= 11) confidence += 0.1;
+    if (positions.every(p => p.heatMapData)) confidence += 0.1;
+
+    // Lower confidence for custom formations
+    if (structure.formation === FormationType.CUSTOM) confidence -= 0.2;
+
+    return Math.max(0.3, Math.min(1, confidence));
+  }
+
+  public getFormationRecommendations(
+    currentFormation: FormationType,
+    oppositionFormation?: FormationType,
+    matchContext?: {
+      scoreline?: string;
+      timeRemaining?: number;
+      gameState?: string;
+    }
+  ): Array<{
+    formation: FormationType;
+    reason: string;
+    hebrewReason: string;
+    effectiveness: number;
+    adjustments: string[];
+  }> {
+    const recommendations: Array<{
+      formation: FormationType;
+      reason: string;
+      hebrewReason: string;
+      effectiveness: number;
+      adjustments: string[];
+    }> = [];
+
+    // Context-based recommendations
+    if (
+      matchContext?.scoreline?.includes('0-1') &&
+      matchContext.timeRemaining &&
+      matchContext.timeRemaining < 30
+    ) {
+      recommendations.push({
+        formation: FormationType.FOUR_TWO_THREE_ONE,
+        reason: 'Need more attacking presence with creative midfield',
+        hebrewReason: 'צורך בנוכחות התקפית גדולה יותר עם קו אמצע יצירתי',
+        effectiveness: 0.75,
+        adjustments: [
+          'push_fullbacks',
+          'advanced_midfielders',
+          'creative_combinations',
+        ],
+      });
+    }
+
+    if (oppositionFormation === FormationType.FOUR_FOUR_TWO) {
+      recommendations.push({
+        formation: FormationType.FOUR_THREE_THREE,
+        reason: 'Numerical advantage in midfield against 4-4-2',
+        hebrewReason: 'יתרון מספרי בקו האמצע מול 4-4-2',
+        effectiveness: 0.8,
+        adjustments: [
+          'midfield_overload',
+          'wide_attacks',
+          'central_penetration',
+        ],
+      });
+    }
+
+    return recommendations;
+  }
+}

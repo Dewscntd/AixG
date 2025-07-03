@@ -120,7 +120,11 @@ export class PerformanceTestSuite {
         await this.sleep(5000);
       } catch (error) {
         failed++;
-        this.logger.error(`Test error: ${test.name} - ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.error(
+          `Test error: ${test.name} - ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
         recommendations.push(`Fix test execution error in ${test.name}`);
       }
     }
@@ -336,7 +340,9 @@ export class PerformanceTestSuite {
         await this.sleep(10000); // Wait 10 seconds between tests
       } catch (error) {
         this.logger.error(
-          `Stress test failed at ${connections} connections: ${error instanceof Error ? error.message : String(error)}`
+          `Stress test failed at ${connections} connections: ${
+            error instanceof Error ? error.message : String(error)
+          }`
         );
         breakingPoint = connections;
         break;
@@ -477,7 +483,9 @@ export class PerformanceTestSuite {
       )}%\n`;
       report += `- **Memory Leak Detected**: ${
         enduranceResults.stability.memoryLeak ? 'Yes' : 'No'
-      }\n\n`;
+      }
+
+`;
     }
 
     return report;

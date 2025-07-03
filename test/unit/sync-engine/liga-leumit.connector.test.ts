@@ -18,10 +18,11 @@ describe('LigaLeumitConnector', () => {
     }).compile();
 
     connector = module.get<LigaLeumitConnector>(LigaLeumitConnector);
-    validConfig = new SyncConfiguration([
-      DataTypeEnum.MATCH_SCHEDULE,
-      DataTypeEnum.PLAYER_PROFILES
-    ], 'https://api.ligaleumit.com', { apiKey: 'valid-api-key' });
+    validConfig = new SyncConfiguration(
+      [DataTypeEnum.MATCH_SCHEDULE, DataTypeEnum.PLAYER_PROFILES],
+      'https://api.ligaleumit.com',
+      { apiKey: 'valid-api-key' }
+    );
   });
 
   it('should establish a connection successfully', async () => {
@@ -37,7 +38,10 @@ describe('LigaLeumitConnector', () => {
 
   it('should synchronize data types successfully', async () => {
     await connector.connect(validConfig);
-    const result = await connector.sync([DataTypeEnum.MATCH_SCHEDULE, DataTypeEnum.PLAYER_PROFILES]);
+    const result = await connector.sync([
+      DataTypeEnum.MATCH_SCHEDULE,
+      DataTypeEnum.PLAYER_PROFILES,
+    ]);
     expect(result.isSuccess).toBe(true);
     expect(result.recordsProcessed).toBeGreaterThan(0);
   });
@@ -48,4 +52,3 @@ describe('LigaLeumitConnector', () => {
     }).toThrow('At least one data type must be specified');
   });
 });
-

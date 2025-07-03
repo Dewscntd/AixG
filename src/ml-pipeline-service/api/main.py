@@ -14,11 +14,14 @@ from ..domain.value_objects.video_id import VideoId
 from ..infrastructure.event_publisher import PulsarEventPublisher, InMemoryEventPublisher
 from ..infrastructure.checkpoint_manager import RedisCheckpointManager, InMemoryCheckpointManager
 from ..infrastructure.progress_notifier import WebSocketProgressNotifier, LoggingProgressNotifier, CompositeProgressNotifier
+from ..infrastructure.integrated_ml_service import ml_service
+from ..infrastructure.ml_pipeline_config import config_loader, setup_ml_service_from_config
 from ..stages.video_decoding_stage import VideoDecodingStage
 from ..stages.player_detection_stage import PlayerDetectionStage
 from ..stages.ball_tracking_stage import BallTrackingStage
 from .models import ProcessVideoRequest, ProcessVideoResponse, PipelineStatusResponse
 from .dependencies import get_pipeline_orchestrator, get_logger
+from .ml_endpoints import router as ml_router
 
 
 # Global state
@@ -73,6 +76,11 @@ async def lifespan(app: FastAPI):
             logger=logger
         )
         
+        # Initialize ML service
+        config = config_loader.load()
+        setup_ml_service_from_config(config)
+        logger.info("ML service initialized successfully")
+        
         # Store in app state
         app.state.event_publisher = event_publisher
         app.state.checkpoint_manager = checkpoint_manager
@@ -99,6 +107,9 @@ async def lifespan(app: FastAPI):
             
             if hasattr(app.state, 'checkpoint_manager') and hasattr(app.state.checkpoint_manager, 'close'):
                 await app.state.checkpoint_manager.close()
+            
+            # Shutdown ML service
+            await ml_service.shutdown()
                 
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")
@@ -135,6 +146,9 @@ def create_app(
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    # Include ML service router
+    app.include_router(ml_router)
     
     return app
 

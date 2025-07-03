@@ -454,47 +454,66 @@ export class PerformanceBenchmarker extends EventEmitter {
 
       if (!history || !latest) continue;
 
-      report += `## 📊 ${name}\n\n`;
+      report += `## 📊 ${name}
+
+`;
 
       // Latest results
-      report += `### Latest Results\n`;
-      report += `- **Average Time**: ${latest.averageTime.toFixed(2)}ms\n`;
-      report += `- **P95 Latency**: ${latest.p95.toFixed(2)}ms\n`;
-      report += `- **P99 Latency**: ${latest.p99.toFixed(2)}ms\n`;
-      report += `- **Throughput**: ${latest.throughput.toFixed(2)} ops/sec\n`;
+      report += `### Latest Results
+`;
+      report += `- **Average Time**: ${latest.averageTime.toFixed(2)}ms
+`;
+      report += `- **P95 Latency**: ${latest.p95.toFixed(2)}ms
+`;
+      report += `- **P99 Latency**: ${latest.p99.toFixed(2)}ms
+`;
+      report += `- **Throughput**: ${latest.throughput.toFixed(2)} ops/sec
+`;
       report += `- **Success Rate**: ${(
         ((latest.iterations - latest.errors) / latest.iterations) *
         100
-      ).toFixed(2)}%\n`;
+      ).toFixed(2)}%
+`;
       report += `- **Memory Peak**: ${(
         latest.memoryUsage.peak /
         1024 /
         1024
-      ).toFixed(2)} MB\n\n`;
+      ).toFixed(2)} MB
+
+`;
 
       // Baseline comparison
       if (baseline) {
         const comparison = this.compareWithBaseline(name);
         if (comparison) {
-          report += `### Baseline Comparison\n`;
-          report += `- **Performance**: ${comparison.verdict.toUpperCase()}\n`;
+          report += `### Baseline Comparison
+`;
+          report += `- **Performance**: ${comparison.verdict.toUpperCase()}
+`;
           report += `- **Average Time**: ${
             comparison.improvement.averageTime > 0 ? '+' : ''
-          }${comparison.improvement.averageTime.toFixed(2)}%\n`;
+          }${comparison.improvement.averageTime.toFixed(2)}%
+`;
           report += `- **Throughput**: ${
             comparison.improvement.throughput > 0 ? '+' : ''
-          }${comparison.improvement.throughput.toFixed(2)}%\n`;
+          }${comparison.improvement.throughput.toFixed(2)}%
+`;
           report += `- **P95 Latency**: ${
             comparison.improvement.p95Latency > 0 ? '+' : ''
-          }${comparison.improvement.p95Latency.toFixed(2)}%\n`;
+          }${comparison.improvement.p95Latency.toFixed(2)}%
+`;
           report += `- **Memory Usage**: ${
             comparison.improvement.memoryUsage > 0 ? '+' : ''
-          }${comparison.improvement.memoryUsage.toFixed(2)}%\n\n`;
+          }${comparison.improvement.memoryUsage.toFixed(2)}%
+
+`;
 
           if (comparison.recommendations.length > 0) {
-            report += `### Recommendations\n`;
+            report += `### Recommendations
+`;
             comparison.recommendations.forEach(rec => {
-              report += `- ${rec}\n`;
+              report += `- ${rec}
+`;
             });
             report += '\n';
           }
@@ -504,10 +523,15 @@ export class PerformanceBenchmarker extends EventEmitter {
       // Historical trend
       if (history.length > 1) {
         const trend = this.calculateTrend(history);
-        report += `### Historical Trend (${history.length} runs)\n`;
-        report += `- **Average Time Trend**: ${trend.averageTime}\n`;
-        report += `- **Throughput Trend**: ${trend.throughput}\n`;
-        report += `- **Stability**: ${trend.stability}\n\n`;
+        report += `### Historical Trend (${history.length} runs)
+`;
+        report += `- **Average Time Trend**: ${trend.averageTime}
+`;
+        report += `- **Throughput Trend**: ${trend.throughput}
+`;
+        report += `- **Stability**: ${trend.stability}
+
+`;
       }
     }
 

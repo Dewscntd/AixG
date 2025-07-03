@@ -28,7 +28,7 @@ export class SignalPeerDto {
     description: 'WebRTC signal data (SDP offer/answer or ICE candidate)',
     example: {
       type: 'offer',
-      sdp: 'v=0\r\no=- 123456789 2 IN IP4 127.0.0.1\r\n...',
+      sdp: 'v=0\\r\\no=- 123456789 2 IN IP4 127.0.0.1\\r\\n...',
     },
   })
   @IsNotEmpty()

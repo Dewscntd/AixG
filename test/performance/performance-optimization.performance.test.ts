@@ -231,7 +231,8 @@ describe('Performance Optimization Performance Tests', () => {
       const startTime = Date.now();
 
       // Act
-      const result = await performanceOptimizationService.runOptimizationCycle();
+      const result =
+        await performanceOptimizationService.runOptimizationCycle();
       const endTime = Date.now();
 
       // Assert
