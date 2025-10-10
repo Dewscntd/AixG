@@ -757,6 +757,7 @@ export class TacticalPatternMatcher {
 
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
+      if (!event) continue;
 
       // Start new sequence on significant events
       if (this.isSequenceBreaker(event) && currentSequence.length > 0) {
@@ -821,9 +822,7 @@ export class TacticalPatternMatcher {
     if (participants.length < definition.minPlayers) return null;
 
     // Check for pattern-specific triggers
-    const hasTrigger = definition.triggers.some(trigger => {
-      return sequence.some(event => this.matchesTrigger(event, trigger));
-    });
+    const hasTrigger = definition.triggers.some(trigger => sequence.some(event => this.matchesTrigger(event, trigger)));
 
     if (!hasTrigger) return null;
 
@@ -848,8 +847,8 @@ export class TacticalPatternMatcher {
       pattern: definition.pattern,
       confidence: finalConfidence,
       completeness: this.calculateCompleteness(sequence, definition),
-      startTime: sequence[0].timestamp,
-      endTime: sequence[sequence.length - 1].timestamp,
+      startTime: sequence[0]?.timestamp || 0,
+      endTime: sequence[sequence.length - 1]?.timestamp || 0,
       participants,
       keyEvents: sequence.map(e => ({
         playerId: e.playerId,
@@ -915,7 +914,7 @@ export class TacticalPatternMatcher {
 
     // Check sequence characteristics
     const duration =
-      sequence[sequence.length - 1].timestamp - sequence[0].timestamp;
+      (sequence[sequence.length - 1]?.timestamp || 0) - (sequence[0]?.timestamp || 0);
     const durationScore =
       Math.abs(duration - definition.typicalDuration) <
       definition.typicalDuration * 0.5
@@ -1031,6 +1030,7 @@ export class TacticalPatternMatcher {
   ): 'successful' | 'failed' | 'interrupted' {
     const lastEvent = sequence[sequence.length - 1];
 
+    if (!lastEvent) return 'interrupted';
     if (lastEvent.outcome === 'success') return 'successful';
     if (lastEvent.outcome === 'failure') return 'failed';
     return 'interrupted';
@@ -1067,7 +1067,7 @@ export class TacticalPatternMatcher {
 
     // Check for quick vs patient execution
     const duration =
-      sequence[sequence.length - 1].timestamp - sequence[0].timestamp;
+      (sequence[sequence.length - 1]?.timestamp || 0) - (sequence[0]?.timestamp || 0);
     if (duration < definition.typicalDuration * 0.7)
       variations.push('quick_tempo');
     else if (duration > definition.typicalDuration * 1.3)
@@ -1372,8 +1372,17 @@ export class TacticalPatternMatcher {
           )}%)`,
           InsightPriority.MEDIUM,
           InsightConfidence.HIGH,
-          {
-            teamId: scope.teamScope?.teamId,
+          scope.teamScope?.teamId ? {
+            teamId: scope.teamScope.teamId,
+            isActionable: true,
+            metadata: {
+              pattern,
+              effectiveness: eff,
+              suggestions: this.getPatternImprovementSuggestions(
+                pattern as TacticalPattern
+              ),
+            },
+          } : {
             isActionable: true,
             metadata: {
               pattern,

@@ -13,6 +13,13 @@ import {
   PositionType,
   TacticalRole,
 } from '../value-objects/football-entity';
+import {
+  AnalysisScope,
+  AnalysisType,
+  TimeFrame,
+  DetailLevel,
+  MetricCategory,
+} from '../value-objects/analysis-scope';
 import { TacticalIntent, IntentType } from '../value-objects/tactical-intent';
 import {
   FormationAnalyzer,
@@ -224,7 +231,7 @@ export class EnhancedTacticalKnowledgeBase {
 
   constructor() {
     this.formationAnalyzer = new FormationAnalyzer();
-    this.patternMatcher = new TacticalPatternMatcher();
+    this.patternMatcher = new TacticalPatternMatcher({} as any);
     this.initializeKnowledgeBase();
     this.buildSearchIndices();
     this.buildConceptGraph();
@@ -1451,11 +1458,31 @@ export class EnhancedTacticalKnowledgeBase {
     }>;
   }> {
     const analysis = await this.formationAnalyzer.analyzeFormation(
-      {
-        teamScope: { teamId: 'analysis' },
-        timeScope: { matchId: 'current' },
-        analysisTypes: [],
-      },
+      new AnalysisScope({
+        analysisType: AnalysisType.TACTICAL_FORMATION,
+        timeFrame: TimeFrame.REAL_TIME,
+        detailLevel: DetailLevel.STANDARD,
+        metricCategories: [MetricCategory.TACTICAL],
+        languagePreference: 'he',
+        teamScope: { 
+          teamId: 'analysis',
+          teamName: 'Analysis Team',
+          includeOpponentComparison: false,
+          focusOnFormation: true
+        },
+        matchScope: { 
+          matchId: 'current', 
+          segmentAnalysis: false,
+          includePreMatch: false,
+          includePostMatch: false,
+          keyMoments: false
+        },
+        includeVideoClips: false,
+        includeStatistics: true,
+        includeRecommendations: true,
+        includeHistoricalContext: false,
+        priority: 'medium' as const,
+      }),
       playerPositions,
       contextData
     );

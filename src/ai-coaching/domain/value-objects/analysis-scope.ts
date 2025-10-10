@@ -325,6 +325,10 @@ export class AnalysisScope {
     );
   }
 
+  get description(): string {
+    return `${this._data.analysisType} analysis with ${this._data.detailLevel} detail level for ${this._data.timeFrame} timeframe`;
+  }
+
   get estimatedComplexity(): 'low' | 'medium' | 'high' | 'very_high' {
     let complexity = 0;
 

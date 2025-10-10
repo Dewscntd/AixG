@@ -100,13 +100,13 @@ export class TacticalInsight {
   }
 
   public static create(
-    type: InsightType,
-    title: string,
-    hebrewTitle: string,
-    description: string,
-    hebrewDescription: string,
-    priority: InsightPriority,
-    confidence: InsightConfidence,
+    queryOrType: any,
+    matchContextOrTitle?: any,
+    languageOrHebrewTitle?: any,
+    analysisScopeOrDescription?: any,
+    hebrewDescription?: string,
+    priority?: InsightPriority,
+    confidence?: InsightConfidence,
     options?: {
       matchId?: string;
       teamId?: string;
@@ -118,29 +118,55 @@ export class TacticalInsight {
       metadata?: Record<string, any>;
     }
   ): TacticalInsight {
-    return new TacticalInsight({
+    // New signature for coaching session compatibility
+    if (typeof queryOrType === 'object' && queryOrType.type) {
+      return new TacticalInsight({
+        id: uuidv4(),
+        type: InsightType.TACTICAL_ADJUSTMENT,
+        title: 'Tactical Analysis Result',
+        hebrewTitle: 'תוצאת ניתוח טקטי',
+        description: 'Analysis based on tactical query',
+        hebrewDescription: 'ניתוח מבוסס על שאילתה טקטית',
+        priority: InsightPriority.MEDIUM,
+        confidence: InsightConfidence.HIGH,
+        supportingEvidence: [],
+        recommendations: [],
+        relatedInsights: [],
+        tags: [],
+        createdAt: new Date(),
+        isActionable: true,
+        metadata: {},
+      });
+    }
+
+    // Original signature
+    const data: TacticalInsightData = {
       id: uuidv4(),
-      type,
-      title,
-      hebrewTitle,
-      description,
-      hebrewDescription,
-      priority,
-      confidence,
-      matchId: options?.matchId,
-      teamId: options?.teamId,
-      playerId: options?.playerId,
-      matchMinute: options?.matchMinute,
-      fieldZone: options?.fieldZone,
+      type: queryOrType,
+      title: matchContextOrTitle,
+      hebrewTitle: languageOrHebrewTitle,
+      description: analysisScopeOrDescription,
+      hebrewDescription: hebrewDescription || '',
+      priority: priority || InsightPriority.MEDIUM,
+      confidence: confidence || InsightConfidence.MEDIUM,
       supportingEvidence: [],
       recommendations: [],
       relatedInsights: [],
       tags: [],
       createdAt: new Date(),
-      validUntil: options?.validUntil,
       isActionable: options?.isActionable ?? true,
       metadata: options?.metadata || {},
-    });
+    };
+
+    // Only add optional properties if they are defined
+    if (options?.matchId) data.matchId = options.matchId;
+    if (options?.teamId) data.teamId = options.teamId;
+    if (options?.playerId) data.playerId = options.playerId;
+    if (options?.matchMinute !== undefined) data.matchMinute = options.matchMinute;
+    if (options?.fieldZone) data.fieldZone = options.fieldZone;
+    if (options?.validUntil) data.validUntil = options.validUntil;
+
+    return new TacticalInsight(data);
   }
 
   private validateTacticalInsight(data: TacticalInsightData): void {

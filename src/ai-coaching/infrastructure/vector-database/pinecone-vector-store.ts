@@ -260,7 +260,7 @@ export class PineconeVectorStore {
             ...doc.metadata,
             text: doc.text,
             hebrewText: doc.hebrewText,
-            namespace: namespace,
+            namespace,
           },
         });
       }

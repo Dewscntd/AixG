@@ -55,7 +55,9 @@ export interface MatchContextData {
   gameState: GameState;
   fieldZone: FieldZone;
   minutesPlayed: number;
+  matchMinute: number; // Current minute of the match
   timeRemaining: number;
+  scoreline: string; // e.g., "2-1", "0-0"
   weather?: WeatherConditions;
   venue: {
     name: string;
@@ -162,8 +164,16 @@ export class MatchContext {
     return this._data.minutesPlayed;
   }
 
+  get matchMinute(): number {
+    return this._data.matchMinute;
+  }
+
   get timeRemaining(): number {
     return this._data.timeRemaining;
+  }
+
+  get scoreline(): string {
+    return this._data.scoreline;
   }
 
   get weather(): WeatherConditions | undefined {

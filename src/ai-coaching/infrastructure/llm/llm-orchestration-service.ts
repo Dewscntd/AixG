@@ -959,7 +959,7 @@ export class LLMOrchestrationService {
         type: 'vector_search',
         source: result.document.metadata.source || 'tactical_database',
         relevance: result.score,
-        excerpt: result.document.text.substring(0, 100) + '...',
+        excerpt: `${result.document.text.substring(0, 100)  }...`,
       });
     }
 
@@ -969,7 +969,7 @@ export class LLMOrchestrationService {
         type: 'knowledge_base',
         source: insight.item.name,
         relevance: 0.8,
-        excerpt: insight.item.description.substring(0, 100) + '...',
+        excerpt: `${insight.item.description.substring(0, 100)  }...`,
       });
     }
 
@@ -1161,7 +1161,7 @@ export class LLMOrchestrationService {
 
     // Add encouraging language
     if (!text.includes('great') && !text.includes('נהדר')) {
-      text = 'נהדר! ' + text;
+      text = `נהדר! ${  text}`;
     }
 
     return text;

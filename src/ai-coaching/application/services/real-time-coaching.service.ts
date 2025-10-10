@@ -25,6 +25,7 @@ import {
   LLMOrchestrationService,
   CoachingRequest,
   CoachingTaskType,
+  ResponseFormat,
 } from '../../infrastructure/llm/llm-orchestration-service';
 import { VectorDatabaseService } from '../../infrastructure/vector-database/vector-database-service';
 import { TacticalQueryAnalysis } from '../../domain/services/tactical-query-analysis';
@@ -112,8 +113,17 @@ export class RealTimeCoachingService implements OnModuleInit, OnModuleDestroy {
     successRate: 0.95,
   };
 
-  constructor(private readonly eventEmitter: EventEmitter2) {
-    // Dependencies will be injected through DI in a real implementation
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    llmOrchestration: LLMOrchestrationService,
+    vectorDatabase: VectorDatabaseService,
+    queryAnalyzer: TacticalQueryAnalysis,
+    knowledgeBase: EnhancedTacticalKnowledgeBase
+  ) {
+    this.llmOrchestration = llmOrchestration;
+    this.vectorDatabase = vectorDatabase;
+    this.queryAnalyzer = queryAnalyzer;
+    this.knowledgeBase = knowledgeBase;
     this.initializeServices();
   }
 
@@ -278,8 +288,8 @@ export class RealTimeCoachingService implements OnModuleInit, OnModuleDestroy {
         preferences: {
           responseFormat:
             session.preferences.language === 'he'
-              ? 'hebrew_narrative'
-              : 'conversational',
+              ? ResponseFormat.HEBREW_NARRATIVE
+              : ResponseFormat.CONVERSATIONAL,
           culturalAdaptation: session.preferences.culturalAdaptation,
           maxResponseLength: 200, // Keep responses concise for real-time
         },
@@ -336,7 +346,8 @@ export class RealTimeCoachingService implements OnModuleInit, OnModuleDestroy {
 
       return insight;
     } catch (error) {
-      this.logger.error(`Failed to process coaching query: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      this.logger.error(`Failed to process coaching query: ${errorMessage}`);
       throw error;
     }
   }
@@ -355,13 +366,20 @@ export class RealTimeCoachingService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Search for relevant knowledge
+    const searchContext: any = {};
+    if (session.contextData.currentFormation) {
+      searchContext.formation = session.contextData.currentFormation;
+    }
+    if (session.getCurrentPhase()) {
+      searchContext.phase = session.getCurrentPhase();
+    }
+    if (session.matchContext.scoreline) {
+      searchContext.scoreline = session.matchContext.scoreline;
+    }
+
     const vectorResults = await this.vectorDatabase.findTacticalPatterns(
       situation,
-      {
-        formation: session.contextData.currentFormation,
-        phase: session.getCurrentPhase(),
-        scoreline: session.matchContext.scoreline,
-      }
+      searchContext
     );
 
     const insights: CoachingInsight[] = [];
@@ -384,11 +402,18 @@ export class RealTimeCoachingService implements OnModuleInit, OnModuleDestroy {
           scoreline: session.matchContext.scoreline || '0-0',
           momentum: 'neutral',
         },
-        actionableItems: result.actionableInsights || [],
+        actionableItems: result.actionableInsights ? this.transformActionableItems(result.actionableInsights) : [
+          {
+            action: 'Apply tactical recommendation',
+            hebrewAction: 'יישם המלצה טקטית',
+            priority: 'immediate' as const,
+            estimatedImpact: result.score,
+          },
+        ],
         relatedInsights: [],
         sources: [
           {
-            type: 'vector_search',
+            type: 'tactical_knowledge',
             source: 'tactical_patterns',
             confidence: result.score,
           },
@@ -622,7 +647,7 @@ export class RealTimeCoachingService implements OnModuleInit, OnModuleDestroy {
     return CoachingTaskType.TACTICAL_ANALYSIS;
   }
 
-  private mapResponseToInsightType(response: any): string {
+  private mapResponseToInsightType(response: any): 'tactical_adjustment' | 'player_instruction' | 'formation_change' | 'substitution_advice' | 'motivational' {
     // Map LLM response to insight type based on content analysis
     const content = response.response.toLowerCase();
 
@@ -639,6 +664,20 @@ export class RealTimeCoachingService implements OnModuleInit, OnModuleDestroy {
     }
 
     return 'tactical_adjustment';
+  }
+
+  private transformActionableItems(items: any[]): Array<{
+    action: string;
+    hebrewAction: string;
+    priority: 'immediate' | 'next_break' | 'half_time' | 'next_match';
+    estimatedImpact: number;
+  }> {
+    return items.map(item => ({
+      action: item.action || 'Apply recommendation',
+      hebrewAction: item.hebrewAction || 'יישם המלצה',
+      priority: this.mapTimelineToPriority(item.priority || 'immediate'),
+      estimatedImpact: item.estimatedImpact || item.confidence || 0.7,
+    }));
   }
 
   private mapTimelineToPriority(

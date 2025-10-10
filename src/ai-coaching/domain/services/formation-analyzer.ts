@@ -852,8 +852,15 @@ export class FormationAnalyzer {
             ? InsightPriority.CRITICAL
             : InsightPriority.HIGH,
           InsightConfidence.HIGH,
-          {
-            teamId: scope.teamScope?.teamId,
+          scope.teamScope?.teamId ? {
+            teamId: scope.teamScope.teamId,
+            isActionable: true,
+            metadata: {
+              zone: weakness.zone,
+              formation: structure.formation,
+              affectedPlayers: weakness.affectedPlayers,
+            },
+          } : {
             isActionable: true,
             metadata: {
               zone: weakness.zone,
@@ -878,8 +885,15 @@ export class FormationAnalyzer {
           strength.hebrewDescription,
           InsightPriority.MEDIUM,
           InsightConfidence.HIGH,
-          {
-            teamId: scope.teamScope?.teamId,
+          scope.teamScope?.teamId ? {
+            teamId: scope.teamScope.teamId,
+            isActionable: true,
+            metadata: {
+              zone: strength.zone,
+              formation: structure.formation,
+              keyPlayers: strength.keyPlayers,
+            },
+          } : {
             isActionable: true,
             metadata: {
               zone: strength.zone,

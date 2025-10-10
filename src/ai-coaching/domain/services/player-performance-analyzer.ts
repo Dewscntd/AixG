@@ -370,7 +370,7 @@ export class PlayerPerformanceAnalyzer {
     );
     const recommendations = this.generateRecommendations(insights, tacticalFit);
 
-    return {
+    const report: PerformanceReport = {
       playerId,
       profile,
       analysisDate: new Date(),
@@ -381,11 +381,16 @@ export class PlayerPerformanceAnalyzer {
       tacticalFit,
       comparisons,
       developmentPlan,
-      marketAnalysis,
       hebrewSummary,
       englishSummary,
       recommendations,
     };
+
+    if (marketAnalysis) {
+      report.marketAnalysis = marketAnalysis;
+    }
+
+    return report;
   }
 
   /**
@@ -475,6 +480,8 @@ export class PlayerPerformanceAnalyzer {
 
       metricValues.sort((a, b) => b.value - a.value);
       const leader = metricValues[0];
+      if (!leader) continue;
+      
       const gap = leader.value - (metricValues[1]?.value || 0);
 
       insights.push({
@@ -574,10 +581,9 @@ export class PlayerPerformanceAnalyzer {
 
     // Analyze each tactical role compatibility
     for (const role of Object.values(TacticalRole)) {
-      const compatibility = FootballEntity.getRoleCompatibility(
-        profile.position,
-        role,
-        profile.attributes
+      const compatibility = FootballEntity.getPlayerCompatibility(
+        profile.attributes,
+        role as any
       );
 
       if (compatibility.overall > 0.4) {
@@ -755,10 +761,10 @@ export class PlayerPerformanceAnalyzer {
   private initializeBenchmarks(): void {
     // Initialize position benchmarks
     this.positionBenchmarks.set(PositionType.GOALKEEPER, {
-      [PerformanceMetricType.SAVES_MADE]: 4.5,
-      [PerformanceMetricType.DISTRIBUTION_ACCURACY]: 0.75,
-      [PerformanceMetricType.COMMAND_OF_AREA]: 0.8,
-      [PerformanceMetricType.SHOT_STOPPING]: 0.72,
+      [PerformanceMetricType.DEFENSIVE_ACTIONS]: 4.5,
+      [PerformanceMetricType.PASS_ACCURACY]: 0.75,
+      [PerformanceMetricType.POSITIONAL_DISCIPLINE]: 0.8,
+      [PerformanceMetricType.COMPOSURE_UNDER_PRESSURE]: 0.72,
     } as any);
 
     this.positionBenchmarks.set(PositionType.DEFENDER, {
@@ -766,7 +772,7 @@ export class PlayerPerformanceAnalyzer {
       [PerformanceMetricType.AERIAL_DUELS_WON]: 0.65,
       [PerformanceMetricType.INTERCEPTIONS]: 2.8,
       [PerformanceMetricType.PASS_ACCURACY]: 0.87,
-      [PerformanceMetricType.CLEARANCES]: 4.5,
+      [PerformanceMetricType.DEFENSIVE_ACTIONS]: 4.5,
     } as any);
 
     this.positionBenchmarks.set(PositionType.MIDFIELDER, {
@@ -806,33 +812,22 @@ export class PlayerPerformanceAnalyzer {
           age: 24,
           preferredFoot: 'right',
           fitness: 85,
-          speed: 78,
-          strength: 72,
-          stamina: 88,
         },
         technical: {
           passing: 82,
           shooting: 74,
           dribbling: 76,
           crossing: 68,
-          finishing: 70,
-          firstTouch: 81,
         },
         mental: {
           vision: 80,
-          composure: 75,
           decisionMaking: 78,
           workRate: 85,
-          aggression: 65,
           leadership: 72,
         },
         tactical: {
-          positioning: 79,
           marking: 73,
-          tackling: 75,
-          interceptions: 77,
           pressing: 82,
-          offTheBall: 76,
         },
       },
       strengths: ['stamina', 'work_rate', 'pressing', 'passing'],
@@ -889,7 +884,7 @@ export class PlayerPerformanceAnalyzer {
       breakdown[type] = {
         type,
         value: avgValue,
-        unit: metrics[0].unit,
+        unit: metrics[0]?.unit || '',
         percentile: avgPercentile,
         trend: this.calculateTrend(metrics),
         confidence: avgConfidence,
@@ -1287,10 +1282,9 @@ export class PlayerPerformanceAnalyzer {
     philosophy: TacticalPhilosophy[]
   ): number {
     // Base compatibility from FootballEntity
-    const baseCompatibility = FootballEntity.getRoleCompatibility(
-      profile.position,
-      role,
-      profile.attributes
+    const baseCompatibility = FootballEntity.getPlayerCompatibility(
+      profile.attributes,
+      role as any
     );
 
     // Adjust based on current performance metrics
@@ -1379,10 +1373,9 @@ export class PlayerPerformanceAnalyzer {
     fitScore: number,
     language: 'he' | 'en'
   ): string {
-    const compatibility = FootballEntity.getRoleCompatibility(
-      profile.position,
-      role,
-      profile.attributes
+    const compatibility = FootballEntity.getPlayerCompatibility(
+      profile.attributes,
+      role as any
     );
 
     if (language === 'he') {
@@ -1542,6 +1535,8 @@ export class PlayerPerformanceAnalyzer {
     for (const insight of insights) {
       if (insight.type === 'weakness' && insight.recommendations.length > 0) {
         const rec = insight.recommendations[0];
+        if (!rec || !insight.evidence.metrics[0]) continue;
+        
         recommendations.push({
           category: this.categorizeRecommendation(insight.evidence.metrics[0]),
           priority: rec.priority,
@@ -1700,7 +1695,9 @@ export class PlayerPerformanceAnalyzer {
     for (const insight of insights) {
       if (insight.type === 'weakness') {
         for (const metric of insight.evidence.metrics) {
-          targets[metric] = insight.evidence.values[0] * 1.2; // 20% improvement target
+          if (insight.evidence.values[0]) {
+            targets[metric] = insight.evidence.values[0] * 1.2; // 20% improvement target
+          }
         }
       }
     }
@@ -1715,7 +1712,9 @@ export class PlayerPerformanceAnalyzer {
 
     for (const insight of insights) {
       for (const metric of insight.evidence.metrics) {
-        indicators[metric] = insight.evidence.values[0] * 1.5; // 50% improvement as success
+        if (insight.evidence.values[0]) {
+          indicators[metric] = insight.evidence.values[0] * 1.5; // 50% improvement as success
+        }
       }
     }
 

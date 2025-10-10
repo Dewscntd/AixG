@@ -113,6 +113,10 @@ export class CoachProfile {
     this._data = Object.freeze({ ...data });
   }
 
+  get id(): string {
+    return this._data.coachId;
+  }
+
   private validateCoachProfile(data: CoachProfileData): void {
     if (!data.coachId?.trim()) {
       throw new Error('Coach ID is required');

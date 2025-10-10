@@ -72,8 +72,7 @@
     "skipDefaultLibCheck": true,
 
     // Advanced Options
-    "preserveConstEnums": true,
-    "verbatimModuleSyntax": false
+    "preserveConstEnums": true
   },
 
   "include": [
