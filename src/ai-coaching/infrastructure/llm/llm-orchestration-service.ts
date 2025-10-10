@@ -17,12 +17,14 @@ import {
   PerformanceReport,
 } from '../../domain/services/player-performance-analyzer';
 import { HebrewMorphology } from '../../domain/value-objects/hebrew-morphology';
+import { OpenAIClient } from './openai-client';
 
 export enum LLMProvider {
   OPENAI_GPT4 = 'openai_gpt4',
   OPENAI_GPT4_TURBO = 'openai_gpt4_turbo',
   ANTHROPIC_CLAUDE = 'anthropic_claude',
   COHERE_COMMAND = 'cohere_command',
+  GOOGLE_GEMINI = 'google_gemini',
   GOOGLE_PALM = 'google_palm',
   AZURE_OPENAI = 'azure_openai',
   HUGGINGFACE_INFERENCE = 'huggingface_inference',
@@ -195,6 +197,7 @@ export class LLMOrchestrationService {
   private knowledgeBase: EnhancedTacticalKnowledgeBase;
   private performanceAnalyzer: PlayerPerformanceAnalyzer;
   private hebrewMorphology: HebrewMorphology;
+  private openaiClient: OpenAIClient;
 
   // Conversation management
   private conversations = new Map<string, ConversationContext>();
@@ -230,6 +233,7 @@ export class LLMOrchestrationService {
     this.performanceAnalyzer = performanceAnalyzer;
     this.queryAnalyzer = new TacticalQueryAnalysis();
     this.hebrewMorphology = new HebrewMorphology();
+    this.openaiClient = new OpenAIClient(process.env.OPENAI_API_KEY);
 
     this.initializeModels();
     this.startPerformanceMonitoring();
@@ -331,6 +335,30 @@ export class LLMOrchestrationService {
       specializations: [
         CoachingTaskType.FORMATION_ADVICE,
         CoachingTaskType.CONCEPT_TEACHING,
+      ],
+    });
+
+    // Google Gemini (Balanced performance and cost)
+    this.models.set(LLMProvider.GOOGLE_GEMINI, {
+      provider: LLMProvider.GOOGLE_GEMINI,
+      modelName: 'gemini-pro',
+      capabilities: [
+        ModelCapability.MULTILINGUAL,
+        ModelCapability.TACTICAL_REASONING,
+        ModelCapability.LONG_CONTEXT,
+        ModelCapability.COST_EFFICIENT,
+      ],
+      maxTokens: 8192,
+      contextWindow: 32768,
+      costPerToken: 0.00002,
+      hebrewAccuracy: 0.88,
+      tacticalReasoningScore: 0.85,
+      latency: 2200,
+      reliability: 0.96,
+      specializations: [
+        CoachingTaskType.PLAYER_DEVELOPMENT,
+        CoachingTaskType.MATCH_PREPARATION,
+        CoachingTaskType.HEBREW_EXPLANATION,
       ],
     });
 
@@ -793,7 +821,20 @@ export class LLMOrchestrationService {
     tokensUsed: number;
     qualityScore: number;
   }> {
-    // Mock implementation - in production, would call actual LLM APIs
+    if (
+      model.provider === LLMProvider.OPENAI_GPT4 ||
+      model.provider === LLMProvider.OPENAI_GPT4_TURBO
+    ) {
+      const response = await this.openaiClient.predict(prompt, model.modelName);
+      return {
+        text: response.content,
+        tokensUsed: response.tokensUsed,
+        confidence: 0.9, // placeholder
+        qualityScore: 0.9, // placeholder
+      };
+    }
+
+    // Mock implementation for other providers
     const mockResponse = {
       text: this.generateMockResponse(request, 'en'),
       hebrewText:

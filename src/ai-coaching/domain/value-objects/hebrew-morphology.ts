@@ -520,7 +520,10 @@ export class HebrewMorphology {
       }
 
       // Extract root if possible
-      features.root = this.extractRoot(token);
+      const root = this.extractRoot(token);
+      if (root) {
+        features.root = root;
+      }
 
       return features;
     });
@@ -854,20 +857,30 @@ export class HebrewMorphology {
     morphology: MorphologicalFeatures[],
     semantics: SemanticAnalysis[]
   ): number {
-    const semanticConfidence =
-      semantics.reduce((sum, s) => sum + s.confidence, 0) / semantics.length;
-    const morphologyConfidence =
-      morphology.filter(m => m.root !== undefined).length / morphology.length;
+    let semanticConfidence = 0;
+    if (semantics && semantics.length > 0) {
+      semanticConfidence =
+        semantics!.reduce((sum, s) => sum + s.confidence, 0) / semantics!.length;
+    }
+
+    let morphologyConfidence = 0;
+    if (morphology && morphology.length > 0) {
+      morphologyConfidence =
+        morphology!.filter(m => m.root !== undefined).length / morphology!.length;
+    }
 
     return semanticConfidence * 0.7 + morphologyConfidence * 0.3;
   }
 
   private validateHebrewMorphology(data: HebrewMorphologyData): void {
+    if (!data) {
+      throw new Error('HebrewMorphologyData is required');
+    }
     if (!data.originalText?.trim()) {
       throw new Error('Original text is required');
     }
 
-    if (!data.tokens || data.tokens.length === 0) {
+    if (!data.tokens! || data.tokens!.length === 0) {
       throw new Error('Tokens are required');
     }
 

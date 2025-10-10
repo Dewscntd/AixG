@@ -75,6 +75,8 @@ FootAnalytics Platform/
 
 ## 🚀 **Quick Start**
 
+For coding standards, testing expectations, and PR checklists, review [`AGENTS.md`](AGENTS.md).
+
 ### **Prerequisites**
 
 - **Node.js 18+** (for API services)
