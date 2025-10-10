@@ -1058,16 +1058,20 @@ export class FootballConcept {
   }
 
   get examples(): ConceptExamples {
-    return {
+    const examples: ConceptExamples = {
       textual: {
         english: [...this._data.examples.textual.english],
         hebrew: [...this._data.examples.textual.hebrew],
       },
       situational: [...this._data.examples.situational],
-      videoReferences: this._data.examples.videoReferences
-        ? [...this._data.examples.videoReferences]
-        : undefined,
     };
+
+    // Only add videoReferences if it exists (exactOptionalPropertyTypes compliance)
+    if (this._data.examples.videoReferences) {
+      examples.videoReferences = [...this._data.examples.videoReferences];
+    }
+
+    return examples;
   }
 
   get tags(): string[] {

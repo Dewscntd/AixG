@@ -183,7 +183,7 @@ export class TacticalQueryAnalysis {
 
   constructor() {
     this.formationAnalyzer = new FormationAnalyzer();
-    this.patternMatcher = new TacticalPatternMatcher();
+    this.patternMatcher = new TacticalPatternMatcher(this.formationAnalyzer);
   }
 
   /**
@@ -219,15 +219,16 @@ export class TacticalQueryAnalysis {
 
       // Phase 2: Intent analysis
       const intent = TacticalIntent.analyze(normalizedQuery, {
-        language,
+        language: language === 'mixed' ? 'auto' : language,
         sessionContext: sessionContext
           ? {
               previousQueries: sessionContext.previousQueries,
-              userExpertise: sessionContext.userPreferences.expertiseLevel,
-              teamId: sessionContext.teamId,
-              matchContext: sessionContext.contextualData.matchPhase,
-              activePlayerFocus:
-                sessionContext.contextualData.activePlayerFocus,
+              conversationFlow: `Session started at ${sessionContext.sessionStartTime.toISOString()}`,
+              userPreferences: {
+                expertiseLevel: sessionContext.userPreferences.expertiseLevel,
+                language: sessionContext.userPreferences.language,
+                responseStyle: sessionContext.userPreferences.responseStyle,
+              },
             }
           : undefined,
         timeoutMs: options?.timeout || 5000,
@@ -273,6 +274,25 @@ export class TacticalQueryAnalysis {
       );
 
       // Phase 7: Build result
+      const processingMetadata: QueryAnalysisResult['processingMetadata'] = {
+        analysisTime: Date.now() - startTime,
+        modelVersions: {
+          tacticalIntent: '1.0.0',
+          semanticAnalysis: '1.0.0',
+          hebrewMorphology: '1.0.0',
+        },
+        featureFlags: this.getActiveFeatureFlags(),
+      };
+
+      // Only add debugInfo if debugMode is true (exactOptionalPropertyTypes compliance)
+      if (options?.debugMode) {
+        processingMetadata.debugInfo = {
+          cacheKey,
+          sessionId: sessionContext?.sessionId,
+          originalQuery: query,
+        };
+      }
+
       const result: QueryAnalysisResult = {
         query: normalizedQuery,
         language,
@@ -286,22 +306,7 @@ export class TacticalQueryAnalysis {
         context: intent.context,
         actionableItems,
         recommendations,
-        processingMetadata: {
-          analysisTime: Date.now() - startTime,
-          modelVersions: {
-            tacticalIntent: '1.0.0',
-            semanticAnalysis: '1.0.0',
-            hebrewMorphology: '1.0.0',
-          },
-          featureFlags: this.getActiveFeatureFlags(),
-          debugInfo: options?.debugMode
-            ? {
-                cacheKey,
-                sessionId: sessionContext?.sessionId,
-                originalQuery: query,
-              }
-            : undefined,
-        },
+        processingMetadata,
       };
 
       // Update performance metrics
@@ -320,7 +325,9 @@ export class TacticalQueryAnalysis {
       return result;
     } catch (error) {
       this.updatePerformanceMetrics(startTime, true);
-      throw new Error(`Query analysis failed: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Query analysis failed: ${errorMessage}`);
     }
   }
 
@@ -484,29 +491,25 @@ export class TacticalQueryAnalysis {
     const concepts: QueryConcept[] = [];
 
     // Use FootballConcept to identify semantic concepts
-    const conceptMatches = FootballConcept.searchSemantic(query, {
-      maxResults: 10,
-      minRelevance: 0.6,
-      language,
-      includeRelated: true,
+    const searchLanguage: 'he' | 'en' =
+      language === 'mixed' ? 'he' : language;
+    const conceptMatches = FootballConcept.searchConcepts(query, {
+      language: searchLanguage,
+      limit: 10,
     });
 
-    for (const match of conceptMatches) {
+    for (const concept of conceptMatches) {
       concepts.push({
-        id: match.concept.id,
-        category: match.concept.category,
-        term: match.concept.englishTerm,
-        hebrewTerm: match.concept.hebrewTerm,
-        confidence: match.relevance,
-        semanticWeight: match.concept.tacticalSignificance?.importance || 0.5,
-        contextualRelevance: this.calculateContextualRelevance(
-          match.concept,
-          query
-        ),
-        relatedConcepts:
-          match.concept.relationships
-            ?.filter(r => r.strength > 0.7)
-            .map(r => r.targetConceptId) || [],
+        id: concept.id,
+        category: concept.category,
+        term: concept.englishTerm,
+        hebrewTerm: concept.hebrewTerm,
+        confidence: concept.confidence,
+        semanticWeight: concept.tacticalSignificance.importance || 0.5,
+        contextualRelevance: this.calculateContextualRelevance(concept, query),
+        relatedConcepts: concept.relationships
+          .filter((r) => r.strength > 0.7)
+          .map((r) => r.targetConceptId),
       });
     }
 
@@ -542,10 +545,27 @@ export class TacticalQueryAnalysis {
       for (let j = i + 1; j < entities.length; j++) {
         const entity1 = entities[i];
         const entity2 = entities[j];
-        const compatibility = FootballEntity.getEntityCompatibility(
-          entity1.type,
-          entity2.type
-        );
+
+        // Skip if either entity is undefined
+        if (!entity1 || !entity2) continue;
+
+        // Calculate entity compatibility based on type relationships
+        let compatibility = 0.5; // Default compatibility
+
+        // Position-Role compatibility
+        if (
+          (entity1.type === EntityType.POSITION &&
+            entity2.type === EntityType.TACTICAL_ROLE) ||
+          (entity1.type === EntityType.TACTICAL_ROLE &&
+            entity2.type === EntityType.POSITION)
+        ) {
+          compatibility = 0.8;
+        }
+
+        // Same type entities have moderate compatibility
+        if (entity1.type === entity2.type) {
+          compatibility = 0.6;
+        }
 
         if (compatibility > 0.5) {
           relationships.push({
@@ -564,6 +584,9 @@ export class TacticalQueryAnalysis {
       for (let j = i + 1; j < concepts.length; j++) {
         const concept1 = concepts[i];
         const concept2 = concepts[j];
+
+        // Skip if either concept is undefined
+        if (!concept1 || !concept2) continue;
 
         if (concept1.relatedConcepts.includes(concept2.id)) {
           relationships.push({
@@ -622,7 +645,7 @@ export class TacticalQueryAnalysis {
     }
 
     // Based on intent type
-    switch (intent.type) {
+    switch (intent.primaryIntent) {
       case IntentType.TACTICAL_ANALYSIS:
         return QueryType.TACTICAL_QUESTION;
       case IntentType.FORMATION_ANALYSIS:
@@ -696,8 +719,8 @@ export class TacticalQueryAnalysis {
   ): AnalysisConfidence {
     let confidence = 0;
 
-    // Intent confidence
-    confidence += intent.confidence * 0.4;
+    // Intent confidence (use overall confidence from intent)
+    confidence += intent.confidence.overall * 0.4;
 
     // Semantic confidence (average of entity and concept confidences)
     const entityConfidence =
@@ -819,7 +842,7 @@ export class TacticalQueryAnalysis {
     }> = [];
 
     // Low confidence recommendations
-    if (intent.confidence < 0.6) {
+    if (intent.confidence.overall < 0.6) {
       recommendations.push({
         type: 'clarification',
         content:
@@ -832,20 +855,22 @@ export class TacticalQueryAnalysis {
     // Related query suggestions
     if (semantics.concepts.length > 0) {
       const topConcept = semantics.concepts[0];
-      recommendations.push({
-        type: 'related_query',
-        content: `You might also be interested in learning about ${topConcept.relatedConcepts
-          .slice(0, 2)
-          .join(' and ')}`,
-        hebrewContent: `ייתכן שתתעניין גם ללמוד על ${topConcept.relatedConcepts
-          .slice(0, 2)
-          .join(' ו')}`,
-        relevance: 0.7,
-      });
+      if (topConcept && topConcept.relatedConcepts.length > 0) {
+        recommendations.push({
+          type: 'related_query',
+          content: `You might also be interested in learning about ${topConcept.relatedConcepts
+            .slice(0, 2)
+            .join(' and ')}`,
+          hebrewContent: `ייתכן שתתעניין גם ללמוד על ${topConcept.relatedConcepts
+            .slice(0, 2)
+            .join(' ו')}`,
+          relevance: 0.7,
+        });
+      }
     }
 
     // Follow-up suggestions
-    if (intent.type === IntentType.FORMATION_ANALYSIS) {
+    if (intent.primaryIntent === IntentType.FORMATION_ANALYSIS) {
       recommendations.push({
         type: 'follow_up',
         content:
@@ -1053,7 +1078,10 @@ export class TacticalQueryAnalysis {
     return translations[category]?.[term] || term;
   }
 
-  private calculateContextualRelevance(concept: any, query: string): number {
+  private calculateContextualRelevance(
+    concept: FootballConcept,
+    query: string
+  ): number {
     // Simple relevance calculation based on term frequency and importance
     const termOccurrences = (
       query
@@ -1066,7 +1094,7 @@ export class TacticalQueryAnalysis {
 
     const frequency =
       (termOccurrences + hebrewOccurrences) / query.split(' ').length;
-    const importance = concept.tacticalSignificance?.importance || 0.5;
+    const importance = concept.tacticalSignificance.importance || 0.5;
 
     return Math.min(1, frequency * 2 + importance * 0.5);
   }
