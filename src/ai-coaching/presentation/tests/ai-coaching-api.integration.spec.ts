@@ -7,7 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import * as request from 'supertest';
+import request from 'supertest';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { AICoachingPresentationModule } from '../ai-coaching.module';

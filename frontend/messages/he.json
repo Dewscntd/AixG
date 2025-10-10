@@ -1,0 +1,113 @@
+{
+  "dashboard": {
+    "title": "לוח בקרה",
+    "subtitle": "פלטפורמת אנליטיקה לכדורגל",
+    "aiCoaching": "מאמן AI",
+    "tacticalBoard": "לוח טקטי",
+    "stats": {
+      "totalSessions": "סך הפגישות",
+      "activeSessions": "פגישות פעילות",
+      "insightsGenerated": "תובנות שנוצרו",
+      "avgResponseTime": "זמן תגובה ממוצע"
+    },
+    "matches": {
+      "recentMatches": "משחקים אחרונים",
+      "viewAll": "צפה בכל המשחקים",
+      "completed": "הסתיים",
+      "live": "בשידור חי",
+      "upcoming": "קרוב"
+    },
+    "live": {
+      "liveMatches": "משחקים חיים",
+      "noLiveMatches": "אין משחקים חיים כרגע",
+      "viewSession": "צפה בפגישה"
+    },
+    "quickActions": {
+      "title": "פעולות מהירות",
+      "newSession": "פגישת מאמן חדשה",
+      "newSessionDesc": "התחל פגישת מאמן AI חדשה",
+      "uploadVideo": "העלה וידאו",
+      "uploadVideoDesc": "העלה צילומי משחק לניתוח",
+      "tacticalBoard": "לוח טקטי",
+      "tacticalBoardDesc": "צור דיאגרמות טקטיות",
+      "viewAnalytics": "צפה בניתוחים",
+      "viewAnalyticsDesc": "חקור נתוני ביצועי הקבוצה"
+    },
+    "analytics": {
+      "title": "סקירת ניתוחים",
+      "possession": "החזקה בכדור",
+      "passAccuracy": "דיוק מסירות",
+      "shotsOnTarget": "זריקות למסגרת",
+      "defensiveActions": "פעולות הגנה",
+      "dataDescription": "מבוסס על ממוצע ביצועים של 10 המשחקים האחרונים"
+    },
+    "videoQueue": {
+      "title": "תור עיבוד וידאו",
+      "empty": "אין סרטונים בתור",
+      "queued": "בתור",
+      "processing": "מעבד",
+      "completed": "הושלם",
+      "failed": "נכשל"
+    },
+    "teamPerformance": {
+      "title": "ביצועי הקבוצה",
+      "viewDetails": "צפה בפרטים",
+      "wins": "ניצחונות",
+      "draws": "תיקו",
+      "losses": "הפסדים",
+      "goalsFor": "שערים בעד",
+      "goalsAgainst": "שערים נגד",
+      "recentForm": "טופס אחרון",
+      "winRate": "אחוז ניצחונות"
+    },
+    "upcomingMatches": {
+      "title": "משחקים קרובים",
+      "prepare": "הכן",
+      "viewSchedule": "צפה בלוח זמנים מלא"
+    },
+    "recentActivity": {
+      "title": "פעילות אחרונה",
+      "sessionCreated": "פגישת מאמן נוצרה",
+      "insightGenerated": "תובנה טקטית נוצרה",
+      "videoProcessed": "וידאו עובד בהצלחה",
+      "analysisCompleted": "ניתוח משחק הושלם"
+    }
+  },
+  "aiCoaching": {
+    "askCoach": "שאל את מאמן ה-AI",
+    "queryPlaceholder": "שאל שאלה טקטית...",
+    "ask": "שאל",
+    "processing": "מעבד...",
+    "insights": "תובנות מאמן",
+    "noInsights": "אין תובנות עדיין. שאל שאלה כדי להתחיל.",
+    "confidence": "ביטחון",
+    "low": "נמוך",
+    "medium": "בינוני",
+    "high": "גבוה",
+    "critical": "קריטי",
+    "createSession": {
+      "title": "צור פגישת מאמן",
+      "coachId": "מזהה מאמן",
+      "matchId": "מזהה משחק",
+      "homeTeam": "מזהה קבוצת בית",
+      "awayTeam": "מזהה קבוצת חוץ",
+      "language": "שפת מאמן",
+      "hebrew": "עברית",
+      "english": "אנגלית",
+      "mixed": "מעורב",
+      "cancel": "ביטול",
+      "create": "צור פגישה",
+      "creating": "יוצר..."
+    }
+  },
+  "tacticalBoard": {
+    "addPlayer": "הוסף שחקן",
+    "drawLine": "צייר קו",
+    "move": "הזז",
+    "clear": "נקה",
+    "save": "שמור",
+    "info": "מידע על לוח טקטי",
+    "playerCount": "שחקנים",
+    "instructions": "השתמש בכלים למעלה כדי ליצור דיאגרמות טקטיות. גרור שחקנים במצב הזזה."
+  }
+}

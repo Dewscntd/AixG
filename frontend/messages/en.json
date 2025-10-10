@@ -1,0 +1,113 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Football Analytics Platform",
+    "aiCoaching": "AI Coaching",
+    "tacticalBoard": "Tactical Board",
+    "stats": {
+      "totalSessions": "Total Sessions",
+      "activeSessions": "Active Sessions",
+      "insightsGenerated": "Insights Generated",
+      "avgResponseTime": "Avg Response Time"
+    },
+    "matches": {
+      "recentMatches": "Recent Matches",
+      "viewAll": "View all matches",
+      "completed": "Completed",
+      "live": "Live",
+      "upcoming": "Upcoming"
+    },
+    "live": {
+      "liveMatches": "Live Matches",
+      "noLiveMatches": "No live matches at the moment",
+      "viewSession": "View Session"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "newSession": "New Coaching Session",
+      "newSessionDesc": "Start a new AI coaching session",
+      "uploadVideo": "Upload Video",
+      "uploadVideoDesc": "Upload match footage for analysis",
+      "tacticalBoard": "Tactical Board",
+      "tacticalBoardDesc": "Create tactical diagrams",
+      "viewAnalytics": "View Analytics",
+      "viewAnalyticsDesc": "Explore team performance data"
+    },
+    "analytics": {
+      "title": "Analytics Overview",
+      "possession": "Possession",
+      "passAccuracy": "Pass Accuracy",
+      "shotsOnTarget": "Shots on Target",
+      "defensiveActions": "Defensive Actions",
+      "dataDescription": "Based on last 10 matches average performance"
+    },
+    "videoQueue": {
+      "title": "Video Processing Queue",
+      "empty": "No videos in queue",
+      "queued": "Queued",
+      "processing": "Processing",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "teamPerformance": {
+      "title": "Team Performance",
+      "viewDetails": "View Details",
+      "wins": "Wins",
+      "draws": "Draws",
+      "losses": "Losses",
+      "goalsFor": "Goals For",
+      "goalsAgainst": "Goals Against",
+      "recentForm": "Recent Form",
+      "winRate": "Win Rate"
+    },
+    "upcomingMatches": {
+      "title": "Upcoming Matches",
+      "prepare": "Prepare",
+      "viewSchedule": "View full schedule"
+    },
+    "recentActivity": {
+      "title": "Recent Activity",
+      "sessionCreated": "Coaching session created",
+      "insightGenerated": "Tactical insight generated",
+      "videoProcessed": "Video processed successfully",
+      "analysisCompleted": "Match analysis completed"
+    }
+  },
+  "aiCoaching": {
+    "askCoach": "Ask the AI Coach",
+    "queryPlaceholder": "Ask a tactical question...",
+    "ask": "Ask",
+    "processing": "Processing...",
+    "insights": "Coaching Insights",
+    "noInsights": "No insights yet. Ask a question to get started.",
+    "confidence": "Confidence",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical",
+    "createSession": {
+      "title": "Create Coaching Session",
+      "coachId": "Coach ID",
+      "matchId": "Match ID",
+      "homeTeam": "Home Team ID",
+      "awayTeam": "Away Team ID",
+      "language": "Coaching Language",
+      "hebrew": "Hebrew",
+      "english": "English",
+      "mixed": "Mixed",
+      "cancel": "Cancel",
+      "create": "Create Session",
+      "creating": "Creating..."
+    }
+  },
+  "tacticalBoard": {
+    "addPlayer": "Add Player",
+    "drawLine": "Draw Line",
+    "move": "Move",
+    "clear": "Clear",
+    "save": "Save",
+    "info": "Tactical Board Info",
+    "playerCount": "Players",
+    "instructions": "Use the tools above to create tactical diagrams. Drag players in move mode."
+  }
+}

@@ -9,7 +9,11 @@ export interface OpenAIResponse {
 export class OpenAIClient {
   private readonly openai: OpenAI;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string | null | undefined) {
+    if (!apiKey) {
+      throw new Error('OpenAI API key is required to initialise OpenAIClient');
+    }
+
     this.openai = new OpenAI({ apiKey });
   }
 
@@ -19,9 +23,10 @@ export class OpenAIClient {
       messages: [{ role: 'user', content: prompt }],
     });
 
-    return {
-      content: response.choices[0].message.content,
-      tokensUsed: response.usage.total_tokens,
-    };
+    const choice = response.choices?.[0];
+    const content = choice?.message?.content?.trim() ?? '';
+    const tokensUsed = response.usage?.total_tokens ?? 0;
+
+    return { content, tokensUsed };
   }
 }

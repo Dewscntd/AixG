@@ -19,39 +19,39 @@ registerEnumType(MatchPhase, {
 
 // Object Types
 
-@ObjectType()
+@ObjectType({ description: 'AI-generated coaching insight with tactical analysis' })
 export class CoachingInsightType {
-  @Field()
+  @Field({ description: 'Unique identifier for the insight' })
   id!: string;
 
-  @Field()
+  @Field({ description: 'Type of insight (tactical, formation, player, etc.)' })
   type!: string;
 
-  @Field()
+  @Field({ description: 'Insight content in English' })
   content!: string;
 
-  @Field()
+  @Field({ description: 'Insight content in Hebrew' })
   hebrewContent!: string;
 
-  @Field(() => CoachingUrgency)
+  @Field(() => CoachingUrgency, { description: 'Urgency level of the insight' })
   urgency!: CoachingUrgency;
 
-  @Field(() => Float)
+  @Field(() => Float, { description: 'Confidence score (0-1)' })
   confidence!: number;
 
-  @Field()
+  @Field({ description: 'Timestamp when insight was generated' })
   timestamp!: Date;
 
-  @Field(() => MatchContextType)
+  @Field(() => MatchContextType, { description: 'Match context at time of insight' })
   matchContext!: MatchContextType;
 
-  @Field(() => [ActionableItemType])
+  @Field(() => [ActionableItemType], { description: 'Actionable recommendations' })
   actionableItems!: ActionableItemType[];
 
-  @Field(() => [String])
+  @Field(() => [String], { description: 'Related insight IDs' })
   relatedInsights!: string[];
 
-  @Field(() => [SourceType])
+  @Field(() => [SourceType], { description: 'Sources used for insight generation' })
   sources!: SourceType[];
 }
 
@@ -255,24 +255,24 @@ export class InstantInsightsResponseType {
 
 // Input Types
 
-@InputType()
+@InputType({ description: 'Input for creating a new coaching session' })
 export class CreateSessionInput {
-  @Field()
+  @Field({ description: 'Coach identifier' })
   coachId!: string;
 
-  @Field()
+  @Field({ description: 'Match identifier' })
   matchId!: string;
 
-  @Field()
+  @Field({ description: 'Home team identifier' })
   homeTeamId!: string;
 
-  @Field()
+  @Field({ description: 'Away team identifier' })
   awayTeamId!: string;
 
-  @Field()
+  @Field({ description: 'Preferred language (he/en/mixed)' })
   language!: string;
 
-  @Field(() => SessionPreferencesInput, { nullable: true })
+  @Field(() => SessionPreferencesInput, { nullable: true, description: 'Session preferences and settings' })
   preferences?: SessionPreferencesInput;
 }
 
@@ -291,21 +291,21 @@ export class SessionPreferencesInput {
   culturalAdaptation?: boolean;
 }
 
-@InputType()
+@InputType({ description: 'Input for processing a coaching query' })
 export class CoachingQueryInput {
-  @Field()
+  @Field({ description: 'Session identifier' })
   sessionId!: string;
 
-  @Field()
+  @Field({ description: 'Query text in Hebrew or English' })
   query!: string;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'Query language (he/en/auto)' })
   language?: string;
 
-  @Field(() => CoachingUrgency, { nullable: true })
+  @Field(() => CoachingUrgency, { nullable: true, description: 'Query urgency level' })
   urgency?: CoachingUrgency;
 
-  @Field(() => QueryContextInput, { nullable: true })
+  @Field(() => QueryContextInput, { nullable: true, description: 'Additional query context' })
   context?: QueryContextInput;
 }
 

@@ -45,9 +45,12 @@ export class AICoachingResolver {
   /**
    * Get coaching session details
    */
-  @Query(() => CoachingSessionType, { nullable: true })
+  @Query(() => CoachingSessionType, {
+    nullable: true,
+    description: 'Retrieve detailed information about a coaching session including status, insights, and match context'
+  })
   async coachingSession(
-    @Args('sessionId', { type: () => ID }) sessionId: string
+    @Args('sessionId', { type: () => ID, description: 'Unique session identifier' }) sessionId: string
   ): Promise<CoachingSessionType | null> {
     try {
       const status = this.realTimeCoachingService.getSessionStatus(sessionId);
@@ -134,9 +137,11 @@ export class AICoachingResolver {
   /**
    * Create a new coaching session
    */
-  @Mutation(() => CreateSessionResponseType)
+  @Mutation(() => CreateSessionResponseType, {
+    description: 'Create a new real-time coaching session with Hebrew language support for tactical analysis'
+  })
   async createCoachingSession(
-    @Args('input') input: CreateSessionInput,
+    @Args('input', { description: 'Session creation parameters including coach, match, and language preferences' }) input: CreateSessionInput,
     @Context() context: any
   ): Promise<CreateSessionResponseType> {
     try {
@@ -195,9 +200,11 @@ export class AICoachingResolver {
   /**
    * Process a coaching query
    */
-  @Mutation(() => CoachingQueryResponseType)
+  @Mutation(() => CoachingQueryResponseType, {
+    description: 'Process a coaching query in Hebrew or English and receive AI-powered tactical insights'
+  })
   async processCoachingQuery(
-    @Args('input') input: CoachingQueryInput,
+    @Args('input', { description: 'Query parameters including text, language, and context' }) input: CoachingQueryInput,
     @Context() context: any
   ): Promise<CoachingQueryResponseType> {
     const startTime = Date.now();
@@ -375,9 +382,11 @@ export class AICoachingResolver {
   /**
    * Subscribe to coaching responses
    */
-  @Subscription(() => CoachingQueryResponseType)
+  @Subscription(() => CoachingQueryResponseType, {
+    description: 'Subscribe to real-time coaching query responses and insights'
+  })
   coachingResponse(
-    @Args('sessionId', { type: () => ID, nullable: true }) sessionId?: string
+    @Args('sessionId', { type: () => ID, nullable: true, description: 'Optional session ID filter' }) sessionId?: string
   ) {
     return this.pubSub.asyncIterator('coachingResponse');
   }
