@@ -1,0 +1,17 @@
+
+type Query {
+  getCoachingSession(id: ID!): CoachingSession
+}
+
+type Mutation {
+  startCoachingSession(input: StartCoachingSessionInput!): CoachingSession
+}
+
+type CoachingSession {
+  id: ID!
+  status: String!
+}
+
+input StartCoachingSessionInput {
+  playerId: ID!
+}

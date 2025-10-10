@@ -6,6 +6,8 @@ import { HealthModule } from './health/health.module';
 import { PrismaModule } from './shared/infrastructure/prisma/prisma.module';
 import { EventStoreModule } from './shared/infrastructure/event-store/event-store.module';
 
+import { AiCoachingModule } from './ai-coaching/ai-coaching.module';
+
 @Module({
   imports: [
     // Configuration
@@ -41,7 +43,7 @@ import { EventStoreModule } from './shared/infrastructure/event-store/event-stor
     HealthModule,
 
     // Feature Modules (will be added as we fix them)
-    // AICoachingModule,
+    AiCoachingModule,
     // TeamManagementModule,
     // VideoAnalysisModule,
     // RealTimeAnalysisModule,
