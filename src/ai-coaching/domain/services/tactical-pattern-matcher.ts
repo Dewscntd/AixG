@@ -971,9 +971,12 @@ export class TacticalPatternMatcher {
             passes.length > 0 ? successfulPasses.length / passes.length : 0;
           break;
         case 'quick_transition':
-          const transitionTime =
-            sequence[sequence.length - 1].timestamp - sequence[0].timestamp;
-          score += transitionTime < 10 ? 1 : 0.5;
+          const lastEvent = sequence[sequence.length - 1];
+          const firstEvent = sequence[0];
+          if (lastEvent && firstEvent) {
+            const transitionTime = lastEvent.timestamp - firstEvent.timestamp;
+            score += transitionTime < 10 ? 1 : 0.5;
+          }
           break;
         case 'numerical_advantage':
           const participants = [...new Set(sequence.map(e => e.playerId))];
@@ -1360,6 +1363,25 @@ export class TacticalPatternMatcher {
         const hebrewName =
           this.hebrewPatternNames.get(pattern as TacticalPattern) || pattern;
 
+        const insightOptions: {
+          teamId?: string;
+          isActionable: boolean;
+          metadata: Record<string, any>;
+        } = {
+          isActionable: true,
+          metadata: {
+            pattern,
+            effectiveness: eff,
+            suggestions: this.getPatternImprovementSuggestions(
+              pattern as TacticalPattern
+            ),
+          },
+        };
+
+        if (scope.teamScope?.teamId) {
+          insightOptions.teamId = scope.teamScope.teamId;
+        }
+
         const insight = TacticalInsight.create(
           InsightType.PERFORMANCE_PATTERN,
           `Low effectiveness in ${pattern} pattern`,
@@ -1372,26 +1394,7 @@ export class TacticalPatternMatcher {
           )}%)`,
           InsightPriority.MEDIUM,
           InsightConfidence.HIGH,
-          scope.teamScope?.teamId ? {
-            teamId: scope.teamScope.teamId,
-            isActionable: true,
-            metadata: {
-              pattern,
-              effectiveness: eff,
-              suggestions: this.getPatternImprovementSuggestions(
-                pattern as TacticalPattern
-              ),
-            },
-          } : {
-            isActionable: true,
-            metadata: {
-              pattern,
-              effectiveness: eff,
-              suggestions: this.getPatternImprovementSuggestions(
-                pattern as TacticalPattern
-              ),
-            },
-          }
+          insightOptions
         );
 
         insights.push(insight);
@@ -1406,6 +1409,23 @@ export class TacticalPatternMatcher {
       );
 
       recommendations.forEach(rec => {
+        const recOptions: {
+          teamId?: string;
+          isActionable: boolean;
+          metadata: Record<string, any>;
+        } = {
+          isActionable: true,
+          metadata: {
+            recommendedPattern: rec.pattern,
+            expectedEffectiveness: rec.effectiveness,
+            requirements: rec.requirements,
+          },
+        };
+
+        if (scope.teamScope?.teamId) {
+          recOptions.teamId = scope.teamScope.teamId;
+        }
+
         const insight = TacticalInsight.create(
           InsightType.TACTICAL_ADJUSTMENT,
           `Consider implementing ${rec.pattern}`,
@@ -1414,15 +1434,7 @@ export class TacticalPatternMatcher {
           rec.hebrewReason,
           InsightPriority.MEDIUM,
           InsightConfidence.MEDIUM,
-          {
-            teamId: scope.teamScope?.teamId,
-            isActionable: true,
-            metadata: {
-              recommendedPattern: rec.pattern,
-              expectedEffectiveness: rec.effectiveness,
-              requirements: rec.requirements,
-            },
-          }
+          recOptions
         );
 
         insights.push(insight);
@@ -1708,6 +1720,8 @@ export class TacticalPatternMatcher {
     for (let i = 0; i < sortedPatterns.length - 1; i++) {
       const current = sortedPatterns[i];
       const next = sortedPatterns[i + 1];
+
+      if (!current || !next) continue;
 
       if (next.startTime - current.endTime < 30) {
         const sequence = [current.pattern, next.pattern];
